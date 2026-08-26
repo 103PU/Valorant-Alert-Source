@@ -32,19 +32,23 @@ function copyDirSync(src, dest) {
 }
 
 // 1. Copy server directory
-console.log('[1/5] Copying server files...');
+console.log('[1/6] Copying server files...');
 copyDirSync(path.join(rootDir, 'server'), path.join(releaseDir, 'server'));
 
 // 2. Copy public directory
-console.log('[2/5] Copying public PWA frontend assets...');
+console.log('[2/6] Copying public PWA frontend assets...');
 copyDirSync(path.join(rootDir, 'public'), path.join(releaseDir, 'public'));
 
 // 3. Copy assets directory (icons)
-console.log('[3/5] Copying branding assets...');
+console.log('[3/6] Copying branding assets...');
 copyDirSync(path.join(rootDir, 'assets'), path.join(releaseDir, 'assets'));
 
-// 4. Copy node_modules & root files
-console.log('[4/5] Copying bundled node_modules dependencies...');
+// 4. Copy scripts directory (tray & launcher)
+console.log('[4/6] Copying scripts...');
+copyDirSync(path.join(rootDir, 'scripts'), path.join(releaseDir, 'scripts'));
+
+// 5. Copy node_modules & root files
+console.log('[5/6] Copying bundled node_modules dependencies...');
 copyDirSync(path.join(rootDir, 'node_modules'), path.join(releaseDir, 'node_modules'));
 
 fs.copyFileSync(path.join(rootDir, 'package.json'), path.join(releaseDir, 'package.json'));
@@ -52,7 +56,7 @@ fs.copyFileSync(path.join(rootDir, 'config.json'), path.join(releaseDir, 'config
 fs.copyFileSync(path.join(rootDir, 'Start-ValorantAlert.bat'), path.join(releaseDir, 'Start-ValorantAlert.bat'));
 fs.copyFileSync(path.join(rootDir, 'Create-Desktop-Shortcut.vbs'), path.join(releaseDir, 'Create-Desktop-Shortcut.vbs'));
 
-// 5. Create Release README
+// 6. Create Release README
 const readmeContent = `===========================================================
 🎯 VALORANT REALTIME SCORE ALERT (PWA) - PORTABLE RELEASE
 ===========================================================

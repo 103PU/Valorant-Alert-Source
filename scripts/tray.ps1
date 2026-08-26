@@ -1,16 +1,19 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$rootDir = Split-Path -Parent $PSScriptRoot
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
+if (-not $scriptDir) { $scriptDir = $PSScriptRoot }
+$rootDir = Split-Path -Parent $scriptDir
+if (-not (Test-Path "$rootDir\server")) { $rootDir = $scriptDir }
 Set-Location $rootDir
 
-# Wait up to 5 seconds for server to be responsive
+# Wait up to 6 seconds for server /api/info
 $infoUrl = "http://localhost:3000/api/info"
 $token = ""
 $dashboardUrl = "http://localhost:3000/dashboard.html"
 $lanUrl = ""
 
-for ($i = 0; $i -lt 10; $i++) {
+for ($i = 0; $i -lt 12; $i++) {
     try {
         $info = Invoke-RestMethod -Uri $infoUrl -Method Get -TimeoutSec 1
         if ($info) {
@@ -37,10 +40,15 @@ if (Test-Path $iconPath) {
     $notifyIcon.Icon = [System.Drawing.SystemIcons]::Application
 }
 
-$notifyIcon.Text = "Valorant Score Alert (Online)"
+$notifyIcon.Text = "Valorant Score Alert"
 $notifyIcon.Visible = $true
 
-# Function to Open Dashboard Window
+# Balloon Tip
+$notifyIcon.BalloonTipTitle = "Valorant Score Alert"
+$notifyIcon.BalloonTipText = "Server đang chạy ngầm. Nhấp đôi icon để mở PC Dashboard!"
+$notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
+$notifyIcon.ShowBalloonTip(3000)
+
 function Open-Dashboard {
     try {
         Start-Process "msedge.exe" -ArgumentList "--app=`"$dashboardUrl`"" -ErrorAction Stop
@@ -70,7 +78,7 @@ $itemCopyLan.add_Click({
     if ($lanUrl) {
         [System.Windows.Forms.Clipboard]::SetText($lanUrl)
         $notifyIcon.BalloonTipTitle = "Valorant Score Alert"
-        $notifyIcon.BalloonTipText = "Da copy link LAN: $lanUrl"
+        $notifyIcon.BalloonTipText = "Da copy link: $lanUrl"
         $notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
         $notifyIcon.ShowBalloonTip(2000)
     }
@@ -113,7 +121,6 @@ $itemExit.add_Click({
     $notifyIcon.Visible = $false
     $notifyIcon.Dispose()
 
-    # Clean up all node processes
     Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     
     [System.Windows.Forms.Application]::Exit()
