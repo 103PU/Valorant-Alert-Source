@@ -23,14 +23,36 @@ const VALORANT_MAP_NAMES = {
   '/Game/Maps/HURM/HURM_Alley': 'PIAZZA',
   '/Game/Maps/HURM/HURM_Helix': 'KASBAH',
   '/Game/Maps/HURM/HURM_Drift': 'DRIFT',
-  '/Game/Maps/HURM/HURM_Glitch': 'GLITCH'
+// Valorant Queue Mode Dictionary
+const VALORANT_QUEUE_NAMES = {
+  'custom': 'CUSTOM',
+  'unrated': 'UNRATED',
+  'competitive': 'COMPETITIVE',
+  'swiftplay': 'SWIFTPLAY',
+  'spikerush': 'SPIKE RUSH',
+  'deathmatch': 'DEATHMATCH',
+  'hurm': 'TDM',
+  'ggteam': 'ESCALATION',
+  'onefa': 'REPLICATION',
+  'snowball': 'SNOWBALL',
+  'premier': 'PREMIER',
+  'tournament': 'TOURNAMENT'
 };
 
 function formatMapName(rawMap) {
-  if (!rawMap) return 'ACTIVE MATCH';
+  if (!rawMap) return 'ASCENT';
   if (VALORANT_MAP_NAMES[rawMap]) return VALORANT_MAP_NAMES[rawMap];
   const parts = rawMap.split('/').filter(Boolean);
-  return (parts[parts.length - 1] || 'ACTIVE MATCH').toUpperCase();
+  return (parts[parts.length - 1] || 'ASCENT').toUpperCase();
+}
+
+function formatQueueName(queueId, provisioningFlow) {
+  if (provisioningFlow === 'CustomGame' || queueId === 'custom' || !queueId) {
+    return 'CUSTOM';
+  }
+  const qLower = (queueId || '').toLowerCase();
+  if (VALORANT_QUEUE_NAMES[qLower]) return VALORANT_QUEUE_NAMES[qLower];
+  return qLower.toUpperCase();
 }
 
 class ScorePoller {
@@ -113,9 +135,17 @@ class ScorePoller {
 
             const status = evaluateAlertStatus(alliedScore, enemyScore, this.config.alertEnemyScoreThreshold || 11);
 
+            const rawMap = decoded.matchPresenceData?.matchMap || decoded.matchMap;
+            const mapName = formatMapName(rawMap);
+            const queueId = decoded.matchPresenceData?.queueId || decoded.queueId;
+            const provisioningFlow = decoded.provisioningFlow || decoded.partyPresenceData?.partyOwnerProvisioningFlow;
+            const gameMode = formatQueueName(queueId, provisioningFlow);
+
             this.notifyUpdate({
               inGame: true,
-              matchId: formatMapName(decoded.matchPresenceData?.matchMap),
+              matchId: mapName,
+              mapName: mapName,
+              gameMode: gameMode,
               alliedScore,
               enemyScore,
               status,

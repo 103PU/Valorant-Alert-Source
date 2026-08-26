@@ -248,9 +248,10 @@
     }
 
     .status-badge-live {
-      background: var(--val-cyan);
-      color: #0F1923;
-      box-shadow: 0 0 15px rgba(0, 245, 212, 0.4);
+      background: #121C26;
+      border: 1.5px solid var(--val-cyan);
+      color: var(--val-white);
+      box-shadow: 0 0 15px rgba(0, 245, 212, 0.25);
     }
 
     .status-badge-danger {
@@ -938,8 +939,10 @@
 
       if (status === 'MATCH_POINT_RISK' || (enemyScore >= 11 && alliedScore < enemyScore)) {
         if (mobileStatusBadge) {
+          const map = data.mapName || data.matchId || 'ASCENT';
+          const mode = data.gameMode || 'CUSTOM';
           mobileStatusBadge.className = 'status-badge-btn status-badge-danger';
-          mobileStatusBadge.innerText = 'MATCH POINT';
+          mobileStatusBadge.innerHTML = `MATCH POINT // <span style="color:#FFF;">${map}</span> // <span style="color:#FEF08A;">${mode}</span>`;
         }
         alertBanner.classList.add('active');
         btnSilence.style.display = 'flex';
@@ -949,8 +952,10 @@
         }
       } else {
         if (mobileStatusBadge) {
+          const map = data.mapName || data.matchId || 'ASCENT';
+          const mode = data.gameMode || 'CUSTOM';
           mobileStatusBadge.className = 'status-badge-btn status-badge-live';
-          mobileStatusBadge.innerText = `IN MATCH // ${data.matchId || 'ACTIVE'}`;
+          mobileStatusBadge.innerHTML = `IN MATCH // <span style="color:#00F5D4; font-weight:900;">${map}</span> // <span style="color:#FFCE47; font-weight:900;">${mode}</span>`;
         }
         alertBanner.classList.remove('active');
         btnSilence.style.display = 'none';

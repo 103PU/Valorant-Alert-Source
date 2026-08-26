@@ -270,9 +270,10 @@
     }
 
     .status-badge-live {
-      background: var(--val-cyan);
-      color: #0F1923;
-      box-shadow: 0 0 15px rgba(0, 245, 212, 0.4);
+      background: #121C26;
+      border: 1.5px solid var(--val-cyan);
+      color: var(--val-white);
+      box-shadow: 0 0 15px rgba(0, 245, 212, 0.25);
     }
 
     .status-badge-danger {
@@ -879,12 +880,15 @@
           const matchInfoTag = document.getElementById('matchInfoTag');
 
           if (data.inGame) {
+            const map = data.mapName || data.matchId || 'ASCENT';
+            const mode = data.gameMode || 'CUSTOM';
+
             if (data.status === 'MATCH_POINT_RISK' || (enemy >= 11 && allied < enemy)) {
               matchInfoTag.className = 'status-badge-btn status-badge-danger';
-              matchInfoTag.innerText = 'MATCH POINT';
+              matchInfoTag.innerHTML = `MATCH POINT // <span style="color:#FFF;">${map}</span> // <span style="color:#FEF08A;">${mode}</span>`;
             } else {
               matchInfoTag.className = 'status-badge-btn status-badge-live';
-              matchInfoTag.innerText = `IN MATCH // ${data.matchId || 'ACTIVE'}`;
+              matchInfoTag.innerHTML = `IN MATCH // <span style="color:#00F5D4; font-weight:900;">${map}</span> // <span style="color:#FFCE47; font-weight:900;">${mode}</span>`;
             }
 
             // Check Round Change on PC
