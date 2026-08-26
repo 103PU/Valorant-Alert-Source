@@ -46,7 +46,27 @@ const VALORANT_QUEUE_NAMES = {
 function formatMapName(rawMap) {
   if (!rawMap) return 'ASCENT';
   if (VALORANT_MAP_NAMES[rawMap]) return VALORANT_MAP_NAMES[rawMap];
-  const parts = rawMap.split('/').filter(Boolean);
+  
+  const lower = String(rawMap).toLowerCase();
+  if (lower.includes('ascent')) return 'ASCENT';
+  if (lower.includes('bonsai') || lower.includes('split')) return 'SPLIT';
+  if (lower.includes('duality') || lower.includes('bind')) return 'BIND';
+  if (lower.includes('triad') || lower.includes('haven')) return 'HAVEN';
+  if (lower.includes('port') || lower.includes('icebox')) return 'ICEBOX';
+  if (lower.includes('foxtrot') || lower.includes('breeze')) return 'BREEZE';
+  if (lower.includes('canyon') || lower.includes('fracture')) return 'FRACTURE';
+  if (lower.includes('pitt') || lower.includes('pearl')) return 'PEARL';
+  if (lower.includes('jam') || lower.includes('lotus')) return 'LOTUS';
+  if (lower.includes('jules') || lower.includes('sunset')) return 'SUNSET';
+  if (lower.includes('plummet') || lower.includes('infinity') || lower.includes('abyss')) return 'ABYSS';
+  if (lower.includes('range') || lower.includes('poveglia')) return 'THE RANGE';
+  if (lower.includes('district') || lower.includes('yard')) return 'DISTRICT';
+  if (lower.includes('piazza') || lower.includes('alley')) return 'PIAZZA';
+  if (lower.includes('kasbah') || lower.includes('helix')) return 'KASBAH';
+  if (lower.includes('drift')) return 'DRIFT';
+  if (lower.includes('glitch')) return 'GLITCH';
+
+  const parts = String(rawMap).split('/').filter(Boolean);
   return (parts[parts.length - 1] || 'ASCENT').toUpperCase();
 }
 
@@ -143,9 +163,9 @@ class ScorePoller {
 
             const status = evaluateAlertStatus(alliedScore, enemyScore, this.config.alertEnemyScoreThreshold || 11);
 
-            const rawMap = decoded.matchPresenceData?.matchMap || decoded.matchMap;
+            const rawMap = decoded.matchPresenceData?.matchMap || decoded.matchMap || decoded.partyPresenceData?.matchMap || decoded.partyPresenceData?.partyOwnerMatchMap || decoded.partyOwnerMatchMap;
             const mapName = formatMapName(rawMap);
-            const queueId = decoded.matchPresenceData?.queueId || decoded.queueId;
+            const queueId = decoded.matchPresenceData?.queueId || decoded.queueId || decoded.partyPresenceData?.partyOwnerProvisioningFlow;
             const provisioningFlow = decoded.provisioningFlow || decoded.partyPresenceData?.partyOwnerProvisioningFlow;
             const gameMode = formatQueueName(queueId, provisioningFlow);
 
@@ -249,10 +269,16 @@ class ScorePoller {
       }
 
       const status = evaluateAlertStatus(alliedScore, enemyScore, this.config.alertEnemyScoreThreshold || 11);
+      const rawMap = matchData.MapID;
+      const mapName = formatMapName(rawMap);
+      const queueId = matchData.MatchmakingData?.QueueID || matchData.QueueID;
+      const gameMode = formatQueueName(queueId, matchData.ProvisioningFlow);
 
       this.notifyUpdate({
         inGame: true,
-        matchId,
+        matchId: mapName,
+        mapName: mapName,
+        gameMode: gameMode,
         alliedScore,
         enemyScore,
         status,
