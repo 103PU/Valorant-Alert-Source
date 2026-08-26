@@ -92,15 +92,49 @@ const poller = new ScorePoller(config, (scoreData) => {
   wsServer.broadcastScore(scoreData);
 });
 
+let reclaimAttempts = 0;
+
+function killPortAndRetry() {
+  reclaimAttempts++;
+  if (reclaimAttempts > 3) {
+    logger.error(`❌ Cổng ${PORT} đang bị chiếm dụng. Vui lòng đóng ứng dụng đang dùng cổng ${PORT} hoặc đổi port trong config.json.`);
+    process.exit(1);
+    return;
+  }
+  logger.warn(`⚠️ Cổng ${PORT} bị chiếm bởi tiến trình không phản hồi. Đang thu hồi (Lần ${reclaimAttempts}/3)...`);
+  exec(`cmd /c for /f "tokens=5" %a in ('netstat -aon ^| findstr :${PORT} ^| findstr LISTENING') do taskkill /f /pid %a`, () => {
+    setTimeout(() => {
+      try {
+        server.listen(PORT, '0.0.0.0');
+      } catch (e) {}
+    }, 1500);
+  });
+}
+
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    logger.warn(`⚠️ Port ${PORT} is in use. Reclaiming port...`);
-    exec(`cmd /c for /f "tokens=5" %a in ('netstat -aon ^| findstr :${PORT} ^| findstr LISTENING') do taskkill /f /pid %a`, () => {
-      setTimeout(() => {
-        try {
-          server.listen(PORT, '0.0.0.0');
-        } catch (e) {}
-      }, 1000);
+    // Check if an existing Valorant Score Alert instance is already running healthy on this port
+    const req = http.get(`http://localhost:${PORT}/api/info`, (res) => {
+      if (res.statusCode === 200) {
+        logger.info(`✅ Valorant Score Alert đã đang chạy ngầm trên cổng ${PORT}.`);
+        logger.info(`🖥️ Đang mở PC Dashboard: http://localhost:${PORT}/dashboard.html`);
+        // Just launch the PC Dashboard for user and exit cleanly
+        exec(`start msedge --app="http://localhost:${PORT}/dashboard.html"`, (e) => {
+          if (e) exec(`start "" "http://localhost:${PORT}/dashboard.html"`);
+          process.exit(0);
+        });
+      } else {
+        killPortAndRetry();
+      }
+    });
+
+    req.on('error', () => {
+      killPortAndRetry();
+    });
+
+    req.setTimeout(1500, () => {
+      req.destroy();
+      killPortAndRetry();
     });
   } else {
     logger.error('Server error:', err.message);
