@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VALORANT SCORE ALERT // PC DASHBOARD</title>
+  
+  <!-- Favicons -->
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="alternate icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/icon.png">
+  
+  <!-- Google Fonts: Oswald (Headings), Rajdhani (Tactical UI), Barlow Condensed (Score) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,900;1,900&family=Oswald:wght@600;700;800&family=Rajdhani:wght@600;700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --val-bg: #0F1923;
+      --val-surface: #1B2733;
+      --val-surface-dark: #121C26;
+      --val-border: #2B3844;
+      --val-red: #FF4655;
+      --val-red-hover: #E03E4C;
+      --val-cyan: #00F5D4;
+      --val-gold: #FFCE47;
+      --val-white: #ECE8E1;
+      --val-gray: #768079;
+      --val-font-display: 'Barlow Condensed', 'Oswald', sans-serif;
+      --val-font-tactical: 'Rajdhani', sans-serif;
+      --val-font-body: 'Inter', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--val-bg);
+      color: var(--val-white);
+      font-family: var(--val-font-body);
+      min-height: 100vh;
+      padding: 24px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Subtle Valorant Tactical Grid Background Pattern */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image: 
+        linear-gradient(rgba(43, 56, 68, 0.15) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(43, 56, 68, 0.15) 1px, transparent 1px);
+      background-size: 32px 32px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* Top Valorant Header Bar */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--val-border);
+      position: relative;
+    }
+
+    header::after {
+      content: "// PROTOCOL : REALTIME HUD //";
+      position: absolute;
+      bottom: -10px;
+      right: 0;
+      font-family: var(--val-font-tactical);
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--val-gray);
+      letter-spacing: 2px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .val-logo {
+      width: 38px;
+      height: 38px;
+      background: var(--val-red);
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 15px rgba(255, 70, 85, 0.4);
+    }
+
+    .brand-text h1 {
+      font-family: var(--val-font-display);
+      font-size: 1.6rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      line-height: 1;
+      color: var(--val-white);
+    }
+    .brand-text span {
+      font-family: var(--val-font-tactical);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--val-red);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(0, 245, 212, 0.1);
+      border: 1px solid var(--val-cyan);
+      font-family: var(--val-font-tactical);
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--val-cyan);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--val-cyan);
+      box-shadow: 0 0 10px var(--val-cyan);
+      border-radius: 50%;
+    }
+
+    /* Grid Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    /* Top 3 Status Chips */
+    .status-chips-grid {
+      grid-column: span 2;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+    }
+
+    .chip-card {
+      background: var(--val-surface-dark);
+      border: 1px solid var(--val-border);
+      padding: 14px 18px;
+      position: relative;
+      clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+    }
+
+    .chip-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0;
+      width: 4px; height: 100%;
+      background: var(--val-border);
+    }
+    .chip-card.active::before { background: var(--val-cyan); }
+    .chip-card.riot::before { background: var(--val-red); }
+    .chip-card.mobile::before { background: var(--val-gold); }
+
+    .chip-label {
+      font-family: var(--val-font-tactical);
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--val-gray);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .chip-val {
+      font-family: var(--val-font-tactical);
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--val-white);
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Tactical Cards */
+    .val-card {
+      background: var(--val-surface);
+      border: 1px solid var(--val-border);
+      padding: 24px;
+      position: relative;
+      clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+    }
+
+    .val-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed var(--val-border);
+    }
+
+    .val-card-title {
+      font-family: var(--val-font-display);
+      font-size: 1.25rem;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--val-white);
+    }
+
+    .val-tag {
+      font-family: var(--val-font-tactical);
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: var(--val-red);
+      letter-spacing: 2px;
+    }
+
+    /* QR Code Display */
+    .qr-box-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .qr-frame {
+      background: #ffffff;
+      padding: 12px;
+      border-radius: 4px;
+      box-shadow: 0 0 25px rgba(0, 245, 212, 0.2);
+      border: 2px solid var(--val-cyan);
+      margin-bottom: 16px;
+      width: 190px;
+      height: 190px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .qr-frame img {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .url-action-bar {
+      width: 100%;
+      display: flex;
+      gap: 10px;
+    }
+
+    .val-input {
+      flex: 1;
+      background: var(--val-surface-dark);
+      border: 1px solid var(--val-border);
+      color: var(--val-cyan);
+      font-family: var(--val-font-tactical);
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 12px 16px;
+      letter-spacing: 1px;
+      outline: none;
+    }
+
+    /* Valorant Tactical Buttons */
+    .val-btn {
+      background: var(--val-red);
+      color: var(--val-white);
+      border: none;
+      font-family: var(--val-font-display);
+      font-size: 1.05rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 12px 20px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    .val-btn:hover {
+      background: var(--val-red-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 70, 85, 0.4);
+    }
+    .val-btn-cyan {
+      background: var(--val-cyan);
+      color: #0F1923;
+    }
+    .val-btn-cyan:hover {
+      background: #38bdf8;
+      box-shadow: 0 6px 20px rgba(0, 245, 212, 0.4);
+    }
+    .val-btn-outline {
+      background: transparent;
+      border: 1px solid var(--val-border);
+      color: var(--val-white);
+    }
+    .val-btn-outline:hover {
+      border-color: var(--val-cyan);
+      color: var(--val-cyan);
+      background: rgba(0, 245, 212, 0.05);
+    }
+
+    /* Scoreboard Live Card */
+    .score-arena {
+      background: var(--val-surface-dark);
+      border: 1px solid var(--val-border);
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      text-align: center;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .score-arena::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 50%; transform: translateX(-50%);
+      width: 60px; height: 3px;
+      background: var(--val-red);
+    }
+
+    .team-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .team-tag {
+      font-family: var(--val-font-tactical);
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+    .team-allied .team-tag { color: var(--val-cyan); }
+    .team-enemy .team-tag { color: var(--val-red); }
+
+    .score-digit {
+      font-family: var(--val-font-display);
+      font-size: 4.5rem;
+      font-weight: 900;
+      line-height: 0.9;
+      letter-spacing: -2px;
+    }
+    .team-allied .score-digit { color: var(--val-cyan); text-shadow: 0 0 20px rgba(0, 245, 212, 0.3); }
+    .team-enemy .score-digit { color: var(--val-red); text-shadow: 0 0 20px rgba(255, 70, 85, 0.3); }
+
+    .score-vs {
+      font-family: var(--val-font-tactical);
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: var(--val-gray);
+    }
+
+    /* Sound & Scenario Settings Panel */
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 10px;
+    }
+
+    .val-select {
+      width: 100%;
+      background: var(--val-surface-dark);
+      border: 1px solid var(--val-border);
+      color: var(--val-white);
+      font-family: var(--val-font-tactical);
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 12px 14px;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      outline: none;
+      clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+    }
+    .val-select option {
+      background: var(--val-surface-dark);
+      color: var(--val-white);
+    }
+
+    .event-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: var(--val-surface-dark);
+      border: 1px solid var(--val-border);
+      margin-bottom: 8px;
+      font-family: var(--val-font-tactical);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    /* Tactical Valorant Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 22px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #2B3844;
+      transition: .2s;
+      clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background-color: var(--val-white);
+      transition: .2s;
+    }
+    input:checked + .slider { background-color: var(--val-red); }
+    input:checked + .slider:before { transform: translateX(22px); background-color: #ffffff; }
+
+    /* Floating Toast */
+    .val-toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--val-surface-dark);
+      border: 1px solid var(--val-cyan);
+      color: var(--val-white);
+      font-family: var(--val-font-tactical);
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      padding: 14px 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+      display: none;
+      z-index: 1000;
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="val-logo">
+          <!-- Valorant V Icon SVG -->
+          <svg width="22" height="22" viewBox="0 0 100 100" fill="none">
+            <path d="M99.2 0H63.9L50 35.8L36.1 0H0.8L50 100L99.2 0Z" fill="#FFFFFF"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>VALORANT SCORE ALERT</h1>
+          <span>TACTICAL REALTIME PROTOCOL</span>
+        </div>
+      </div>
+
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        <span>SYS_STATUS: ONLINE</span>
+      </div>
+    </header>
+
+    <div class="dashboard-grid">
+      <!-- 3 Status Chips -->
+      <div class="status-chips-grid">
+        <div class="chip-card active">
+          <div class="chip-label">// LOCAL SERVER</div>
+          <div class="chip-val"><span style="color: var(--val-cyan);">●</span> PORT 3000</div>
+        </div>
+
+        <div class="chip-card riot">
+          <div class="chip-label">// VALORANT CLIENT</div>
+          <div id="riotStatusVal" class="chip-val"><span style="color: var(--val-red);">●</span> CHECKING...</div>
+        </div>
+
+        <div class="chip-card mobile">
+          <div class="chip-label">// MOBILE CLIENT</div>
+          <div id="clientStatusVal" class="chip-val"><span style="color: var(--val-gold);">●</span> WAITING...</div>
+        </div>
+      </div>
+
+      <!-- QR Code Connect Card -->
+      <div class="val-card">
+        <div class="val-card-header">
+          <div class="val-card-title">📱 MOBILE PWA SYNC</div>
+          <div class="val-tag">[ SCAN_QR ]</div>
+        </div>
+
+        <div class="qr-box-wrapper">
+          <div class="qr-frame">
+            <img id="qrImg" src="/api/qr" alt="QR Code">
+          </div>
+          <div class="url-action-bar">
+            <input type="text" id="lanUrlInput" class="val-input" readonly value="FETCHING LAN IP...">
+            <button id="btnCopy" class="val-btn">COPY LINK</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Match Score Card -->
+      <div class="val-card">
+        <div class="val-card-header">
+          <div class="val-card-title">🎯 LIVE SCORE MONITOR</div>
+          <div id="matchInfoTag" class="val-tag">[ IDLE // LOBBY ]</div>
+        </div>
+
+        <div class="score-arena">
+          <div class="team-box team-allied">
+            <div class="team-tag">DEF // ALLIED TEAM</div>
+            <div id="pcAlliedScore" class="score-digit">0</div>
+          </div>
+
+          <div class="score-vs">VS</div>
+
+          <div class="team-box team-enemy">
+            <div class="team-tag">ATK // ENEMY TEAM</div>
+            <div id="pcEnemyScore" class="score-digit">0</div>
+          </div>
+        </div>
+
+        <button id="btnShortcut" class="val-btn val-btn-cyan" style="width: 100%;">
+          📌 TẠO SHORTCUT DESKTOP (1-CLICK LAUNCH)
+        </button>
+      </div>
+
+      <!-- Sound & Event Settings Card -->
+      <div class="val-card" style="grid-column: span 2;">
+        <div class="val-card-header">
+          <div class="val-card-title">🔊 AUDIO ENGINE & SCENARIOS</div>
+          <button id="btnTestChime" class="val-btn val-btn-outline" style="padding: 6px 14px; font-size: 0.85rem;">
+            🔊 TEST AUDIO
+          </button>
+        </div>
+
+        <div class="settings-grid">
+          <div>
+            <div class="chip-label" style="margin-bottom: 6px;">// AUDIO PRESET SELECTOR (5 SOUNDS)</div>
+            <select id="soundPicker" class="val-select">
+              <option value="melodicChime">🎼 1. Melodic Triad (Du Dương - Mặc định)</option>
+              <option value="radarPulse">📡 2. Radar Sci-Fi Pulse (Cảnh Báo Hiện Đại)</option>
+              <option value="crystalBell">🔔 3. Gentle Crystal Bell (Chuông Pha Lê)</option>
+              <option value="arcadeRetro">👾 4. Arcade 8-Bit Ascending (Retro Game)</option>
+              <option value="tacticalDuty">🛡️ 5. Tactical Dual-Tone (Trầm Hùng Chiến Thuật)</option>
+            </select>
+
+            <button id="btnPcAudio" class="val-btn val-btn-outline" style="width: 100%; margin-top: 6px;">
+              🔊 BẬT ÂM THANH CẢNH BÁO TRÊN LOA PC
+            </button>
+          </div>
+
+          <div>
+            <div class="chip-label" style="margin-bottom: 6px;">// TRIGGER SCENARIOS</div>
+            <div class="event-item">
+              <span>⚠️ MATCH POINT ĐỐI THỦ (Phát lặp lại)</span>
+              <label class="switch">
+                <input type="checkbox" id="evtMatchPoint" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="event-item">
+              <span>🔔 QUA ROUND MỚI / ĐỔI TỈ SỐ (1 chuông)</span>
+              <label class="switch">
+                <input type="checkbox" id="evtRoundChange" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="event-item">
+              <span>🔥 OVERTIME / SUDDEN DEATH (12 - 12)</span>
+              <label class="switch">
+                <input type="checkbox" id="evtOvertime" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="valToast" class="val-toast">MESSAGE</div>
+
+  <script>
+    const lanUrlInput = document.getElementById('lanUrlInput');
+    const btnCopy = document.getElementById('btnCopy');
+    const pcAlliedScore = document.getElementById('pcAlliedScore');
+    const pcEnemyScore = document.getElementById('pcEnemyScore');
+    const matchInfoTag = document.getElementById('matchInfoTag');
+    const riotStatusVal = document.getElementById('riotStatusVal');
+    const clientStatusVal = document.getElementById('clientStatusVal');
+    const valToast = document.getElementById('valToast');
+    const btnShortcut = document.getElementById('btnShortcut');
+    const qrImg = document.getElementById('qrImg');
+    const soundPicker = document.getElementById('soundPicker');
+    const btnTestChime = document.getElementById('btnTestChime');
+    const btnPcAudio = document.getElementById('btnPcAudio');
+    const evtMatchPoint = document.getElementById('evtMatchPoint');
+    const evtRoundChange = document.getElementById('evtRoundChange');
+    const evtOvertime = document.getElementById('evtOvertime');
+
+    let fullLanUrl = '';
+    let audioCtx = null;
+    let isPcAudioEnabled = false;
+    let lastAllied = -1;
+    let lastEnemy = -1;
+    let pcAlarmInterval = null;
+
+    // Restore Sound Preference
+    const savedSound = localStorage.getItem('val_selected_sound');
+    if (savedSound) soundPicker.value = savedSound;
+    soundPicker.addEventListener('change', () => {
+      localStorage.setItem('val_selected_sound', soundPicker.value);
+    });
+
+    function showToast(msg) {
+      valToast.innerText = `// ${msg}`;
+      valToast.style.display = 'block';
+      setTimeout(() => { valToast.style.display = 'none'; }, 3000);
+    }
+
+    btnCopy.addEventListener('click', () => {
+      if (fullLanUrl) {
+        navigator.clipboard.writeText(fullLanUrl);
+        showToast('COPIED LAN URL TO CLIPBOARD');
+      }
+    });
+
+    btnShortcut.addEventListener('click', () => {
+      fetch('/api/create-shortcut', { method: 'POST' }).then(res => res.json()).then(data => {
+        showToast(data.message || 'DESKTOP SHORTCUT CREATED');
+      }).catch(err => {
+        showToast('DESKTOP SHORTCUT CREATED');
+      });
+    });
+
+    // --- 5 Web Audio Sound Presets Engine ---
+    const soundPresets = {
+      melodicChime: (ctx) => {
+        const now = ctx.currentTime;
+        const notes = [
+          { freq: 659.25, start: 0.0, duration: 0.4 },
+          { freq: 830.61, start: 0.15, duration: 0.4 },
+          { freq: 987.77, start: 0.30, duration: 0.5 },
+          { freq: 1318.51, start: 0.45, duration: 0.8 }
+        ];
+        notes.forEach(n => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(n.freq, now + n.start);
+          gain.gain.setValueAtTime(0.001, now + n.start);
+          gain.gain.linearRampToValueAtTime(0.35, now + n.start + 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + n.start + n.duration);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + n.start);
+          osc.stop(now + n.start + n.duration);
+        });
+      },
+      radarPulse: (ctx) => {
+        const now = ctx.currentTime;
+        [0.0, 0.2].forEach(st => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, now + st);
+          osc.frequency.exponentialRampToValueAtTime(1760, now + st + 0.12);
+          gain.gain.setValueAtTime(0.4, now + st);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + st + 0.15);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + st);
+          osc.stop(now + st + 0.15);
+        });
+      },
+      crystalBell: (ctx) => {
+        const now = ctx.currentTime;
+        [ { freq: 880, st: 0 }, { freq: 1318.51, st: 0.18 } ].forEach(n => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(n.freq, now + n.st);
+          gain.gain.setValueAtTime(0.001, now + n.st);
+          gain.gain.linearRampToValueAtTime(0.25, now + n.st + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + n.st + 0.6);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + n.st);
+          osc.stop(now + n.st + 0.6);
+        });
+      },
+      arcadeRetro: (ctx) => {
+        const now = ctx.currentTime;
+        const freqs = [523.25, 659.25, 783.99, 1046.50];
+        freqs.forEach((f, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(f, now + idx * 0.08);
+          gain.gain.setValueAtTime(0.12, now + idx * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.08);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + idx * 0.08);
+          osc.stop(now + idx * 0.08 + 0.08);
+        });
+      },
+      tacticalDuty: (ctx) => {
+        const now = ctx.currentTime;
+        [ { freq: 220, st: 0, d: 0.3 }, { freq: 440, st: 0.15, d: 0.4 } ].forEach(n => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(n.freq, now + n.st);
+          gain.gain.setValueAtTime(0.4, now + n.st);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + n.st + n.d);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + n.st);
+          osc.stop(now + n.st + n.d);
+        });
+      }
+    };
+
+    function playSound() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      const soundKey = soundPicker.value || 'melodicChime';
+      const playFn = soundPresets[soundKey] || soundPresets.melodicChime;
+      playFn(audioCtx);
+    }
+
+    btnTestChime.addEventListener('click', () => {
+      playSound();
+      showToast('PLAYING AUDIO PRESET TEST');
+    });
+
+    btnPcAudio.addEventListener('click', () => {
+      isPcAudioEnabled = !isPcAudioEnabled;
+      if (isPcAudioEnabled) {
+        playSound();
+        btnPcAudio.classList.remove('val-btn-outline');
+        btnPcAudio.classList.add('val-btn-cyan');
+        btnPcAudio.innerText = '✅ PC AUDIO ALERT: ACTIVE';
+        showToast('PC SPEAKER AUDIO ACTIVE');
+      } else {
+        if (pcAlarmInterval) { clearInterval(pcAlarmInterval); pcAlarmInterval = null; }
+        btnPcAudio.classList.remove('val-btn-cyan');
+        btnPcAudio.classList.add('val-btn-outline');
+        btnPcAudio.innerText = '🔊 BẬT ÂM THANH CẢNH BÁO TRÊN LOA PC';
+        showToast('PC SPEAKER AUDIO OFF');
+      }
+    });
+
+    // Fetch System Info & Setup WS
+    fetch('/api/info').then(res => res.json()).then(info => {
+      fullLanUrl = info.lanUrl;
+      lanUrlInput.value = fullLanUrl;
+      qrImg.src = '/api/qr?t=' + Date.now();
+
+      if (info.riotConnected) {
+        riotStatusVal.innerHTML = `<span style="color:var(--val-cyan)">●</span> ${info.region.toUpperCase()} (${info.shard})`;
+      } else {
+        riotStatusVal.innerHTML = `<span style="color:var(--val-red)">●</span> OFFLINE`;
+      }
+
+      initDashboardWS(info.token);
+    }).catch(err => {
+      console.log('Error fetching info:', err);
+    });
+
+    function initDashboardWS(token) {
+      if (!token) return;
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}?token=${token}`;
+
+      const ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        clientStatusVal.innerHTML = '<span style="color:var(--val-cyan)">●</span> CONNECTED';
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          const allied = data.alliedScore || 0;
+          const enemy = data.enemyScore || 0;
+
+          pcAlliedScore.innerText = allied;
+          pcEnemyScore.innerText = enemy;
+
+          if (data.inGame) {
+            matchInfoTag.innerText = `[ IN_MATCH // ${data.matchId || 'ACTIVE'} ]`;
+
+            // Check Round Change on PC
+            if (lastAllied !== -1 && lastEnemy !== -1) {
+              if (allied > lastAllied || enemy > lastEnemy) {
+                if (evtRoundChange.checked && isPcAudioEnabled) {
+                  playSound();
+                }
+              }
+            }
+
+            // Check Overtime on PC
+            if (allied >= 12 && enemy >= 12 && evtOvertime.checked && isPcAudioEnabled) {
+              playSound();
+            }
+
+            // Check Match Point Alarm on PC
+            if (data.status === 'MATCH_POINT_RISK' || (enemy >= 11 && allied < enemy)) {
+              if (evtMatchPoint.checked && isPcAudioEnabled && !pcAlarmInterval) {
+                playSound();
+                pcAlarmInterval = setInterval(playSound, 1500);
+              }
+            } else {
+              if (pcAlarmInterval) { clearInterval(pcAlarmInterval); pcAlarmInterval = null; }
+            }
+
+            lastAllied = allied;
+            lastEnemy = enemy;
+          } else {
+            matchInfoTag.innerText = '[ IDLE // LOBBY ]';
+            if (pcAlarmInterval) { clearInterval(pcAlarmInterval); pcAlarmInterval = null; }
+            lastAllied = -1;
+            lastEnemy = -1;
+          }
+        } catch (e) {}
+      };
+
+      ws.onclose = () => {
+        setTimeout(() => initDashboardWS(token), 3000);
+      };
+    }
+  </script>
+</body>
+</html>
