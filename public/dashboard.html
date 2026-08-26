@@ -248,16 +248,20 @@
     /* Valorant Tactical Button Badge (Clean Solid Style) */
     .status-badge-btn {
       font-family: var(--val-font-display);
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       font-weight: 900;
       letter-spacing: 1.5px;
       text-transform: uppercase;
-      padding: 6px 16px;
+      padding: 6px 14px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      white-space: nowrap;
+      flex-shrink: 0;
+      line-height: 1;
+      gap: 6px;
       color: var(--val-white);
-      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+      clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
       transition: all 0.2s ease;
       cursor: default;
       user-select: none;
@@ -885,10 +889,10 @@
 
             if (data.status === 'MATCH_POINT_RISK' || (enemy >= 11 && allied < enemy)) {
               matchInfoTag.className = 'status-badge-btn status-badge-danger';
-              matchInfoTag.innerHTML = `MATCH POINT // <span style="color:#FFF;">${map}</span> // <span style="color:#FEF08A;">${mode}</span>`;
+              matchInfoTag.innerHTML = `MATCH POINT <span style="opacity:0.6; margin:0 4px;">//</span> <span style="color:#FFF;">${map}</span> <span style="opacity:0.6; margin:0 4px;">//</span> <span style="color:#FEF08A;">${mode}</span>`;
             } else {
               matchInfoTag.className = 'status-badge-btn status-badge-live';
-              matchInfoTag.innerHTML = `IN MATCH // <span style="color:#00F5D4; font-weight:900;">${map}</span> // <span style="color:#FFCE47; font-weight:900;">${mode}</span>`;
+              matchInfoTag.innerHTML = `IN MATCH <span style="opacity:0.6; margin:0 4px;">//</span> <span style="color:#00F5D4; font-weight:900;">${map}</span> <span style="opacity:0.6; margin:0 4px;">//</span> <span style="color:#FFCE47; font-weight:900;">${mode}</span>`;
             }
 
             // Check Round Change on PC

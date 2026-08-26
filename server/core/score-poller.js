@@ -17,6 +17,7 @@ const VALORANT_MAP_NAMES = {
   '/Game/Maps/Pitt/Pitt': 'PEARL',
   '/Game/Maps/Jam/Jam': 'LOTUS',
   '/Game/Maps/Jules/Jules': 'SUNSET',
+  '/Game/Maps/Plummet/Plummet': 'ABYSS',
   '/Game/Maps/Infinity/Infinity': 'ABYSS',
   '/Game/Maps/Poveglia/Range': 'THE RANGE',
   '/Game/Maps/HURM/HURM_Yard': 'DISTRICT',
