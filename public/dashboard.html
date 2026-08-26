@@ -245,6 +245,74 @@
       letter-spacing: 2px;
     }
 
+    /* Tactical Status Button Badge */
+    .status-badge-btn {
+      font-family: var(--val-font-tactical);
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 7px 18px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+      transition: all 0.3s ease;
+      cursor: default;
+    }
+
+    .status-badge-idle {
+      background: rgba(255, 206, 71, 0.15);
+      border: 1.5px solid var(--val-gold);
+      color: var(--val-gold);
+      box-shadow: 0 0 15px rgba(255, 206, 71, 0.3);
+    }
+    .status-badge-idle .beacon {
+      background: var(--val-gold);
+      box-shadow: 0 0 10px var(--val-gold);
+    }
+
+    .status-badge-live {
+      background: rgba(0, 245, 212, 0.2);
+      border: 1.5px solid var(--val-cyan);
+      color: var(--val-cyan);
+      box-shadow: 0 0 20px rgba(0, 245, 212, 0.5);
+      animation: pulse-badge-cyan 2s infinite alternate;
+    }
+    .status-badge-live .beacon {
+      background: var(--val-cyan);
+      box-shadow: 0 0 12px var(--val-cyan);
+    }
+
+    .status-badge-danger {
+      background: rgba(255, 70, 85, 0.25);
+      border: 2px solid var(--val-red);
+      color: var(--val-red);
+      box-shadow: 0 0 25px rgba(255, 70, 85, 0.7);
+      animation: pulse-badge-red 1s infinite alternate;
+    }
+    .status-badge-danger .beacon {
+      background: var(--val-red);
+      box-shadow: 0 0 12px var(--val-red);
+    }
+
+    .beacon {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    @keyframes pulse-badge-cyan {
+      0% { box-shadow: 0 0 10px rgba(0, 245, 212, 0.2); }
+      100% { box-shadow: 0 0 25px rgba(0, 245, 212, 0.7); }
+    }
+    @keyframes pulse-badge-red {
+      0% { box-shadow: 0 0 15px rgba(255, 70, 85, 0.4); }
+      100% { box-shadow: 0 0 35px rgba(255, 70, 85, 0.9); }
+    }
+
     /* QR Code Display */
     .qr-box-wrapper {
       display: flex;
@@ -545,7 +613,10 @@
       <div class="val-card">
         <div class="val-card-header">
           <div class="val-card-title">🎯 LIVE SCORE MONITOR</div>
-          <div id="matchInfoTag" class="val-tag">[ IDLE // LOBBY ]</div>
+          <div id="matchInfoTag" class="status-badge-btn status-badge-idle">
+            <span class="beacon"></span>
+            <span id="matchInfoText">IDLE // SẢNH CHỜ</span>
+          </div>
         </div>
 
         <div class="score-arena">
@@ -836,8 +907,17 @@
           pcAlliedScore.innerText = allied;
           pcEnemyScore.innerText = enemy;
 
+          const matchInfoTag = document.getElementById('matchInfoTag');
+          const matchInfoText = document.getElementById('matchInfoText');
+
           if (data.inGame) {
-            matchInfoTag.innerText = `[ IN_MATCH // ${data.matchId || 'ACTIVE'} ]`;
+            if (data.status === 'MATCH_POINT_RISK' || (enemy >= 11 && allied < enemy)) {
+              matchInfoTag.className = 'status-badge-btn status-badge-danger';
+              matchInfoText.innerText = '⚠️ MATCH POINT // ĐỐI THỦ';
+            } else {
+              matchInfoTag.className = 'status-badge-btn status-badge-live';
+              matchInfoText.innerText = `🔴 LIVE // TRẬN ĐẤU: ${data.matchId || 'ACTIVE'}`;
+            }
 
             // Check Round Change on PC
             if (lastAllied !== -1 && lastEnemy !== -1) {
@@ -866,7 +946,8 @@
             lastAllied = allied;
             lastEnemy = enemy;
           } else {
-            matchInfoTag.innerText = '[ IDLE // LOBBY ]';
+            matchInfoTag.className = 'status-badge-btn status-badge-idle';
+            matchInfoText.innerText = 'IDLE // SẢNH CHỜ';
             if (pcAlarmInterval) { clearInterval(pcAlarmInterval); pcAlarmInterval = null; }
             lastAllied = -1;
             lastEnemy = -1;

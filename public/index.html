@@ -223,6 +223,74 @@
     .allied .score-number { color: var(--val-cyan); text-shadow: 0 0 25px rgba(0, 245, 212, 0.25); }
     .enemy .score-number { color: var(--val-red); text-shadow: 0 0 25px rgba(255, 70, 85, 0.25); }
 
+    /* Tactical Status Button Badge */
+    .status-badge-btn {
+      font-family: var(--val-font-tactical);
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 8px 18px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+      transition: all 0.3s ease;
+      cursor: default;
+    }
+
+    .status-badge-idle {
+      background: rgba(255, 206, 71, 0.15);
+      border: 1.5px solid var(--val-gold);
+      color: var(--val-gold);
+      box-shadow: 0 0 15px rgba(255, 206, 71, 0.3);
+    }
+    .status-badge-idle .beacon {
+      background: var(--val-gold);
+      box-shadow: 0 0 10px var(--val-gold);
+    }
+
+    .status-badge-live {
+      background: rgba(0, 245, 212, 0.2);
+      border: 1.5px solid var(--val-cyan);
+      color: var(--val-cyan);
+      box-shadow: 0 0 20px rgba(0, 245, 212, 0.5);
+      animation: pulse-badge-cyan 2s infinite alternate;
+    }
+    .status-badge-live .beacon {
+      background: var(--val-cyan);
+      box-shadow: 0 0 12px var(--val-cyan);
+    }
+
+    .status-badge-danger {
+      background: rgba(255, 70, 85, 0.25);
+      border: 2px solid var(--val-red);
+      color: var(--val-red);
+      box-shadow: 0 0 25px rgba(255, 70, 85, 0.7);
+      animation: pulse-badge-red 1s infinite alternate;
+    }
+    .status-badge-danger .beacon {
+      background: var(--val-red);
+      box-shadow: 0 0 12px var(--val-red);
+    }
+
+    .beacon {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    @keyframes pulse-badge-cyan {
+      0% { box-shadow: 0 0 10px rgba(0, 245, 212, 0.2); }
+      100% { box-shadow: 0 0 25px rgba(0, 245, 212, 0.7); }
+    }
+    @keyframes pulse-badge-red {
+      0% { box-shadow: 0 0 15px rgba(255, 70, 85, 0.4); }
+      100% { box-shadow: 0 0 35px rgba(255, 70, 85, 0.9); }
+    }
+
     /* Match Point Alert Box */
     .alert-banner {
       background: rgba(255, 70, 85, 0.15);
@@ -461,6 +529,14 @@
       <button id="btnSilence" class="val-btn val-btn-danger" style="display: flex;">
         🔕 TẮT CHUÔNG CẢNH BÁO
       </button>
+    </div>
+
+    <!-- Tactical Match Status Button Badge -->
+    <div style="display: flex; justify-content: center; margin-bottom: 12px;">
+      <div id="mobileStatusBadge" class="status-badge-btn status-badge-idle" style="width: 100%; justify-content: center;">
+        <span class="beacon"></span>
+        <span id="mobileStatusText">IDLE // SẢNH CHỜ VALORANT</span>
+      </div>
     </div>
 
     <!-- Score Display -->
@@ -853,8 +929,15 @@
 
       lastUpdateText.innerText = 'SYNC: ' + new Date(timestamp || Date.now()).toLocaleTimeString();
 
+      const mobileStatusBadge = document.getElementById('mobileStatusBadge');
+      const mobileStatusText = document.getElementById('mobileStatusText');
+
       if (!inGame) {
         gameStatusText.innerText = 'IDLE // CHỜ TRẬN ĐẤU VALORANT...';
+        if (mobileStatusBadge) {
+          mobileStatusBadge.className = 'status-badge-btn status-badge-idle';
+          mobileStatusText.innerText = 'IDLE // SẢNH CHỜ VALORANT';
+        }
         alertBanner.classList.remove('active');
         stopAlarmLoop();
         isSilencedManual = false;
@@ -886,6 +969,10 @@
       gameStatusText.innerText = `MATCH // ${data.matchId || 'ACTIVE'}`;
 
       if (status === 'MATCH_POINT_RISK' || (enemyScore >= 11 && alliedScore < enemyScore)) {
+        if (mobileStatusBadge) {
+          mobileStatusBadge.className = 'status-badge-btn status-badge-danger';
+          mobileStatusText.innerText = '⚠️ MATCH POINT // ĐỐI THỦ';
+        }
         alertBanner.classList.add('active');
         btnSilence.style.display = 'flex';
 
@@ -893,6 +980,10 @@
           startAlarmLoop();
         }
       } else {
+        if (mobileStatusBadge) {
+          mobileStatusBadge.className = 'status-badge-btn status-badge-live';
+          mobileStatusText.innerText = `🔴 LIVE // ĐANG TRẬN: ${data.matchId || 'ACTIVE'}`;
+        }
         alertBanner.classList.remove('active');
         btnSilence.style.display = 'none';
         isSilencedManual = false;

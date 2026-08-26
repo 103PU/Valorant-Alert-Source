@@ -8,10 +8,9 @@ console.log('===========================================================');
 const rootDir = path.join(__dirname, '..');
 const releaseDir = path.join(rootDir, 'dist', 'ValorantScoreAlert-Release');
 
-if (fs.existsSync(releaseDir)) {
-  fs.rmSync(releaseDir, { recursive: true, force: true });
+if (!fs.existsSync(releaseDir)) {
+  fs.mkdirSync(releaseDir, { recursive: true });
 }
-fs.mkdirSync(releaseDir, { recursive: true });
 
 function copyDirSync(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
