@@ -793,8 +793,13 @@
       showToast('PLAYING AUDIO TEST');
     });
 
+    let keepAliveOsc = null;
+    let keepAliveGain = null;
+    let wakeLockInstance = null;
+    let heartbeatInterval = null;
+
     // Toggle Audio Context & Background Audio Mode
-    function toggleAudioContext(showToastFeedback = true) {
+    async function toggleAudioContext(showToastFeedback = true) {
       try {
         if (!isAudioUnlocked) {
           if (!audioCtx) {
@@ -803,14 +808,38 @@
           }
 
           if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
+            await audioCtx.resume();
           }
 
-          const silentBuffer = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 0.1), audioCtx.sampleRate);
-          const source = audioCtx.createBufferSource();
-          source.buffer = silentBuffer;
-          source.connect(audioCtx.destination);
-          source.start(0);
+          // 1. Continuous Inaudible Oscillator (Keeps iOS & Android Audio Engine and Background Thread 100% Alive)
+          if (!keepAliveOsc) {
+            keepAliveOsc = audioCtx.createOscillator();
+            keepAliveGain = audioCtx.createGain();
+            keepAliveOsc.type = 'sine';
+            keepAliveOsc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            // Inaudible to human ear but forces hardware audio stream to stay active
+            keepAliveGain.gain.setValueAtTime(0.00001, audioCtx.currentTime);
+            keepAliveOsc.connect(keepAliveGain);
+            keepAliveGain.connect(audioCtx.destination);
+            keepAliveOsc.start();
+          }
+
+          // 2. Register MediaSession for Lock Screen Background Audio Keep-Alive
+          if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+              title: 'Valorant Score Alert',
+              artist: 'Realtime HUD Monitor (Active)',
+              album: 'Tactical Score Alert'
+            });
+            navigator.mediaSession.playbackState = 'playing';
+          }
+
+          // 3. Screen Wake Lock (Keep display awake if device is propped up)
+          if ('wakeLock' in navigator) {
+            try {
+              wakeLockInstance = await navigator.wakeLock.request('screen');
+            } catch (e) {}
+          }
 
           if (silentAudio) {
             silentAudio.play().catch(e => console.log('HTML5 silent audio fallback:', e));
@@ -828,6 +857,23 @@
           }
         } else {
           isAudioUnlocked = false;
+
+          if (keepAliveOsc) {
+            try {
+              keepAliveOsc.stop();
+              keepAliveOsc.disconnect();
+            } catch (e) {}
+            keepAliveOsc = null;
+          }
+
+          if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = 'paused';
+          }
+
+          if (wakeLockInstance) {
+            try { wakeLockInstance.release(); } catch (e) {}
+            wakeLockInstance = null;
+          }
 
           if (silentAudio) {
             silentAudio.pause();
@@ -858,24 +904,42 @@
     btnActivate.addEventListener('click', handleToggle);
     btnActivate.addEventListener('touchend', handleToggle);
 
-    // --- WebSocket Manager ---
+    // --- WebSocket Manager with Heartbeat & Instant Wakeup ---
     function connectWebSocket() {
+      if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+        return;
+      }
+
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}?token=${token}`;
 
       connStatus.className = 'status-badge status-connecting';
       connStatusText.innerText = 'CONNECTING';
 
-      ws = new WebSocket(wsUrl);
+      try {
+        ws = new WebSocket(wsUrl);
+      } catch (e) {
+        setTimeout(connectWebSocket, 2000);
+        return;
+      }
 
       ws.onopen = () => {
         connStatus.className = 'status-badge status-connected';
         connStatusText.innerText = 'ONLINE';
+
+        // Start 4-second heartbeat to prevent router/mobile TCP drops
+        if (heartbeatInterval) clearInterval(heartbeatInterval);
+        heartbeatInterval = setInterval(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'ping' }));
+          }
+        }, 4000);
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          if (data.type === 'pong') return; // Heartbeat response
           updateUI(data);
         } catch (e) {
           console.error('Error parsing WS message:', e);
@@ -885,7 +949,8 @@
       ws.onclose = () => {
         connStatus.className = 'status-badge status-disconnected';
         connStatusText.innerText = 'DISCONNECTED';
-        setTimeout(connectWebSocket, 3000);
+        if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
+        setTimeout(connectWebSocket, 2000);
       };
 
       ws.onerror = () => {
@@ -893,6 +958,27 @@
         connStatusText.innerText = 'ERR_CONN';
       };
     }
+
+    // Auto-reconnect & resume Audio immediately when user wakes phone or switches back to tab
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+          connectWebSocket();
+        }
+        if (isAudioUnlocked && audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      }
+    });
+
+    window.addEventListener('focus', () => {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        connectWebSocket();
+      }
+      if (isAudioUnlocked && audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    });
 
     // --- UI & Event Notification Update Logic ---
     function updateUI(data) {

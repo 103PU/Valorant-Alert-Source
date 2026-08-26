@@ -7,31 +7,15 @@ $rootDir = Split-Path -Parent $scriptDir
 if (-not (Test-Path "$rootDir\server")) { $rootDir = $scriptDir }
 Set-Location $rootDir
 
-# Global URLs
+# Global URL State
 $global:token = ""
 $global:dashboardUrl = "http://localhost:3000/dashboard.html"
 $global:lanUrl = ""
 
-function Check-And-Start-Server {
-    $infoUrl = "http://localhost:3000/api/info"
-    for ($i = 0; $i -lt 8; $i++) {
-        try {
-            $info = Invoke-RestMethod -Uri $infoUrl -Method Get -TimeoutSec 1
-            if ($info) {
-                $global:token = $info.token
-                $global:dashboardUrl = $info.dashboardUrl
-                $global:lanUrl = $info.lanUrl
-                return $true
-            }
-        } catch {
-            Start-Sleep -Milliseconds 500
-        }
-    }
-    # If not responding, attempt to start node server
+# Quick non-blocking server probe function
+function Probe-Server-Info {
     try {
-        Start-Process -FilePath "node" -ArgumentList "server/index.js" -WorkingDirectory $rootDir -WindowStyle Hidden
-        Start-Sleep -Milliseconds 2000
-        $info = Invoke-RestMethod -Uri $infoUrl -Method Get -TimeoutSec 2
+        $info = Invoke-RestMethod -Uri "http://localhost:3000/api/info" -Method Get -TimeoutSec 1 -ErrorAction Stop
         if ($info) {
             $global:token = $info.token
             $global:dashboardUrl = $info.dashboardUrl
@@ -42,7 +26,8 @@ function Check-And-Start-Server {
     return $false
 }
 
-Check-And-Start-Server | Out-Null
+# Initial probe
+Probe-Server-Info | Out-Null
 
 # Create System Tray NotifyIcon
 $notifyIcon = New-Object System.Windows.Forms.NotifyIcon
@@ -57,25 +42,20 @@ if (Test-Path $iconPath) {
     $notifyIcon.Icon = [System.Drawing.SystemIcons]::Application
 }
 
-$notifyIcon.Text = "Valorant Score Alert"
+$notifyIcon.Text = "Valorant Score Alert (Online)"
 $notifyIcon.Visible = $true
 
-# Balloon Tip
-$notifyIcon.BalloonTipTitle = "Valorant Score Alert"
-$notifyIcon.BalloonTipText = "Server đang chạy ngầm. Nhấp đôi icon để mở PC Dashboard!"
-$notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
-$notifyIcon.ShowBalloonTip(3000)
-
+# Instant Open Dashboard Function (0ms delay, no blocking)
 function Open-Dashboard {
-    Check-And-Start-Server | Out-Null
+    $targetUrl = if ($global:dashboardUrl) { $global:dashboardUrl } else { "http://localhost:3000/dashboard.html" }
     try {
-        Start-Process "msedge.exe" -ArgumentList "--app=`"$global:dashboardUrl`"" -ErrorAction Stop
+        Start-Process "msedge.exe" -ArgumentList "--app=`"$targetUrl`"" -ErrorAction Stop
     } catch {
-        Start-Process $global:dashboardUrl
+        Start-Process $targetUrl
     }
 }
 
-# Double Click Handler: Open Dashboard
+# Double Click Handler: Instant Open
 $notifyIcon.add_DoubleClick({
     Open-Dashboard
 })
@@ -93,13 +73,15 @@ $itemDashboard.add_Click({
 # Option 2: Copy LAN URL for Mobile
 $itemCopyLan = $contextMenu.Items.Add("[2] Copy Link Mobile (LAN URL)")
 $itemCopyLan.add_Click({
-    Check-And-Start-Server | Out-Null
+    Probe-Server-Info | Out-Null
     if ($global:lanUrl) {
         [System.Windows.Forms.Clipboard]::SetText($global:lanUrl)
         $notifyIcon.BalloonTipTitle = "Valorant Score Alert"
-        $notifyIcon.BalloonTipText = "Da copy link: $global:lanUrl"
+        $notifyIcon.BalloonTipText = "Da copy link LAN: $global:lanUrl"
         $notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
         $notifyIcon.ShowBalloonTip(2000)
+    } else {
+        [System.Windows.Forms.Clipboard]::SetText("http://localhost:3000")
     }
 })
 
@@ -147,6 +129,18 @@ $itemExit.add_Click({
 })
 
 $notifyIcon.ContextMenuStrip = $contextMenu
+
+# Non-blocking Background Health Probe Timer (Checks every 6s without UI freeze)
+$healthTimer = New-Object System.Windows.Forms.Timer
+$healthTimer.Interval = 6000
+$healthTimer.add_Tick({
+    $alive = Probe-Server-Info
+    if (-not $alive) {
+        # Auto-heal: restart node server if it stopped unexpectedly
+        Start-Process -FilePath "node" -ArgumentList "server/index.js" -WorkingDirectory $rootDir -WindowStyle Hidden
+    }
+})
+$healthTimer.Start()
 
 # Keep Windows Forms Message Loop running
 [System.Windows.Forms.Application]::Run()

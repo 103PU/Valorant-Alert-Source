@@ -43,6 +43,16 @@ class ScoreWSServer {
         ws.send(this.lastPayloadJson);
       }
 
+      // Respond to ping heartbeats from mobile clients
+      ws.on('message', (msg) => {
+        try {
+          const parsed = JSON.parse(msg);
+          if (parsed.type === 'ping') {
+            ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
+          }
+        } catch (e) {}
+      });
+
       ws.on('close', () => {
         logger.info(`[WSServer] Client disconnected: ${clientIp}`);
       });
