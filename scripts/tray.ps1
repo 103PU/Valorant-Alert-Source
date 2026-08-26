@@ -7,25 +7,42 @@ $rootDir = Split-Path -Parent $scriptDir
 if (-not (Test-Path "$rootDir\server")) { $rootDir = $scriptDir }
 Set-Location $rootDir
 
-# Wait up to 6 seconds for server /api/info
-$infoUrl = "http://localhost:3000/api/info"
-$token = ""
-$dashboardUrl = "http://localhost:3000/dashboard.html"
-$lanUrl = ""
+# Global URLs
+$global:token = ""
+$global:dashboardUrl = "http://localhost:3000/dashboard.html"
+$global:lanUrl = ""
 
-for ($i = 0; $i -lt 12; $i++) {
-    try {
-        $info = Invoke-RestMethod -Uri $infoUrl -Method Get -TimeoutSec 1
-        if ($info) {
-            $token = $info.token
-            $dashboardUrl = $info.dashboardUrl
-            $lanUrl = $info.lanUrl
-            break
+function Check-And-Start-Server {
+    $infoUrl = "http://localhost:3000/api/info"
+    for ($i = 0; $i -lt 8; $i++) {
+        try {
+            $info = Invoke-RestMethod -Uri $infoUrl -Method Get -TimeoutSec 1
+            if ($info) {
+                $global:token = $info.token
+                $global:dashboardUrl = $info.dashboardUrl
+                $global:lanUrl = $info.lanUrl
+                return $true
+            }
+        } catch {
+            Start-Sleep -Milliseconds 500
         }
-    } catch {
-        Start-Sleep -Milliseconds 500
     }
+    # If not responding, attempt to start node server
+    try {
+        Start-Process -FilePath "node" -ArgumentList "server/index.js" -WorkingDirectory $rootDir -WindowStyle Hidden
+        Start-Sleep -Milliseconds 2000
+        $info = Invoke-RestMethod -Uri $infoUrl -Method Get -TimeoutSec 2
+        if ($info) {
+            $global:token = $info.token
+            $global:dashboardUrl = $info.dashboardUrl
+            $global:lanUrl = $info.lanUrl
+            return $true
+        }
+    } catch {}
+    return $false
 }
+
+Check-And-Start-Server | Out-Null
 
 # Create System Tray NotifyIcon
 $notifyIcon = New-Object System.Windows.Forms.NotifyIcon
@@ -50,10 +67,11 @@ $notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
 $notifyIcon.ShowBalloonTip(3000)
 
 function Open-Dashboard {
+    Check-And-Start-Server | Out-Null
     try {
-        Start-Process "msedge.exe" -ArgumentList "--app=`"$dashboardUrl`"" -ErrorAction Stop
+        Start-Process "msedge.exe" -ArgumentList "--app=`"$global:dashboardUrl`"" -ErrorAction Stop
     } catch {
-        Start-Process $dashboardUrl
+        Start-Process $global:dashboardUrl
     }
 }
 
@@ -75,10 +93,11 @@ $itemDashboard.add_Click({
 # Option 2: Copy LAN URL for Mobile
 $itemCopyLan = $contextMenu.Items.Add("[2] Copy Link Mobile (LAN URL)")
 $itemCopyLan.add_Click({
-    if ($lanUrl) {
-        [System.Windows.Forms.Clipboard]::SetText($lanUrl)
+    Check-And-Start-Server | Out-Null
+    if ($global:lanUrl) {
+        [System.Windows.Forms.Clipboard]::SetText($global:lanUrl)
         $notifyIcon.BalloonTipTitle = "Valorant Score Alert"
-        $notifyIcon.BalloonTipText = "Da copy link: $lanUrl"
+        $notifyIcon.BalloonTipText = "Da copy link: $global:lanUrl"
         $notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
         $notifyIcon.ShowBalloonTip(2000)
     }
@@ -87,7 +106,7 @@ $itemCopyLan.add_Click({
 $contextMenu.Items.Add("-") | Out-Null
 
 # Option 3: Create Desktop Shortcut
-$itemShortcut = $contextMenu.Items.Add("[3] Tao Shortcut Ngoai Desktop")
+$itemShortcut = $contextMenu.Items.Add("[3] Tao Shortcut Desktop")
 $itemShortcut.add_Click({
     $vbsPath = Join-Path $rootDir "Create-Desktop-Shortcut.vbs"
     Start-Process "cscript" -ArgumentList "//nologo `"$vbsPath`"" -NoNewWindow
