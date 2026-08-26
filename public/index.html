@@ -16,6 +16,9 @@
   <link rel="apple-touch-icon" href="/icon.png">
   <title>VALORANT // SCORE ALERT</title>
   
+  <!-- Local Pure JS QR Code Decoder Engine -->
+  <script src="jsQR.min.js"></script>
+  
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -471,34 +474,41 @@
 
   <!-- Token / Auth Modal -->
   <div id="tokenModal" class="modal-overlay" style="display: none;">
-    <div class="modal">
-      <div style="margin-bottom: 8px; font-family: var(--val-font-display); font-size: 1.4rem; font-weight: 900; color: var(--val-cyan);">
-        // KẾT NỐI VALORANT ALERT //
+    <div class="modal" style="position: relative;">
+      <!-- Close X Button in Top Right Corner -->
+      <button id="btnCloseModalX" style="position: absolute; top: 10px; right: 14px; background: transparent; border: none; color: var(--val-gray); font-size: 1.4rem; font-weight: 800; cursor: pointer; line-height: 1; padding: 4px;" onclick="document.getElementById('tokenModal').style.display='none'">✕</button>
+
+      <div style="margin-bottom: 6px; font-family: var(--val-font-display); font-size: 1.35rem; font-weight: 900; color: var(--val-cyan); text-align: left; padding-right: 24px;">
+        // KẾT NỐI SERVER //
       </div>
-      <p id="tokenModalNotice" style="font-family: var(--val-font-tactical); font-size: 0.82rem; color: var(--val-gray); margin-bottom: 12px;">
-        NHẬP MÃ PIN 6 KÝ TỰ (HIỂN THỊ TRÊN PC DASHBOARD) HOẶC QUÉT MÃ QR:
+      <p id="tokenModalNotice" style="font-family: var(--val-font-tactical); font-size: 0.8rem; color: var(--val-gray); margin-bottom: 12px; text-align: left;">
+        NHẬP MÃ PIN 6 SỐ HOẶC QUÉT MÃ QR TRÊN MÀN HÌNH PC:
       </p>
 
       <!-- Manual 6-Digit PIN Input Form -->
       <div id="pinSection">
-        <input type="text" id="tokenInput" class="input-field" maxlength="6" placeholder="X X X X X X" autocomplete="off" autocorrect="off" autocapitalize="characters">
-        <button id="btnSaveToken" class="val-btn" style="width: 100%; margin-bottom: 8px;">🔑 XÁC NHẬN MÃ PIN</button>
-        <button id="btnStartScan" class="val-btn val-btn-cyan" style="width: 100%;">📷 QUÉT MÃ QR BẰNG CAMERA</button>
+        <input type="text" id="tokenInput" class="input-field" maxlength="6" placeholder="X X X X X X" autocomplete="off" autocorrect="off" autocapitalize="characters" style="margin: 4px 0 12px 0; font-size: 1.3rem; padding: 10px;">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <button id="btnSaveToken" class="val-btn" style="background: var(--val-red); color: #FFF; padding: 10px 6px; font-size: 0.85rem; letter-spacing: 0.5px;">🔑 XÁC NHẬN PIN</button>
+          <button id="btnStartScan" class="val-btn val-btn-cyan" style="padding: 10px 6px; font-size: 0.85rem; letter-spacing: 0.5px;">📷 QUÉT MÃ QR</button>
+        </div>
       </div>
 
-      <!-- Live Camera QR Scanner Viewport -->
+      <!-- Hidden camera file input for 100% universal LAN HTTP fallback -->
+      <input type="file" id="qrFileInput" accept="image/*" capture="environment" style="display: none;">
+
+      <!-- Live Camera QR Scanner Viewport (When supported) -->
       <div id="scannerSection" style="display: none; margin-top: 10px; position: relative;">
         <div style="position: relative; border-radius: 4px; overflow: hidden; border: 2px solid var(--val-cyan); background: #000;">
-          <video id="qrVideo" playsinline style="width: 100%; height: 220px; object-fit: cover; display: block;"></video>
+          <video id="qrVideo" playsinline style="width: 100%; height: 200px; object-fit: cover; display: block;"></video>
           <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; border: 2px dashed rgba(0, 245, 212, 0.6); pointer-events: none; margin: 20px;"></div>
         </div>
         <p style="font-family: var(--val-font-tactical); font-size: 0.75rem; color: var(--val-cyan); margin-top: 6px;">
           ĐƯA CAMERA VỀ PHÍA MÃ QR TRÊN MÀN HÌNH PC...
         </p>
-        <button id="btnStopScan" class="val-btn val-btn-danger" style="margin-top: 8px; width: 100%;">❌ ĐÓNG CAMERA</button>
+        <button id="btnStopScan" class="val-btn val-btn-danger" style="margin-top: 8px; width: 100%; padding: 8px; font-size: 0.8rem;">❌ ĐÓNG CAMERA</button>
       </div>
-
-      <button id="btnCloseModal" class="val-btn val-btn-outline" style="margin-top: 10px; width: 100%; font-size: 0.8rem; padding: 6px;" onclick="document.getElementById('tokenModal').style.display='none'">ĐÓNG CỬA SỔ</button>
     </div>
   </div>
 
@@ -516,7 +526,7 @@
         </div>
       </div>
       <div style="display: flex; align-items: center; gap: 6px;">
-        <button id="btnOpenAuth" class="val-btn val-btn-outline" style="padding: 4px 8px; font-size: 0.72rem; letter-spacing: 1px;">🔑 TOKEN / QR</button>
+        <button id="btnOpenAuth" class="val-btn val-btn-outline" style="padding: 4px 8px; font-size: 0.72rem; letter-spacing: 1px;">🔑 PIN CODE</button>
         <span id="connStatus" class="status-badge status-connecting">
           <span class="status-dot"></span> <span id="connStatusText">CONNECTING</span>
         </span>
@@ -719,8 +729,17 @@
       stopQrScanner();
     });
 
-    // Camera QR Code Scanner
+    // --- Camera QR Code Scanner with Dual Engine (Live Stream + Native Camera Snap Fallback) ---
+    const qrFileInput = document.getElementById('qrFileInput');
+
     async function startQrScanner() {
+      // If Web Camera getUserMedia is not supported or blocked by HTTP origin on mobile, open native camera file capture directly
+      const isLocalOrSecure = window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !isLocalOrSecure) {
+        qrFileInput.click();
+        return;
+      }
+
       pinSection.style.display = 'none';
       scannerSection.style.display = 'block';
 
@@ -731,30 +750,79 @@
         qrVideo.srcObject = videoStream;
         await qrVideo.play();
 
-        if ('BarcodeDetector' in window) {
-          const barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
-          const scanLoop = async () => {
-            if (!videoStream) return;
-            try {
-              const barcodes = await barcodeDetector.detect(qrVideo);
-              if (barcodes.length > 0) {
-                const rawValue = barcodes[0].rawValue;
-                handleScannedQr(rawValue);
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        const scanLoop = async () => {
+          if (!videoStream) return;
+          if (qrVideo.readyState === qrVideo.HAVE_ENOUGH_DATA) {
+            canvas.width = qrVideo.videoWidth;
+            canvas.height = qrVideo.videoHeight;
+            ctx.drawImage(qrVideo, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+            if (window.jsQR) {
+              const code = window.jsQR(imageData.data, imageData.width, imageData.height);
+              if (code && code.data) {
+                handleScannedQr(code.data);
                 return;
               }
-            } catch (e) {}
-            scanAnimationId = requestAnimationFrame(scanLoop);
-          };
+            } else if ('BarcodeDetector' in window) {
+              try {
+                const detector = new BarcodeDetector({ formats: ['qr_code'] });
+                const barcodes = await detector.detect(qrVideo);
+                if (barcodes.length > 0) {
+                  handleScannedQr(barcodes[0].rawValue);
+                  return;
+                }
+              } catch (e) {}
+            }
+          }
           scanAnimationId = requestAnimationFrame(scanLoop);
-        } else {
-          showToast('CAMERA SẴN SÀNG: HÃY HƯỚNG VÀO MÃ QR TRÊN PC');
-        }
+        };
+        scanAnimationId = requestAnimationFrame(scanLoop);
       } catch (err) {
-        console.error('Camera access error:', err);
-        showToast('KHÔNG THỂ TRUY CẬP CAMERA: VUI LÒNG NHẬP MÃ PIN');
+        console.warn('getUserMedia failed, falling back to native camera capture:', err);
         stopQrScanner();
+        qrFileInput.click();
       }
     }
+
+    // Native Camera File Snapshot Scanner (Works 100% on iOS Safari & Android Chrome over HTTP LAN)
+    qrFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      showToast('ĐANG QUÉT MÃ QR...');
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          ctx.drawImage(img, 0, 0);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+          let found = false;
+          if (window.jsQR) {
+            const code = window.jsQR(imageData.data, imageData.width, imageData.height);
+            if (code && code.data) {
+              found = true;
+              handleScannedQr(code.data);
+              return;
+            }
+          }
+
+          if (!found) {
+            showToast('KHÔNG TÌM THẤY MÃ QR, VUI LÒNG NHẬP MÃ PIN');
+          }
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
 
     function stopQrScanner() {
       if (videoStream) {
