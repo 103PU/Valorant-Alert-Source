@@ -49,6 +49,12 @@
       -webkit-font-smoothing: antialiased;
     }
 
+    html {
+      overflow-x: hidden;
+      width: 100%;
+      max-width: 100vw;
+    }
+
     body {
       background-color: var(--val-bg);
       color: var(--val-white);
@@ -57,10 +63,13 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 16px;
-      padding-top: calc(env(safe-area-inset-top) + 14px);
-      padding-bottom: calc(env(safe-area-inset-bottom) + 14px);
+      padding: 12px;
+      padding-top: calc(env(safe-area-inset-top) + 10px);
+      padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
       position: relative;
+      overflow-x: hidden;
+      width: 100%;
+      max-width: 100vw;
     }
 
     /* Tactical Background Grid */
@@ -79,6 +88,10 @@
     main {
       position: relative;
       z-index: 1;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      overflow-x: hidden;
     }
 
     /* Valorant Header */
@@ -86,66 +99,68 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 14px;
-      padding-bottom: 12px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
       border-bottom: 1px solid var(--val-border);
+      width: 100%;
+      gap: 6px;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+      min-width: 0;
+      flex-shrink: 1;
     }
 
     .val-logo {
-      width: 32px;
-      height: 32px;
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
       background: var(--val-red);
-      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 12px rgba(255, 70, 85, 0.4);
+      box-shadow: 0 0 10px rgba(255, 70, 85, 0.4);
     }
 
     .brand-title {
       font-family: var(--val-font-display);
-      font-size: 1.3rem;
+      font-size: 1.15rem;
       font-weight: 900;
-      letter-spacing: 1.5px;
+      letter-spacing: 1px;
       line-height: 1;
       text-transform: uppercase;
-    }
-    .brand-title span {
-      display: block;
-      font-family: var(--val-font-tactical);
-      font-size: 0.65rem;
-      font-weight: 700;
-      color: var(--val-red);
-      letter-spacing: 2.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .status-badge {
       font-family: var(--val-font-tactical);
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       font-weight: 800;
-      padding: 5px 12px;
-      letter-spacing: 1px;
+      padding: 4px 8px;
+      letter-spacing: 0.5px;
       text-transform: uppercase;
-      clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+      clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
     .status-connected { background: rgba(0, 245, 212, 0.1); color: var(--val-cyan); border: 1px solid var(--val-cyan); }
     .status-connecting { background: rgba(255, 206, 71, 0.1); color: var(--val-gold); border: 1px solid var(--val-gold); }
     .status-disconnected { background: rgba(255, 70, 85, 0.1); color: var(--val-red); border: 1px solid var(--val-red); }
 
     .status-dot {
-      width: 6px;
-      height: 6px;
+      width: 5px;
+      height: 5px;
       background: currentColor;
-      box-shadow: 0 0 6px currentColor;
+      box-shadow: 0 0 5px currentColor;
       border-radius: 50%;
     }
 
@@ -229,18 +244,21 @@
     /* Valorant Tactical Button Badge (Clean Solid Style) */
     .status-badge-btn {
       font-family: var(--val-font-display);
-      font-size: 0.95rem;
+      font-size: clamp(0.78rem, 3.8vw, 0.95rem);
       font-weight: 900;
-      letter-spacing: 1.5px;
+      letter-spacing: 1px;
       text-transform: uppercase;
-      padding: 8px 14px;
+      padding: 7px 10px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       white-space: nowrap;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
       flex-shrink: 0;
       line-height: 1;
-      gap: 6px;
+      gap: 4px;
       color: var(--val-white);
       clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
       transition: all 0.2s ease;
