@@ -65,6 +65,14 @@ if (Test-Path $iconPath) {
 $notifyIcon.Text = "Valorant Score Alert (Online)"
 $notifyIcon.Visible = $true
 
+# Show confirmation balloon tip on startup
+try {
+    $notifyIcon.BalloonTipTitle = "Valorant Score Alert"
+    $notifyIcon.BalloonTipText = "Dang chay ngam! Nhap doi vao icon de mo PC Dashboard."
+    $notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
+    $notifyIcon.ShowBalloonTip(3000)
+} catch {}
+
 # Instant Open Dashboard Function (0ms delay, no blocking)
 function Open-Dashboard {
     $targetUrl = if ($global:dashboardUrl) { $global:dashboardUrl } else { "http://localhost:$configPort/dashboard.html" }
