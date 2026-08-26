@@ -5,7 +5,8 @@ strScriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
 strDesktop = WshShell.SpecialFolders("Desktop")
 
 Set oShellLink = WshShell.CreateShortcut(strDesktop & "\Valorant Score Alert.lnk")
-oShellLink.TargetPath = strScriptDir & "\Start-ValorantAlert.bat"
+oShellLink.TargetPath = "wscript.exe"
+oShellLink.Arguments = "//nologo """ & strScriptDir & "\scripts\launcher.vbs"""
 oShellLink.WorkingDirectory = strScriptDir
 oShellLink.WindowStyle = 7
 oShellLink.IconLocation = strScriptDir & "\assets\icon.ico,0"
