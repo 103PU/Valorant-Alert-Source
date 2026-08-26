@@ -1,0 +1,49 @@
+name: Debug Build & Test Artifact
+
+on:
+  push:
+    branches: [ "dev", "develop" ]
+  workflow_dispatch:
+
+jobs:
+  build-debug:
+    name: Build Debug Standalone Artifact
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Source Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Unit Tests
+        run: npm test
+
+      - name: Generate Multi-Format Icons
+        run: node scripts/generate-icons.js
+
+      - name: Build Standalone Executable Release Package
+        run: node scripts/build.js
+
+      - name: Get Short SHA
+        id: vars
+        shell: bash
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Compress Debug Artifact
+        run: |
+          powershell -Command "Compress-Archive -Path 'dist/ValorantScoreAlert-Release/*' -DestinationPath 'ValorantAlert-debug-${{ steps.vars.outputs.sha_short }}.zip' -Force"
+
+      - name: Upload Debug Actions Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ValorantAlert-debug-${{ steps.vars.outputs.sha_short }}
+          path: ValorantAlert-debug-${{ steps.vars.outputs.sha_short }}.zip
+          retention-days: 14

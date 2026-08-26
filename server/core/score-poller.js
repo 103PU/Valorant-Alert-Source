@@ -312,4 +312,7 @@ class ScorePoller {
   }
 }
 
+ScorePoller.formatMapName = formatMapName;
+ScorePoller.formatQueueName = formatQueueName;
+
 module.exports = ScorePoller;

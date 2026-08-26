@@ -7,15 +7,25 @@ $rootDir = Split-Path -Parent $scriptDir
 if (-not (Test-Path "$rootDir\server")) { $rootDir = $scriptDir }
 Set-Location $rootDir
 
+# Read Config for dynamic port
+$configPort = 3000
+$configPath = Join-Path $rootDir "config.json"
+if (Test-Path $configPath) {
+    try {
+        $cfgJson = Get-Content $configPath -Raw | ConvertFrom-Json
+        if ($cfgJson.port) { $configPort = $cfgJson.port }
+    } catch {}
+}
+
 # Global URL State
 $global:token = ""
-$global:dashboardUrl = "http://localhost:3000/dashboard.html"
+$global:dashboardUrl = "http://localhost:$configPort/dashboard.html"
 $global:lanUrl = ""
 
 # Quick non-blocking server probe function
 function Probe-Server-Info {
     try {
-        $info = Invoke-RestMethod -Uri "http://localhost:3000/api/info" -Method Get -TimeoutSec 1 -ErrorAction Stop
+        $info = Invoke-RestMethod -Uri "http://localhost:$configPort/api/info" -Method Get -TimeoutSec 1 -ErrorAction Stop
         if ($info) {
             $global:token = $info.token
             $global:dashboardUrl = $info.dashboardUrl
@@ -47,7 +57,7 @@ $notifyIcon.Visible = $true
 
 # Instant Open Dashboard Function (0ms delay, no blocking)
 function Open-Dashboard {
-    $targetUrl = if ($global:dashboardUrl) { $global:dashboardUrl } else { "http://localhost:3000/dashboard.html" }
+    $targetUrl = if ($global:dashboardUrl) { $global:dashboardUrl } else { "http://localhost:$configPort/dashboard.html" }
     try {
         Start-Process "msedge.exe" -ArgumentList "--app=`"$targetUrl`"" -ErrorAction Stop
     } catch {
@@ -81,7 +91,7 @@ $itemCopyLan.add_Click({
         $notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
         $notifyIcon.ShowBalloonTip(2000)
     } else {
-        [System.Windows.Forms.Clipboard]::SetText("http://localhost:3000")
+        [System.Windows.Forms.Clipboard]::SetText("http://localhost:$configPort")
     }
 })
 

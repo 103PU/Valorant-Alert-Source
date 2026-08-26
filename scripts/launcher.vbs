@@ -20,8 +20,12 @@ If Not fso.FileExists(strDesktop & "\Valorant Score Alert.lnk") Then
     WshShell.Run "cscript //nologo """ & strRootDir & "\Create-Desktop-Shortcut.vbs""", 0, True
 End If
 
-' 3. Start Node Server (Hidden window)
-WshShell.Run "node """ & strRootDir & "\server\index.js""", 0, False
+' 3. Start Valorant Alert Server (Hidden window) - Prefer standalone .exe if present
+If fso.FileExists(strRootDir & "\ValorantScoreAlert.exe") Then
+    WshShell.Run """" & strRootDir & "\ValorantScoreAlert.exe""", 0, False
+Else
+    WshShell.Run "node """ & strRootDir & "\server\index.js""", 0, False
+End If
 
 ' 4. Start PowerShell System Tray Icon (Hidden window)
 WshShell.Run "powershell -WindowStyle Hidden -ExecutionPolicy Bypass -File """ & strRootDir & "\scripts\tray.ps1""", 0, False
