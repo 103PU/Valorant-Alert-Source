@@ -113,32 +113,45 @@ function killPortAndRetry() {
 
 function launchBrowserDashboard(url, onFinished) {
   if (process.platform !== 'win32') {
-    exec(`start "" "${url}"`, () => { if (onFinished) onFinished(); });
+    exec(`explorer.exe "${url}"`, () => { if (onFinished) onFinished(); });
     return;
   }
 
-  const candidateCommands = [
-    `start msedge --app="${url}"`,
-    `start chrome --app="${url}"`,
-    `start brave --app="${url}"`,
-    `start "" "${url}"`
+  const localAppData = process.env.LOCALAPPDATA || '';
+  const progFiles = process.env['ProgramFiles'] || 'C:\\Program Files';
+  const progFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+
+  const browserCandidates = [
+    // 1. Google Chrome
+    path.join(progFiles, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    path.join(progFilesX86, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    path.join(localAppData, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    // 2. Microsoft Edge
+    path.join(progFilesX86, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+    path.join(progFiles, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+    path.join(localAppData, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+    // 3. Brave Browser
+    path.join(progFiles, 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
+    path.join(localAppData, 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe')
   ];
 
-  function tryCommand(idx) {
-    if (idx >= candidateCommands.length) {
-      if (onFinished) onFinished();
-      return;
-    }
-    exec(candidateCommands[idx], (err) => {
+  const foundBrowser = browserCandidates.find(p => p && fs.existsSync(p));
+
+  if (foundBrowser) {
+    // Launch Chromium browser in standalone app mode (frameless app window)
+    exec(`"${foundBrowser}" --app="${url}"`, (err) => {
       if (err) {
-        tryCommand(idx + 1);
+        exec(`explorer.exe "${url}"`, () => { if (onFinished) onFinished(); });
       } else {
         if (onFinished) onFinished();
       }
     });
+  } else {
+    // Open in Windows system default browser (Firefox, Opera, Cốc Cốc, etc.)
+    exec(`explorer.exe "${url}"`, () => {
+      if (onFinished) onFinished();
+    });
   }
-
-  tryCommand(0);
 }
 
 server.on('error', (err) => {

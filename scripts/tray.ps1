@@ -73,34 +73,45 @@ try {
     $notifyIcon.ShowBalloonTip(3000)
 } catch {}
 
-# Instant Open Dashboard Function with Multi-Browser Support (Edge, Chrome, Brave, or System Default)
+# Instant Open Dashboard Function with Multi-Browser Support (Chrome, Edge, Brave, or System Default)
 function Open-Dashboard {
     $targetUrl = if ($global:dashboardUrl) { $global:dashboardUrl } else { "http://localhost:$configPort/dashboard.html" }
     
-    $browserCandidates = @(
-        @{ Name = "msedge.exe"; Args = "--app=`"$targetUrl`"" },
-        @{ Name = "chrome.exe"; Args = "--app=`"$targetUrl`"" },
-        @{ Name = "brave.exe"; Args = "--app=`"$targetUrl`"" }
+    $progFiles = ${env:ProgramFiles}
+    $progFilesX86 = ${env:ProgramFiles(x86)}
+    $localApp = $env:LOCALAPPDATA
+
+    $browserPaths = @(
+        # 1. Google Chrome
+        (Join-Path $progFiles "Google\Chrome\Application\chrome.exe"),
+        (Join-Path $progFilesX86 "Google\Chrome\Application\chrome.exe"),
+        (Join-Path $localApp "Google\Chrome\Application\chrome.exe"),
+        # 2. Microsoft Edge
+        (Join-Path $progFilesX86 "Microsoft\Edge\Application\msedge.exe"),
+        (Join-Path $progFiles "Microsoft\Edge\Application\msedge.exe"),
+        (Join-Path $localApp "Microsoft\Edge\Application\msedge.exe"),
+        # 3. Brave Browser
+        (Join-Path $progFiles "BraveSoftware\Brave-Browser\Application\brave.exe"),
+        (Join-Path $localApp "BraveSoftware\Brave-Browser\Application\brave.exe")
     )
 
-    $opened = $false
-    foreach ($b in $browserCandidates) {
-        try {
-            $p = Start-Process -FilePath $b.Name -ArgumentList $b.Args -PassThru -ErrorAction Stop
-            if ($p) {
-                $opened = $true
-                break
-            }
-        } catch {}
+    $foundBrowser = $null
+    foreach ($b in $browserPaths) {
+        if ($b -and (Test-Path $b)) {
+            $foundBrowser = $b
+            break
+        }
     }
 
-    # If standalone app mode fails on all known Chromium browsers, use default system browser (Firefox, Opera, CocCoc, etc.)
-    if (-not $opened) {
+    if ($foundBrowser) {
         try {
-            Start-Process $targetUrl
+            Start-Process -FilePath $foundBrowser -ArgumentList "--app=`"$targetUrl`"" -ErrorAction Stop
         } catch {
             Start-Process "explorer.exe" -ArgumentList "`"$targetUrl`""
         }
+    } else {
+        # Open in Windows default browser (Firefox, Opera, Cốc Cốc, etc.)
+        Start-Process "explorer.exe" -ArgumentList "`"$targetUrl`""
     }
 }
 
