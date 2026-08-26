@@ -17,10 +17,18 @@ const isPkg = !!process.pkg;
 const rootDir = isPkg ? path.dirname(process.execPath) : path.join(__dirname, '..');
 const publicDir = isPkg ? path.join(__dirname, 'public') : path.join(__dirname, '..', 'public');
 
+// Set Background Process Priority to BELOW_NORMAL (Guarantees Valorant gets 100% CPU priority)
+try {
+  if (os.setPriority && os.constants && os.constants.priority) {
+    os.setPriority(os.constants.priority.PRIORITY_BELOW_NORMAL);
+  }
+} catch (e) {}
+
 // Load Config file dynamically
 let config = {
   port: 3000,
-  pollingIntervalMs: 3000,
+  pollingIntervalMs: 2500,
+  idlePollingIntervalMs: 5000,
   tokenAutoRefreshMins: 45,
   alertEnemyScoreThreshold: 11
 };

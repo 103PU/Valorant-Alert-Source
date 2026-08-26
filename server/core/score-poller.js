@@ -66,14 +66,17 @@ class ScorePoller {
     this.timer = null;
     this.currentMatchId = null;
     this.lastScoreData = null;
+    this.lastBroadcastTime = 0;
+    this.inGame = false;
     this.isPolling = false;
   }
 
   start() {
     if (this.isPolling) return;
     this.isPolling = true;
-    const intervalMs = this.config.pollingIntervalMs || 3000;
-    logger.info(`[ScorePoller] Started poller with ${intervalMs}ms interval.`);
+    const activeInterval = this.config.pollingIntervalMs || 2500;
+    const idleInterval = this.config.idlePollingIntervalMs || 5000;
+    logger.info(`[ScorePoller] Started poller (Active: ${activeInterval}ms, Idle: ${idleInterval}ms).`);
 
     const pollLoop = async () => {
       if (!this.isPolling) return;
@@ -83,7 +86,8 @@ class ScorePoller {
         logger.error('[ScorePoller] Unexpected poll error:', err.message);
       } finally {
         if (this.isPolling) {
-          this.timer = setTimeout(pollLoop, intervalMs);
+          const nextInterval = this.inGame ? activeInterval : idleInterval;
+          this.timer = setTimeout(pollLoop, nextInterval);
         }
       }
     };
@@ -261,8 +265,22 @@ class ScorePoller {
   }
 
   notifyUpdate(data) {
-    if (this.onUpdateCallback) {
-      this.onUpdateCallback(data);
+    this.inGame = !!data.inGame;
+
+    const last = this.lastScoreData;
+    const isDifferent = !last ||
+      last.inGame !== data.inGame ||
+      last.alliedScore !== data.alliedScore ||
+      last.enemyScore !== data.enemyScore ||
+      last.status !== data.status ||
+      last.matchId !== data.matchId ||
+      last.gameMode !== data.gameMode;
+
+    if (isDifferent || (Date.now() - (this.lastBroadcastTime || 0) > 10000)) {
+      this.lastBroadcastTime = Date.now();
+      if (this.onUpdateCallback) {
+        this.onUpdateCallback(data);
+      }
     }
     this.lastScoreData = data;
   }
