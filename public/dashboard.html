@@ -656,7 +656,7 @@
           <div>
             <div class="chip-label" style="margin-bottom: 6px;">// TRIGGER SCENARIOS</div>
             <div class="event-item">
-              <span>⚠️ MATCH POINT ĐỐI THỦ (Phát lặp lại)</span>
+              <span>⚠️ MATCH POINT ĐỐI THỦ (12 Round - Lặp lại 2 phút)</span>
               <label class="switch">
                 <input type="checkbox" id="evtMatchPoint" checked>
                 <span class="slider"></span>
@@ -669,10 +669,23 @@
                 <span class="slider"></span>
               </label>
             </div>
+            <div class="event-item" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+              <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                <span>🎯 CẢNH BÁO CUSTOM ROUND (Lặp lại 2 phút)</span>
+                <label class="switch">
+                  <input type="checkbox" id="evtCustomRound" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; font-size: 0.78rem; color: var(--val-gray);">
+                <span>Kích hoạt khi Đối Thủ đạt round:</span>
+                <input type="number" id="customRoundInput" min="2" max="19" value="10" style="width: 55px; padding: 4px 6px; text-align: center; font-family: var(--val-font-tactical); font-size: 0.95rem; font-weight: 800; color: var(--val-gold); background: var(--val-surface-dark); border: 1px solid var(--val-border); outline: none;">
+              </div>
+            </div>
             <div class="event-item">
-              <span>🔥 OVERTIME / SUDDEN DEATH (12 - 12)</span>
+              <span>🏆 KẾT THÚC TRẬN ĐẤU (Thắng / Thua)</span>
               <label class="switch">
-                <input type="checkbox" id="evtOvertime" checked>
+                <input type="checkbox" id="evtMatchEnded" checked>
                 <span class="slider"></span>
               </label>
             </div>
@@ -700,7 +713,9 @@
     const btnPcAudio = document.getElementById('btnPcAudio');
     const evtMatchPoint = document.getElementById('evtMatchPoint');
     const evtRoundChange = document.getElementById('evtRoundChange');
-    const evtOvertime = document.getElementById('evtOvertime');
+    const evtCustomRound = document.getElementById('evtCustomRound');
+    const customRoundInput = document.getElementById('customRoundInput');
+    const evtMatchEnded = document.getElementById('evtMatchEnded');
 
     let fullLanUrl = '';
     let audioCtx = null;
@@ -708,12 +723,24 @@
     let lastAllied = -1;
     let lastEnemy = -1;
     let pcAlarmInterval = null;
+    let pcAlarmStartTime = 0;
+    let isMatchEndedTriggered = false;
 
-    // Restore Sound Preference
+    // Restore Sound Preference & Custom Round
     const savedSound = localStorage.getItem('val_selected_sound');
     if (savedSound) soundPicker.value = savedSound;
     soundPicker.addEventListener('change', () => {
       localStorage.setItem('val_selected_sound', soundPicker.value);
+    });
+
+    const savedCustomRound = localStorage.getItem('val_custom_round_val');
+    if (savedCustomRound) customRoundInput.value = savedCustomRound;
+    customRoundInput.addEventListener('change', () => {
+      let v = parseInt(customRoundInput.value, 10);
+      if (isNaN(v) || v < 2) v = 2;
+      if (v > 19) v = 19;
+      customRoundInput.value = v;
+      localStorage.setItem('val_custom_round_val', v);
     });
 
     function showToast(msg) {
@@ -737,15 +764,15 @@
       });
     });
 
-    // --- 5 Web Audio Sound Presets Engine ---
+    // --- 5 Web Audio Sound Presets Engine with Pitch Scaling ---
     const soundPresets = {
-      melodicChime: (ctx) => {
+      melodicChime: (ctx, pitch = 1.0) => {
         const now = ctx.currentTime;
         const notes = [
-          { freq: 659.25, start: 0.0, duration: 0.4 },
-          { freq: 830.61, start: 0.15, duration: 0.4 },
-          { freq: 987.77, start: 0.30, duration: 0.5 },
-          { freq: 1318.51, start: 0.45, duration: 0.8 }
+          { freq: 659.25 * pitch, start: 0.0, duration: 0.4 },
+          { freq: 830.61 * pitch, start: 0.15, duration: 0.4 },
+          { freq: 987.77 * pitch, start: 0.30, duration: 0.5 },
+          { freq: 1318.51 * pitch, start: 0.45, duration: 0.8 }
         ];
         notes.forEach(n => {
           const osc = ctx.createOscillator();
@@ -761,14 +788,14 @@
           osc.stop(now + n.start + n.duration);
         });
       },
-      radarPulse: (ctx) => {
+      radarPulse: (ctx, pitch = 1.0) => {
         const now = ctx.currentTime;
         [0.0, 0.2].forEach(st => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(880, now + st);
-          osc.frequency.exponentialRampToValueAtTime(1760, now + st + 0.12);
+          osc.frequency.setValueAtTime(880 * pitch, now + st);
+          osc.frequency.exponentialRampToValueAtTime(1760 * pitch, now + st + 0.12);
           gain.gain.setValueAtTime(0.4, now + st);
           gain.gain.exponentialRampToValueAtTime(0.001, now + st + 0.15);
           osc.connect(gain);
@@ -777,9 +804,9 @@
           osc.stop(now + st + 0.15);
         });
       },
-      crystalBell: (ctx) => {
+      crystalBell: (ctx, pitch = 1.0) => {
         const now = ctx.currentTime;
-        [ { freq: 880, st: 0 }, { freq: 1318.51, st: 0.18 } ].forEach(n => {
+        [ { freq: 880 * pitch, st: 0 }, { freq: 1318.51 * pitch, st: 0.18 } ].forEach(n => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'sine';
@@ -793,9 +820,9 @@
           osc.stop(now + n.st + 0.6);
         });
       },
-      arcadeRetro: (ctx) => {
+      arcadeRetro: (ctx, pitch = 1.0) => {
         const now = ctx.currentTime;
-        const freqs = [523.25, 659.25, 783.99, 1046.50];
+        const freqs = [523.25 * pitch, 659.25 * pitch, 783.99 * pitch, 1046.50 * pitch];
         freqs.forEach((f, idx) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -809,9 +836,9 @@
           osc.stop(now + idx * 0.08 + 0.08);
         });
       },
-      tacticalDuty: (ctx) => {
+      tacticalDuty: (ctx, pitch = 1.0) => {
         const now = ctx.currentTime;
-        [ { freq: 220, st: 0, d: 0.3 }, { freq: 440, st: 0.15, d: 0.4 } ].forEach(n => {
+        [ { freq: 220 * pitch, st: 0, d: 0.3 }, { freq: 440 * pitch, st: 0.15, d: 0.4 } ].forEach(n => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'triangle';
@@ -826,7 +853,7 @@
       }
     };
 
-    function playSound() {
+    function playSound(pitch = 1.0) {
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
@@ -835,18 +862,18 @@
       }
       const soundKey = soundPicker.value || 'melodicChime';
       const playFn = soundPresets[soundKey] || soundPresets.melodicChime;
-      playFn(audioCtx);
+      playFn(audioCtx, pitch);
     }
 
     btnTestChime.addEventListener('click', () => {
-      playSound();
-      showToast('PLAYING AUDIO PRESET TEST');
+      playSound(1.0);
+      showToast('PLAYING AUDIO PRESET TEST (1.0X)');
     });
 
     btnPcAudio.addEventListener('click', () => {
       isPcAudioEnabled = !isPcAudioEnabled;
       if (isPcAudioEnabled) {
-        playSound();
+        playSound(1.0);
         btnPcAudio.classList.remove('val-btn-outline');
         btnPcAudio.classList.add('val-btn-cyan');
         btnPcAudio.innerText = '✅ PC AUDIO ALERT: ACTIVE';
@@ -929,36 +956,76 @@
             const map = data.mapName || data.matchId || 'ASCENT';
             const mode = data.gameMode || 'CUSTOM';
 
-            if (data.status === 'MATCH_POINT_RISK' || (enemy >= 11 && allied < enemy)) {
-              matchInfoTag.className = 'status-badge-btn status-badge-danger';
-              matchInfoTag.innerHTML = `MATCH POINT <span style="opacity:0.6; margin:0 4px;">//</span> <span style="color:#FFF;">${map}</span> <span style="opacity:0.6; margin:0 4px;">//</span> <span style="color:#FEF08A;">${mode}</span>`;
-            } else {
-              matchInfoTag.className = 'status-badge-btn status-badge-live';
-              matchInfoTag.innerHTML = `IN MATCH <span style="opacity:0.6; margin:0 4px;">//</span> <span style="color:#00F5D4; font-weight:900;">${map}</span> <span style="opacity:0.6; margin:0 4px;">//</span> <span style="color:#FFCE47; font-weight:900;">${mode}</span>`;
-            }
-
-            // Check Round Change on PC
-            if (lastAllied !== -1 && lastEnemy !== -1) {
-              if (allied > lastAllied || enemy > lastEnemy) {
-                if (evtRoundChange.checked && isPcAudioEnabled) {
-                  playSound();
+            // 1. Check Match Finished
+            const isFinished = (allied >= 13 || enemy >= 13) && Math.abs(allied - enemy) >= 2;
+            if (isFinished) {
+              if (!isMatchEndedTriggered) {
+                isMatchEndedTriggered = true;
+                if (pcAlarmInterval) { clearInterval(pcAlarmInterval); pcAlarmInterval = null; }
+                if (evtMatchEnded.checked && isPcAudioEnabled) {
+                  playSound(0.82); // Pitch 0.82x for Victory/Defeat
                 }
               }
+              const resBadge = allied > enemy ? 'VICTORY' : 'DEFEAT';
+              const badgeColor = allied > enemy ? 'var(--val-cyan)' : 'var(--val-red)';
+              matchInfoTag.className = 'status-badge-btn status-badge-live';
+              matchInfoTag.innerHTML = `<span style="color:${badgeColor}; font-weight:900;">${resBadge}</span> <span style="opacity:0.6; margin:0 4px;">//</span> <span style="color:#FFF;">${map}</span> <span style="opacity:0.6; margin:0 4px;">//</span> <span style="color:#FFCE47;">${allied} - ${enemy}</span>`;
+              return;
             }
 
-            // Check Overtime on PC
-            if (allied >= 12 && enemy >= 12 && evtOvertime.checked && isPcAudioEnabled) {
-              playSound();
-            }
+            // 2. Check Match Point (Enemy at 12 or above and leading) -> Pitch 1.35x (2 Minutes Loop)
+            const isMatchPoint = (enemy >= 12 && enemy > allied) || data.status === 'MATCH_POINT_RISK';
+            if (isMatchPoint) {
+              matchInfoTag.className = 'status-badge-btn status-badge-danger';
+              matchInfoTag.innerHTML = `MATCH POINT <span style="opacity:0.6; margin:0 4px;">//</span> <span style="color:#FFF;">${map}</span> <span style="opacity:0.6; margin:0 4px;">//</span> <span style="color:#FEF08A;">${mode}</span>`;
 
-            // Check Match Point Alarm on PC
-            if (data.status === 'MATCH_POINT_RISK' || (enemy >= 11 && allied < enemy)) {
               if (evtMatchPoint.checked && isPcAudioEnabled && !pcAlarmInterval) {
-                playSound();
-                pcAlarmInterval = setInterval(playSound, 1500);
+                pcAlarmStartTime = Date.now();
+                playSound(1.35);
+                pcAlarmInterval = setInterval(() => {
+                  if (Date.now() - pcAlarmStartTime >= 120000) {
+                    clearInterval(pcAlarmInterval);
+                    pcAlarmInterval = null;
+                    return;
+                  }
+                  playSound(1.35);
+                }, 1500);
               }
             } else {
-              if (pcAlarmInterval) { clearInterval(pcAlarmInterval); pcAlarmInterval = null; }
+              // 3. Check Custom Round Alert -> Pitch 1.15x (2 Minutes Loop)
+              const customTarget = parseInt(customRoundInput.value, 10) || 10;
+              const isCustomHit = evtCustomRound.checked && (enemy === customTarget || (allied + enemy) === customTarget);
+
+              if (isCustomHit && enemy < 12) {
+                matchInfoTag.className = 'status-badge-btn status-badge-live';
+                matchInfoTag.innerHTML = `ROUND ${customTarget} <span style="opacity:0.6; margin:0 4px;">//</span> <span style="color:#00F5D4; font-weight:900;">${map}</span> <span style="opacity:0.6; margin:0 4px;">//</span> <span style="color:#FFCE47;">${allied} - ${enemy}</span>`;
+
+                if (isPcAudioEnabled && !pcAlarmInterval) {
+                  pcAlarmStartTime = Date.now();
+                  playSound(1.15);
+                  pcAlarmInterval = setInterval(() => {
+                    if (Date.now() - pcAlarmStartTime >= 120000) {
+                      clearInterval(pcAlarmInterval);
+                      pcAlarmInterval = null;
+                      return;
+                    }
+                    playSound(1.15);
+                  }, 1500);
+                }
+              } else {
+                matchInfoTag.className = 'status-badge-btn status-badge-live';
+                matchInfoTag.innerHTML = `IN MATCH <span style="opacity:0.6; margin:0 4px;">//</span> <span style="color:#00F5D4; font-weight:900;">${map}</span> <span style="opacity:0.6; margin:0 4px;">//</span> <span style="color:#FFCE47; font-weight:900;">${mode}</span>`;
+                if (pcAlarmInterval) { clearInterval(pcAlarmInterval); pcAlarmInterval = null; }
+              }
+            }
+
+            // 4. Check Round Change on PC -> Pitch 1.0x (1 Neutral Chime)
+            if (lastAllied !== -1 && lastEnemy !== -1) {
+              if (allied > lastAllied || enemy > lastEnemy) {
+                if (evtRoundChange.checked && isPcAudioEnabled && !pcAlarmInterval) {
+                  playSound(1.0);
+                }
+              }
             }
 
             lastAllied = allied;
@@ -967,6 +1034,7 @@
             matchInfoTag.className = 'status-badge-btn status-badge-idle';
             matchInfoTag.innerText = 'IDLE // LOBBY';
             if (pcAlarmInterval) { clearInterval(pcAlarmInterval); pcAlarmInterval = null; }
+            isMatchEndedTriggered = false;
             lastAllied = -1;
             lastEnemy = -1;
           }

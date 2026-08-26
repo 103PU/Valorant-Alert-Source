@@ -1,7 +1,8 @@
 {
   "port": 3000,
-  "pollingIntervalMs": 3000,
+  "pollingIntervalMs": 2500,
+  "idlePollingIntervalMs": 5000,
   "tokenAutoRefreshMins": 45,
-  "alertEnemyScoreThreshold": 11,
+  "alertEnemyScoreThreshold": 12,
   "logLevel": "info"
 }

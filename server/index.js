@@ -30,7 +30,7 @@ let config = {
   pollingIntervalMs: 2500,
   idlePollingIntervalMs: 5000,
   tokenAutoRefreshMins: 45,
-  alertEnemyScoreThreshold: 11
+  alertEnemyScoreThreshold: 12
 };
 
 const configPath = path.join(rootDir, 'config.json');
