@@ -5,6 +5,34 @@ const logger = require('../utils/logger');
 
 const CLIENT_PLATFORM_BASE64 = 'ew0KCSJwbGF0Zm9ybVR5cGUiOiAiUEMiLA0KCSJwbGF0Zm9ybU9TIjogIldpbmRvd3MiLA0KCSJwbGF0Zm9ybU9TVmVyc2lvbiI6ICIxMC4wLjE5MDQ0LjEuMjU2LjEuNTEyLjE1IiwNCgkicGxhdGZvcm1WYWx1ZSI6ICJidWlsZC0xMTQ4NzQ3LWxpc3QiDQp9';
 
+// Valorant Unreal Engine Map Asset Dictionary
+const VALORANT_MAP_NAMES = {
+  '/Game/Maps/Ascent/Ascent': 'ASCENT',
+  '/Game/Maps/Bonsai/Bonsai': 'SPLIT',
+  '/Game/Maps/Duality/Duality': 'BIND',
+  '/Game/Maps/Triad/Triad': 'HAVEN',
+  '/Game/Maps/Port/Port': 'ICEBOX',
+  '/Game/Maps/Foxtrot/Foxtrot': 'BREEZE',
+  '/Game/Maps/Canyon/Canyon': 'FRACTURE',
+  '/Game/Maps/Pitt/Pitt': 'PEARL',
+  '/Game/Maps/Jam/Jam': 'LOTUS',
+  '/Game/Maps/Jules/Jules': 'SUNSET',
+  '/Game/Maps/Infinity/Infinity': 'ABYSS',
+  '/Game/Maps/Poveglia/Range': 'THE RANGE',
+  '/Game/Maps/HURM/HURM_Yard': 'DISTRICT',
+  '/Game/Maps/HURM/HURM_Alley': 'PIAZZA',
+  '/Game/Maps/HURM/HURM_Helix': 'KASBAH',
+  '/Game/Maps/HURM/HURM_Drift': 'DRIFT',
+  '/Game/Maps/HURM/HURM_Glitch': 'GLITCH'
+};
+
+function formatMapName(rawMap) {
+  if (!rawMap) return 'ACTIVE MATCH';
+  if (VALORANT_MAP_NAMES[rawMap]) return VALORANT_MAP_NAMES[rawMap];
+  const parts = rawMap.split('/').filter(Boolean);
+  return (parts[parts.length - 1] || 'ACTIVE MATCH').toUpperCase();
+}
+
 class ScorePoller {
   constructor(config, onUpdateCallback) {
     this.config = config || {};
@@ -87,7 +115,7 @@ class ScorePoller {
 
             this.notifyUpdate({
               inGame: true,
-              matchId: decoded.matchPresenceData?.matchMap || 'ACTIVE_MATCH',
+              matchId: formatMapName(decoded.matchPresenceData?.matchMap),
               alliedScore,
               enemyScore,
               status,
