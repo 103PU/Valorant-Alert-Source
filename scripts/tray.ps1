@@ -1,10 +1,18 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
+# Single-Instance Mutex to prevent duplicate Tray icons
+$mutexName = "Global\ValorantScoreAlertTrayMutex"
+$createdNew = $false
+$global:trayMutex = New-Object System.Threading.Mutex($true, $mutexName, [ref]$createdNew)
+if (-not $createdNew) {
+    Exit 0
+}
+
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 if (-not $scriptDir) { $scriptDir = $PSScriptRoot }
 $rootDir = Split-Path -Parent $scriptDir
-if (-not (Test-Path "$rootDir\server")) { $rootDir = $scriptDir }
+if (-not (Test-Path "$rootDir\server") -and -not (Test-Path "$rootDir\config.json")) { $rootDir = $scriptDir }
 Set-Location $rootDir
 
 # Read Config for dynamic port
@@ -132,8 +140,12 @@ $itemExit.add_Click({
     $notifyIcon.Visible = $false
     $notifyIcon.Dispose()
 
-    Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Get-Process -Name node, ValorantScoreAlert -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     
+    if ($global:trayMutex) {
+        try { $global:trayMutex.ReleaseMutex(); $global:trayMutex.Dispose() } catch {}
+    }
+
     [System.Windows.Forms.Application]::Exit()
     [System.Environment]::Exit(0)
 })
@@ -146,8 +158,12 @@ $healthTimer.Interval = 6000
 $healthTimer.add_Tick({
     $alive = Probe-Server-Info
     if (-not $alive) {
-        # Auto-heal: restart node server if it stopped unexpectedly
-        Start-Process -FilePath "node" -ArgumentList "server/index.js" -WorkingDirectory $rootDir -WindowStyle Hidden
+        # Auto-heal: restart server if it stopped unexpectedly
+        if (Test-Path "$rootDir\ValorantScoreAlert.exe") {
+            Start-Process -FilePath "$rootDir\ValorantScoreAlert.exe" -WorkingDirectory $rootDir -WindowStyle Hidden
+        } else {
+            Start-Process -FilePath "node" -ArgumentList "server/index.js" -WorkingDirectory $rootDir -WindowStyle Hidden
+        }
     }
 })
 $healthTimer.Start()

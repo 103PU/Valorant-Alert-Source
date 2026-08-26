@@ -127,6 +127,16 @@ server.listen(PORT, '0.0.0.0', async () => {
     logger.warn('⚠️ Riot Client lockfile not found. Please launch Valorant on PC.');
   }
 
+  // Ensure System Tray Icon is running in background (hidden window)
+  try {
+    const trayScript = path.join(rootDir, 'scripts', 'tray.ps1');
+    if (fs.existsSync(trayScript)) {
+      exec(`powershell -WindowStyle Hidden -ExecutionPolicy Bypass -File "${trayScript}"`, {
+        cwd: rootDir
+      });
+    }
+  } catch (e) {}
+
   // Auto-launch PC Dashboard in Desktop Standalone App Mode (Edge/Chrome)
   try {
     exec(`start msedge --app="${dashboardUrl}"`, (err) => {
