@@ -4,21 +4,23 @@ Add-Type -AssemblyName System.Drawing
 $rootDir = Split-Path -Parent $PSScriptRoot
 Set-Location $rootDir
 
-# Auto-kill old node holding port 3000
+# 1. Clean up any lingering process on port 3000
 $portCheck = netstat -aon | findstr :3000 | findstr LISTENING
 if ($portCheck) {
-    $parts = $portCheck.Trim() -split '\s+'
-    $oldPid = $parts[-1]
-    if ($oldPid -and $oldPid -ne '0') {
-        Stop-Process -Id $oldPid -Force -ErrorAction SilentlyContinue
+    foreach ($line in $portCheck) {
+        $parts = $line.Trim() -split '\s+'
+        $oldPid = $parts[-1]
+        if ($oldPid -and $oldPid -ne '0') {
+            Stop-Process -Id $oldPid -Force -ErrorAction SilentlyContinue
+        }
     }
 }
 
-# Start Node Server in Background
+# 2. Start Node Server in Background
 $serverProcess = Start-Process -FilePath "node" -ArgumentList "server/index.js" -WorkingDirectory $rootDir -WindowStyle Hidden -PassThru
 
-# Wait briefly for server to initialize
-Start-Sleep -Milliseconds 1500
+# 3. Wait briefly for server initialization
+Start-Sleep -Milliseconds 1800
 
 $infoUrl = "http://localhost:3000/api/info"
 $token = ""
@@ -34,7 +36,7 @@ try {
     }
 } catch {}
 
-# Create NotifyIcon
+# 4. Create System Tray NotifyIcon
 $notifyIcon = New-Object System.Windows.Forms.NotifyIcon
 $iconPath = Join-Path $rootDir "assets\icon.ico"
 if (Test-Path $iconPath) {
@@ -43,45 +45,49 @@ if (Test-Path $iconPath) {
     $notifyIcon.Icon = [System.Drawing.SystemIcons]::Application
 }
 
-$notifyIcon.Text = "Valorant Score Alert (Running)"
+$notifyIcon.Text = "Valorant Score Alert (Online)"
 $notifyIcon.Visible = $true
 
-# Balloon Tip on Start
-$notifyIcon.BalloonTipTitle = "Valorant Realtime Score Alert"
-$notifyIcon.BalloonTipText = "Server đang chạy ngầm. Nhấp đôi vào icon này để mở PC Dashboard!"
+# Balloon Tip Notification on Startup
+$notifyIcon.BalloonTipTitle = "Valorant Score Alert"
+$notifyIcon.BalloonTipText = "Server đang chạy ngầm. Nhấp đôi vào icon để mở PC Dashboard!"
 $notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
 $notifyIcon.ShowBalloonTip(3000)
 
+# Function to Open Dashboard Window
+function Open-Dashboard {
+    try {
+        Start-Process "msedge.exe" -ArgumentList "--app=`"$dashboardUrl`"" -ErrorAction Stop
+    } catch {
+        Start-Process $dashboardUrl
+    }
+}
+
+# Automatically open Dashboard on launch
+Open-Dashboard
+
 # Double Click Handler: Open Dashboard
 $notifyIcon.add_DoubleClick({
-    try {
-        Start-Process "msedge.exe" -ArgumentList "--app=`"$dashboardUrl`"" -ErrorAction Stop
-    } catch {
-        Start-Process $dashboardUrl
-    }
+    Open-Dashboard
 })
 
-# Create Context Menu (Right-Click)
+# 5. Create Right-Click Context Menu
 $contextMenu = New-Object System.Windows.Forms.ContextMenuStrip
 
-# 1. Open PC Dashboard
-$itemDashboard = $contextMenu.Items.Add("🖥️  Mở PC Dashboard")
+# Option 1: Open Dashboard
+$itemDashboard = $contextMenu.Items.Add("[1] Mo PC Dashboard")
 $itemDashboard.Font = New-Object System.Drawing.Font($itemDashboard.Font, [System.Drawing.FontStyle]::Bold)
 $itemDashboard.add_Click({
-    try {
-        Start-Process "msedge.exe" -ArgumentList "--app=`"$dashboardUrl`"" -ErrorAction Stop
-    } catch {
-        Start-Process $dashboardUrl
-    }
+    Open-Dashboard
 })
 
-# 2. Copy LAN URL for Mobile
-$itemCopyLan = $contextMenu.Items.Add("📱  Copy Link Cho Điện Thoại (LAN URL)")
+# Option 2: Copy LAN URL for Mobile
+$itemCopyLan = $contextMenu.Items.Add("[2] Copy Link Mobile (LAN URL)")
 $itemCopyLan.add_Click({
     if ($lanUrl) {
         [System.Windows.Forms.Clipboard]::SetText($lanUrl)
         $notifyIcon.BalloonTipTitle = "Valorant Score Alert"
-        $notifyIcon.BalloonTipText = "Đã copy link LAN vào Clipboard: $lanUrl"
+        $notifyIcon.BalloonTipText = "Da copy link LAN: $lanUrl"
         $notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
         $notifyIcon.ShowBalloonTip(2000)
     }
@@ -89,26 +95,26 @@ $itemCopyLan.add_Click({
 
 $contextMenu.Items.Add("-") | Out-Null
 
-# 3. Create Desktop Shortcut
-$itemShortcut = $contextMenu.Items.Add("📌  Tạo Shortcut Ngoài Desktop")
+# Option 3: Create Desktop Shortcut
+$itemShortcut = $contextMenu.Items.Add("[3] Tao Shortcut Ngoai Desktop")
 $itemShortcut.add_Click({
     $vbsPath = Join-Path $rootDir "Create-Desktop-Shortcut.vbs"
     Start-Process "cscript" -ArgumentList "//nologo `"$vbsPath`"" -NoNewWindow
     $notifyIcon.BalloonTipTitle = "Valorant Score Alert"
-    $notifyIcon.BalloonTipText = "Đã tạo Icon Shortcut ngoài Desktop!"
+    $notifyIcon.BalloonTipText = "Da tao shortcut ngoai Desktop!"
     $notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
     $notifyIcon.ShowBalloonTip(2000)
 })
 
-# 4. Open Config.json
-$itemConfig = $contextMenu.Items.Add("⚙️  Chỉnh Sửa File Cấu Hình (config.json)")
+# Option 4: Open Config.json
+$itemConfig = $contextMenu.Items.Add("[4] Chinh Sua Cau Hinh (config.json)")
 $itemConfig.add_Click({
     $cfgPath = Join-Path $rootDir "config.json"
     Start-Process "notepad.exe" -ArgumentList "`"$cfgPath`""
 })
 
-# 5. Open Logs Folder
-$itemLogs = $contextMenu.Items.Add("📁  Mở Thư Mục Logs")
+# Option 5: Open Logs Folder
+$itemLogs = $contextMenu.Items.Add("[5] Mo Thu Muc Logs")
 $itemLogs.add_Click({
     $logDir = Join-Path $rootDir "logs"
     if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir | Out-Null }
@@ -117,19 +123,17 @@ $itemLogs.add_Click({
 
 $contextMenu.Items.Add("-") | Out-Null
 
-# 6. Exit Application
-$itemExit = $contextMenu.Items.Add("❌  Thoát Ứng Dụng (Exit)")
+# Option 6: Exit Application
+$itemExit = $contextMenu.Items.Add("[X] Thoat Ung Dung (Exit)")
 $itemExit.ForeColor = [System.Drawing.Color]::Red
 $itemExit.add_Click({
     $notifyIcon.Visible = $false
     $notifyIcon.Dispose()
 
-    # Kill server process
     if ($serverProcess -and -not $serverProcess.HasExited) {
         Stop-Process -Id $serverProcess.Id -Force -ErrorAction SilentlyContinue
     }
     
-    # Also clean up any lingering node on port 3000
     Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     
     [System.Windows.Forms.Application]::Exit()
@@ -138,5 +142,5 @@ $itemExit.add_Click({
 
 $notifyIcon.ContextMenuStrip = $contextMenu
 
-# Run Message Loop
+# Keep Windows Forms Message Loop running
 [System.Windows.Forms.Application]::Run()
