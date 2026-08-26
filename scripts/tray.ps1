@@ -1,13 +1,15 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# Single-Instance Mutex to prevent duplicate Tray icons
-$mutexName = "Global\ValorantScoreAlertTrayMutex"
-$createdNew = $false
-$global:trayMutex = New-Object System.Threading.Mutex($true, $mutexName, [ref]$createdNew)
-if (-not $createdNew) {
-    Exit 0
-}
+# Terminate any duplicate previous tray process
+$currentPid = $PID
+try {
+    Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" | Where-Object { 
+        $_.ProcessId -ne $currentPid -and $_.CommandLine -like "*tray.ps1*" 
+    } | ForEach-Object { 
+        Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue 
+    }
+} catch {}
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 if (-not $scriptDir) { $scriptDir = $PSScriptRoot }
@@ -141,10 +143,6 @@ $itemExit.add_Click({
     $notifyIcon.Dispose()
 
     Get-Process -Name node, ValorantScoreAlert -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-    
-    if ($global:trayMutex) {
-        try { $global:trayMutex.ReleaseMutex(); $global:trayMutex.Dispose() } catch {}
-    }
 
     [System.Windows.Forms.Application]::Exit()
     [System.Environment]::Exit(0)
@@ -153,16 +151,22 @@ $itemExit.add_Click({
 $notifyIcon.ContextMenuStrip = $contextMenu
 
 # Non-blocking Background Health Probe Timer (Checks every 6s without UI freeze)
+$global:healthFailCount = 0
 $healthTimer = New-Object System.Windows.Forms.Timer
 $healthTimer.Interval = 6000
 $healthTimer.add_Tick({
     $alive = Probe-Server-Info
-    if (-not $alive) {
-        # Auto-heal: restart server if it stopped unexpectedly
-        if (Test-Path "$rootDir\ValorantScoreAlert.exe") {
-            Start-Process -FilePath "$rootDir\ValorantScoreAlert.exe" -WorkingDirectory $rootDir -WindowStyle Hidden
-        } else {
-            Start-Process -FilePath "node" -ArgumentList "server/index.js" -WorkingDirectory $rootDir -WindowStyle Hidden
+    if ($alive) {
+        $global:healthFailCount = 0
+    } else {
+        $global:healthFailCount++
+        if ($global:healthFailCount -ge 4) {
+            $global:healthFailCount = 0
+            if (Test-Path "$rootDir\ValorantScoreAlert.exe") {
+                Start-Process -FilePath "$rootDir\ValorantScoreAlert.exe" -WorkingDirectory $rootDir -WindowStyle Hidden
+            } else {
+                Start-Process -FilePath "node" -ArgumentList "server/index.js" -WorkingDirectory $rootDir -WindowStyle Hidden
+            }
         }
     }
 })

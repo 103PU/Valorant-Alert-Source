@@ -22,10 +22,10 @@ End If
 
 ' 3. Start Valorant Alert Server (Pure hidden background window)
 If fso.FileExists(strRootDir & "\ValorantScoreAlert.exe") Then
-    WshShell.Run """" & strRootDir & "\ValorantScoreAlert.exe"" --daemon", 0, False
+    WshShell.Run """" & strRootDir & "\ValorantScoreAlert.exe""", 0, False
 Else
-    WshShell.Run "node """ & strRootDir & "\server\index.js"" --daemon", 0, False
+    WshShell.Run "node """ & strRootDir & "\server\index.js""", 0, False
 End If
 
 ' 4. Start PowerShell System Tray Icon (Pure hidden background window)
-WshShell.Run "powershell -WindowStyle Hidden -ExecutionPolicy Bypass -File """ & strRootDir & "\scripts\tray.ps1""", 0, False
+WshShell.Run "powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File """ & strRootDir & "\scripts\tray.ps1""", 0, False

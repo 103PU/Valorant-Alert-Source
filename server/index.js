@@ -92,6 +92,21 @@ const poller = new ScorePoller(config, (scoreData) => {
   wsServer.broadcastScore(scoreData);
 });
 
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    logger.warn(`⚠️ Port ${PORT} is in use. Reclaiming port...`);
+    exec(`cmd /c for /f "tokens=5" %a in ('netstat -aon ^| findstr :${PORT} ^| findstr LISTENING') do taskkill /f /pid %a`, () => {
+      setTimeout(() => {
+        try {
+          server.listen(PORT, '0.0.0.0');
+        } catch (e) {}
+      }, 1000);
+    });
+  } else {
+    logger.error('Server error:', err.message);
+  }
+});
+
 // Start Server
 server.listen(PORT, '0.0.0.0', async () => {
   logger.info('===========================================================');
@@ -129,8 +144,13 @@ server.listen(PORT, '0.0.0.0', async () => {
 
   // Ensure System Tray Icon is running in background (hidden window)
   try {
-    const trayScript = path.join(rootDir, 'scripts', 'tray.ps1');
-    if (fs.existsSync(trayScript)) {
+    const candidatePaths = [
+      path.join(rootDir, 'scripts', 'tray.ps1'),
+      path.join(__dirname, '..', 'scripts', 'tray.ps1'),
+      path.join(process.cwd(), 'scripts', 'tray.ps1')
+    ];
+    const trayScript = candidatePaths.find(p => fs.existsSync(p));
+    if (trayScript) {
       exec(`powershell -WindowStyle Hidden -ExecutionPolicy Bypass -File "${trayScript}"`, {
         cwd: rootDir
       });
