@@ -21,18 +21,6 @@ const publicDir = fs.existsSync(path.join(rootDir, 'public'))
   ? path.join(rootDir, 'public') 
   : (fs.existsSync(path.join(__dirname, '..', 'public')) ? path.join(__dirname, '..', 'public') : path.join(__dirname, 'public'));
 
-// Auto-daemonize when double-clicked directly on Windows with a visible console window
-const isDaemon = process.argv.includes('--daemon') || process.env.VALORANT_ALERT_DAEMON === '1';
-if (process.platform === 'win32' && !isDaemon && process.stdout && process.stdout.isTTY) {
-  const launcherVbs = path.join(rootDir, 'scripts', 'launcher.vbs');
-  if (fs.existsSync(launcherVbs)) {
-    try {
-      exec(`wscript //nologo "${launcherVbs}"`, { cwd: rootDir });
-      process.exit(0);
-    } catch (e) {}
-  }
-}
-
 // Set Background Process Priority to BELOW_NORMAL (Guarantees Valorant gets 100% CPU priority)
 try {
   if (os.setPriority && os.constants && os.constants.priority) {
