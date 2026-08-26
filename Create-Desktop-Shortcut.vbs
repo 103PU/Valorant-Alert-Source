@@ -1,13 +1,15 @@
 Set WshShell = CreateObject("WScript.Shell")
+Set fso = CreateObject("Scripting.FileSystemObject")
+
+strScriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
 strDesktop = WshShell.SpecialFolders("Desktop")
-strCurrentDir = WshShell.CurrentDirectory
 
 Set oShellLink = WshShell.CreateShortcut(strDesktop & "\Valorant Score Alert.lnk")
-oShellLink.TargetPath = strCurrentDir & "\Start-ValorantAlert.bat"
-oShellLink.WorkingDirectory = strCurrentDir
-oShellLink.WindowStyle = 1
-oShellLink.IconLocation = strCurrentDir & "\assets\icon.ico,0"
-oShellLink.Description = "Valorant Realtime Score Alert Launcher"
+oShellLink.TargetPath = strScriptDir & "\Start-ValorantAlert.bat"
+oShellLink.WorkingDirectory = strScriptDir
+oShellLink.WindowStyle = 7
+oShellLink.IconLocation = strScriptDir & "\assets\icon.ico,0"
+oShellLink.Description = "Valorant Realtime Score Alert"
 oShellLink.Save
 
-WScript.Echo "Icon Shortcut Valorant Score Alert đã được tạo ngoài Desktop với Icon chính thức!"
+WScript.Echo "Da tao Shortcut Valorant Score Alert ngoai Desktop thanh cong!"
