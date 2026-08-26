@@ -4,55 +4,41 @@ Add-Type -AssemblyName System.Drawing
 $rootDir = Split-Path -Parent $PSScriptRoot
 Set-Location $rootDir
 
-# 1. Clean up any lingering process on port 3000
-$portCheck = netstat -aon | findstr :3000 | findstr LISTENING
-if ($portCheck) {
-    foreach ($line in $portCheck) {
-        $parts = $line.Trim() -split '\s+'
-        $oldPid = $parts[-1]
-        if ($oldPid -and $oldPid -ne '0') {
-            Stop-Process -Id $oldPid -Force -ErrorAction SilentlyContinue
-        }
-    }
-}
-
-# 2. Start Node Server in Background
-$serverProcess = Start-Process -FilePath "node" -ArgumentList "server/index.js" -WorkingDirectory $rootDir -WindowStyle Hidden -PassThru
-
-# 3. Wait briefly for server initialization
-Start-Sleep -Milliseconds 1800
-
+# Wait up to 5 seconds for server to be responsive
 $infoUrl = "http://localhost:3000/api/info"
 $token = ""
 $dashboardUrl = "http://localhost:3000/dashboard.html"
 $lanUrl = ""
 
-try {
-    $info = Invoke-RestMethod -Uri $infoUrl -Method Get -TimeoutSec 3
-    if ($info) {
-        $token = $info.token
-        $dashboardUrl = $info.dashboardUrl
-        $lanUrl = $info.lanUrl
+for ($i = 0; $i -lt 10; $i++) {
+    try {
+        $info = Invoke-RestMethod -Uri $infoUrl -Method Get -TimeoutSec 1
+        if ($info) {
+            $token = $info.token
+            $dashboardUrl = $info.dashboardUrl
+            $lanUrl = $info.lanUrl
+            break
+        }
+    } catch {
+        Start-Sleep -Milliseconds 500
     }
-} catch {}
+}
 
-# 4. Create System Tray NotifyIcon
+# Create System Tray NotifyIcon
 $notifyIcon = New-Object System.Windows.Forms.NotifyIcon
 $iconPath = Join-Path $rootDir "assets\icon.ico"
 if (Test-Path $iconPath) {
-    $notifyIcon.Icon = New-Object System.Drawing.Icon($iconPath)
+    try {
+        $notifyIcon.Icon = New-Object System.Drawing.Icon($iconPath)
+    } catch {
+        $notifyIcon.Icon = [System.Drawing.SystemIcons]::Application
+    }
 } else {
     $notifyIcon.Icon = [System.Drawing.SystemIcons]::Application
 }
 
 $notifyIcon.Text = "Valorant Score Alert (Online)"
 $notifyIcon.Visible = $true
-
-# Balloon Tip Notification on Startup
-$notifyIcon.BalloonTipTitle = "Valorant Score Alert"
-$notifyIcon.BalloonTipText = "Server đang chạy ngầm. Nhấp đôi vào icon để mở PC Dashboard!"
-$notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
-$notifyIcon.ShowBalloonTip(3000)
 
 # Function to Open Dashboard Window
 function Open-Dashboard {
@@ -63,15 +49,12 @@ function Open-Dashboard {
     }
 }
 
-# Automatically open Dashboard on launch
-Open-Dashboard
-
 # Double Click Handler: Open Dashboard
 $notifyIcon.add_DoubleClick({
     Open-Dashboard
 })
 
-# 5. Create Right-Click Context Menu
+# Create Right-Click Context Menu
 $contextMenu = New-Object System.Windows.Forms.ContextMenuStrip
 
 # Option 1: Open Dashboard
@@ -130,10 +113,7 @@ $itemExit.add_Click({
     $notifyIcon.Visible = $false
     $notifyIcon.Dispose()
 
-    if ($serverProcess -and -not $serverProcess.HasExited) {
-        Stop-Process -Id $serverProcess.Id -Force -ErrorAction SilentlyContinue
-    }
-    
+    # Clean up all node processes
     Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     
     [System.Windows.Forms.Application]::Exit()
