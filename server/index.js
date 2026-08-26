@@ -105,6 +105,8 @@ const server = http.createServer(async (req, res) => {
       lanIp,
       token,
       lanUrl: `http://${lanIp}:${PORT}?token=${token}`,
+      lanMobileUrl: `http://${lanIp}:${PORT}?token=${token}`,
+      lanDashboardUrl: `http://${lanIp}:${PORT}/dashboard.html?token=${token}`,
       localUrl: `http://localhost:${PORT}?token=${token}`,
       dashboardUrl: `http://localhost:${PORT}/dashboard.html?token=${token}`,
       riotConnected: !!lockfile,

@@ -570,20 +570,36 @@
         </div>
       </div>
 
-      <!-- QR Code Connect Card -->
+      <!-- QR Code & Multi-Device Connect Card -->
       <div class="val-card">
         <div class="val-card-header">
-          <div class="val-card-title">📱 MOBILE PWA SYNC</div>
-          <div class="val-tag">[ SCAN_QR ]</div>
+          <div class="val-card-title">📱 MULTI-DEVICE SYNC & QR</div>
+          <div class="val-tag">[ LAN_CONNECT ]</div>
         </div>
 
         <div class="qr-box-wrapper">
           <div class="qr-frame">
             <img id="qrImg" src="/api/qr" alt="QR Code">
           </div>
-          <div class="url-action-bar">
-            <input type="text" id="lanUrlInput" class="val-input" readonly value="FETCHING LAN IP...">
-            <button id="btnCopy" class="val-btn">COPY LINK</button>
+
+          <!-- PIN Code Highlight Box -->
+          <div style="background: var(--val-surface-dark); border: 1px dashed var(--val-gold); padding: 8px 12px; width: 100%; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-family: var(--val-font-tactical); font-size: 0.85rem; color: var(--val-gray);">
+              AUTH PIN CODE: <strong id="tokenDisplay" style="color: var(--val-gold); font-size: 1.15rem; letter-spacing: 2px;">FETCHING...</strong>
+            </div>
+            <button id="btnCopyToken" class="val-btn val-btn-outline" style="padding: 4px 10px; font-size: 0.75rem;">📋 COPY PIN</button>
+          </div>
+
+          <!-- Links for Mobile & Laptop -->
+          <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+            <div class="url-action-bar">
+              <input type="text" id="lanUrlInput" class="val-input" readonly placeholder="Link Mobile...">
+              <button id="btnCopy" class="val-btn" style="white-space: nowrap; padding: 10px 14px; font-size: 0.8rem;">📱 LINK MOBILE</button>
+            </div>
+            <div class="url-action-bar">
+              <input type="text" id="lanDashboardInput" class="val-input" readonly placeholder="Link Laptop / PC Dashboard...">
+              <button id="btnCopyLaptop" class="val-btn val-btn-cyan" style="white-space: nowrap; padding: 10px 14px; font-size: 0.8rem;">💻 LINK LAPTOP</button>
+            </div>
           </div>
         </div>
       </div>
@@ -844,10 +860,36 @@
       }
     });
 
+    const lanDashboardInput = document.getElementById('lanDashboardInput');
+    const btnCopyLaptop = document.getElementById('btnCopyLaptop');
+    const tokenDisplay = document.getElementById('tokenDisplay');
+    const btnCopyToken = document.getElementById('btnCopyToken');
+    let fullLanDashboardUrl = '';
+    let currentAuthToken = '';
+
+    btnCopyToken.addEventListener('click', () => {
+      if (currentAuthToken) {
+        navigator.clipboard.writeText(currentAuthToken);
+        showToast(`ĐÃ COPY MÃ PIN: ${currentAuthToken}`);
+      }
+    });
+
+    btnCopyLaptop.addEventListener('click', () => {
+      if (fullLanDashboardUrl) {
+        navigator.clipboard.writeText(fullLanDashboardUrl);
+        showToast('ĐÃ COPY LINK CHO LAPTOP / MÁY KHÁC!');
+      }
+    });
+
     // Fetch System Info & Setup WS
     fetch('/api/info').then(res => res.json()).then(info => {
-      fullLanUrl = info.lanUrl;
+      fullLanUrl = info.lanMobileUrl || info.lanUrl;
+      fullLanDashboardUrl = info.lanDashboardUrl || info.dashboardUrl;
+      currentAuthToken = info.token || '';
+
       lanUrlInput.value = fullLanUrl;
+      lanDashboardInput.value = fullLanDashboardUrl;
+      tokenDisplay.innerText = currentAuthToken;
       qrImg.src = '/api/qr?t=' + Date.now();
 
       if (info.riotConnected) {
