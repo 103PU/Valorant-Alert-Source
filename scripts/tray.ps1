@@ -73,13 +73,34 @@ try {
     $notifyIcon.ShowBalloonTip(3000)
 } catch {}
 
-# Instant Open Dashboard Function (0ms delay, no blocking)
+# Instant Open Dashboard Function with Multi-Browser Support (Edge, Chrome, Brave, or System Default)
 function Open-Dashboard {
     $targetUrl = if ($global:dashboardUrl) { $global:dashboardUrl } else { "http://localhost:$configPort/dashboard.html" }
-    try {
-        Start-Process "msedge.exe" -ArgumentList "--app=`"$targetUrl`"" -ErrorAction Stop
-    } catch {
-        Start-Process $targetUrl
+    
+    $browserCandidates = @(
+        @{ Name = "msedge.exe"; Args = "--app=`"$targetUrl`"" },
+        @{ Name = "chrome.exe"; Args = "--app=`"$targetUrl`"" },
+        @{ Name = "brave.exe"; Args = "--app=`"$targetUrl`"" }
+    )
+
+    $opened = $false
+    foreach ($b in $browserCandidates) {
+        try {
+            $p = Start-Process -FilePath $b.Name -ArgumentList $b.Args -PassThru -ErrorAction Stop
+            if ($p) {
+                $opened = $true
+                break
+            }
+        } catch {}
+    }
+
+    # If standalone app mode fails on all known Chromium browsers, use default system browser (Firefox, Opera, CocCoc, etc.)
+    if (-not $opened) {
+        try {
+            Start-Process $targetUrl
+        } catch {
+            Start-Process "explorer.exe" -ArgumentList "`"$targetUrl`""
+        }
     }
 }
 

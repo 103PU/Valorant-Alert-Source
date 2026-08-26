@@ -111,6 +111,36 @@ function killPortAndRetry() {
   });
 }
 
+function launchBrowserDashboard(url, onFinished) {
+  if (process.platform !== 'win32') {
+    exec(`start "" "${url}"`, () => { if (onFinished) onFinished(); });
+    return;
+  }
+
+  const candidateCommands = [
+    `start msedge --app="${url}"`,
+    `start chrome --app="${url}"`,
+    `start brave --app="${url}"`,
+    `start "" "${url}"`
+  ];
+
+  function tryCommand(idx) {
+    if (idx >= candidateCommands.length) {
+      if (onFinished) onFinished();
+      return;
+    }
+    exec(candidateCommands[idx], (err) => {
+      if (err) {
+        tryCommand(idx + 1);
+      } else {
+        if (onFinished) onFinished();
+      }
+    });
+  }
+
+  tryCommand(0);
+}
+
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
     // Check if an existing Valorant Score Alert instance is already running healthy on this port
@@ -118,9 +148,7 @@ server.on('error', (err) => {
       if (res.statusCode === 200) {
         logger.info(`✅ Valorant Score Alert đã đang chạy ngầm trên cổng ${PORT}.`);
         logger.info(`🖥️ Đang mở PC Dashboard: http://localhost:${PORT}/dashboard.html`);
-        // Just launch the PC Dashboard for user and exit cleanly
-        exec(`start msedge --app="http://localhost:${PORT}/dashboard.html"`, (e) => {
-          if (e) exec(`start "" "http://localhost:${PORT}/dashboard.html"`);
+        launchBrowserDashboard(`http://localhost:${PORT}/dashboard.html`, () => {
           process.exit(0);
         });
       } else {
@@ -191,13 +219,9 @@ server.listen(PORT, '0.0.0.0', async () => {
     }
   } catch (e) {}
 
-  // Auto-launch PC Dashboard in Desktop Standalone App Mode (Edge/Chrome)
+  // Auto-launch PC Dashboard in Desktop Standalone App Mode (Edge, Chrome, Brave, or System Default)
   try {
-    exec(`start msedge --app="${dashboardUrl}"`, (err) => {
-      if (err) {
-        exec(`start "" "${dashboardUrl}"`);
-      }
-    });
+    launchBrowserDashboard(dashboardUrl);
   } catch (e) {}
 
   // Start polling
