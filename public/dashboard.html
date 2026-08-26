@@ -656,34 +656,31 @@
           <div>
             <div class="chip-label" style="margin-bottom: 6px;">// TRIGGER SCENARIOS</div>
             <div class="event-item">
-              <span>⚠️ MATCH POINT ĐỐI THỦ (12 Round - Lặp lại 2 phút)</span>
+              <span>⚠️ MATCH POINT ĐỐI THỦ</span>
               <label class="switch">
                 <input type="checkbox" id="evtMatchPoint" checked>
                 <span class="slider"></span>
               </label>
             </div>
             <div class="event-item">
-              <span>🔔 QUA ROUND MỚI / ĐỔI TỈ SỐ (1 chuông)</span>
+              <span>🔔 QUA ROUND MỚI / ĐỔI TỈ SỐ</span>
               <label class="switch">
                 <input type="checkbox" id="evtRoundChange" checked>
                 <span class="slider"></span>
               </label>
             </div>
-            <div class="event-item" style="flex-direction: column; align-items: flex-start; gap: 4px;">
-              <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-                <span>🎯 CẢNH BÁO CUSTOM ROUND (Lặp lại 2 phút)</span>
+            <div class="event-item">
+              <span>🎯 CẢNH BÁO CUSTOM ROUND</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="number" id="customRoundInput" min="2" max="19" value="10" style="width: 44px; height: 26px; padding: 2px 4px; text-align: center; font-family: var(--val-font-tactical); font-size: 0.95rem; font-weight: 800; color: var(--val-gold); background: var(--val-surface-dark); border: 1px solid var(--val-border); outline: none;">
                 <label class="switch">
                   <input type="checkbox" id="evtCustomRound" checked>
                   <span class="slider"></span>
                 </label>
               </div>
-              <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; font-size: 0.78rem; color: var(--val-gray);">
-                <span>Kích hoạt khi Đối Thủ đạt round:</span>
-                <input type="number" id="customRoundInput" min="2" max="19" value="10" style="width: 55px; padding: 4px 6px; text-align: center; font-family: var(--val-font-tactical); font-size: 0.95rem; font-weight: 800; color: var(--val-gold); background: var(--val-surface-dark); border: 1px solid var(--val-border); outline: none;">
-              </div>
             </div>
             <div class="event-item">
-              <span>🏆 KẾT THÚC TRẬN ĐẤU (Thắng / Thua)</span>
+              <span>🏆 KẾT THÚC TRẬN ĐẤU</span>
               <label class="switch">
                 <input type="checkbox" id="evtMatchEnded" checked>
                 <span class="slider"></span>
