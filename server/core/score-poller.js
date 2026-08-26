@@ -23,6 +23,9 @@ const VALORANT_MAP_NAMES = {
   '/Game/Maps/HURM/HURM_Alley': 'PIAZZA',
   '/Game/Maps/HURM/HURM_Helix': 'KASBAH',
   '/Game/Maps/HURM/HURM_Drift': 'DRIFT',
+  '/Game/Maps/HURM/HURM_Glitch': 'GLITCH'
+};
+
 // Valorant Queue Mode Dictionary
 const VALORANT_QUEUE_NAMES = {
   'custom': 'CUSTOM',
