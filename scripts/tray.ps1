@@ -35,7 +35,7 @@ $global:lanUrl = ""
 # Quick non-blocking server probe function
 function Probe-Server-Info {
     try {
-        $info = Invoke-RestMethod -Uri "http://localhost:$configPort/api/info" -Method Get -TimeoutSec 1 -ErrorAction Stop
+        $info = Invoke-RestMethod -Uri "http://localhost:$configPort/api/info" -Method Get -TimeoutSec 3 -ErrorAction Stop
         if ($info) {
             $global:token = $info.token
             $global:dashboardUrl = $info.dashboardUrl
@@ -190,23 +190,30 @@ $itemExit.add_Click({
 
 $notifyIcon.ContextMenuStrip = $contextMenu
 
-# Non-blocking Background Health Probe Timer (Checks every 6s without UI freeze)
+# Non-blocking Background Health Probe Timer (Checks every 10s without UI freeze)
 $global:healthFailCount = 0
 $healthTimer = New-Object System.Windows.Forms.Timer
-$healthTimer.Interval = 6000
+$healthTimer.Interval = 10000
 $healthTimer.add_Tick({
     $alive = Probe-Server-Info
     if ($alive) {
         $global:healthFailCount = 0
     } else {
-        $global:healthFailCount++
-        if ($global:healthFailCount -ge 4) {
-            $global:healthFailCount = 0
-            if (Test-Path "$rootDir\ValorantScoreAlert.exe") {
-                Start-Process -FilePath "$rootDir\ValorantScoreAlert.exe" -WorkingDirectory $rootDir -WindowStyle Hidden
-            } else {
-                Start-Process -FilePath "node" -ArgumentList "server/index.js" -WorkingDirectory $rootDir -WindowStyle Hidden
+        # Check if process is still running; if running, it's just busy processing, do not restart
+        $runningProc = Get-Process -Name ValorantScoreAlert, node -ErrorAction SilentlyContinue
+        if (-not $runningProc) {
+            $global:healthFailCount++
+            # Only attempt auto-heal if process is truly dead after 3 checks (30s)
+            if ($global:healthFailCount -ge 3) {
+                $global:healthFailCount = 0
+                if (Test-Path "$rootDir\ValorantScoreAlert.exe") {
+                    Start-Process -FilePath "$rootDir\ValorantScoreAlert.exe" -WorkingDirectory $rootDir -WindowStyle Hidden
+                } else {
+                    Start-Process -FilePath "node" -ArgumentList "server/index.js" -WorkingDirectory $rootDir -WindowStyle Hidden
+                }
             }
+        } else {
+            $global:healthFailCount = 0
         }
     }
 })

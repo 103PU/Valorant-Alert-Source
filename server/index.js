@@ -160,10 +160,7 @@ server.on('error', (err) => {
     const req = http.get(`http://localhost:${PORT}/api/info`, (res) => {
       if (res.statusCode === 200) {
         logger.info(`✅ Valorant Score Alert đã đang chạy ngầm trên cổng ${PORT}.`);
-        logger.info(`🖥️ Đang mở PC Dashboard: http://localhost:${PORT}/dashboard.html`);
-        launchBrowserDashboard(`http://localhost:${PORT}/dashboard.html`, () => {
-          process.exit(0);
-        });
+        process.exit(0);
       } else {
         killPortAndRetry();
       }
