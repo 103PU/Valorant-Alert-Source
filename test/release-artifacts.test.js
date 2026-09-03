@@ -75,11 +75,16 @@ test('build.js derives the artifact names from release-naming, not by hand', () 
   );
 });
 
-// appVersion in the licence payload comes from package.json, while config.json
-// carries its own build.version for display. Divergence is silent, so pin them.
-test('config.json build.version tracks package.json version', () => {
+// package.json is the ONLY place a version lives. config.json used to carry a
+// `build.version` copy, but nothing ever read it — resolveAppVersion
+// (server/licensing/config.js:41-48) reads package.json, no route serves a
+// version, and no frontend displays one. A second copy of a number is a second
+// thing to forget on a release, so the field is gone rather than synced. This
+// test is what stops it coming back.
+test('config.json carries no version field — package.json is the only source', () => {
   const cfg = JSON.parse(fs.readFileSync(path.join(rootDir, 'config.json'), 'utf8'));
-  assert.strictEqual(cfg.build.version, pkg.version);
+  assert.strictEqual(cfg.build, undefined, 'config.json must not re-introduce a build block');
+  assert.strictEqual(cfg.version, undefined, 'config.json must not carry a top-level version');
 });
 
 // allowedPlans moved into server/licensing/policy.js. Leaving a copy in the

@@ -62,11 +62,19 @@ Tag `v*` kích hoạt workflow: test → assert tag khớp `package.json` → bu
 `gh release create --verify-tag --latest` (không draft, không prerelease) → assert lại
 release vừa publish có resolvable thật không.
 
-## 4. Version phải khớp ở ba chỗ
+## 4. Version chỉ có MỘT chỗ
 
-`package.json:version`, `config.json:build.version`, và tag git. Lệch thì tag `v1.0.1`
+`package.json:version` là nguồn duy nhất. Tag git phải khớp nó, và workflow assert
+điều đó (step *Assert the tag matches package.json version*) — lệch thì tag `v1.0.1`
 đẩy lên asset tên `...-v1.0.0-win-x64.zip` và không có gì báo cho tới lúc user tải về.
-`test/release-artifacts.test.js` pin hai chỗ đầu; workflow assert chỗ thứ ba.
+
+`config.json` **không** còn field version. Trước đây nó có `build.version`, nhưng
+không có gì đọc: `resolveAppVersion` (`server/licensing/config.js:41-48`) đọc
+`package.json`, không route nào serve version, không frontend nào hiển thị. Bản copy
+thứ hai của một con số chỉ là thứ thứ hai để quên lúc release, nên xoá hẳn thay vì
+đồng bộ. `test/release-artifacts.test.js` assert nó không quay lại.
+
+Bump version = sửa **một** dòng trong `package.json`, rồi tag đúng con số đó.
 
 ## 5. Còn lại ở phía KLD
 

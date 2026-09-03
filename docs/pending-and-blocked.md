@@ -51,18 +51,57 @@ Việc của phía app, nhưng **chỉ làm được sau** 1.1. Ba bước, khô
 
 1. Điền `kid` + public key vào `PUBLIC_KEYS` (`signing-keys.js`). Có test invariant
    chặn tổ hợp `REQUIRE_SIGNATURE = true` + map rỗng, nên bước này phải trước.
-2. Theo dõi `snapshot().signature` (`{verified, kid, warning}`) trên máy thật: mọi
-   activate đã có `sig` chưa? `warning: 'signature_missing'` còn xuất hiện không?
+2. Theo dõi trên máy thật bằng endpoint có sẵn — app đang chạy thì:
+
+   ```
+   GET http://127.0.0.1:3000/api/license/status
+   ```
+
+   Nó trả `gate.snapshot()` (`server/licensing/gate.js:116-138`), trong đó có block
+   `signature: {verified, kid, warning}`. Cần thấy: mọi activate đã có `sig` chưa
+   (`verified: true`), và `warning: 'signature_missing'` còn xuất hiện không.
 3. Chỉ khi (2) sạch mới đổi `REQUIRE_SIGNATURE = false` → `true`, ship version mới.
 
 ---
 
-## 2. Chờ quyết định của người dùng — không phải chờ code
+## 2. Đã quyết — không chờ ai nữa
 
-| Việc | Trạng thái | Cần gì |
-|---|---|---|
-| `relay/` | Đã cho vào `.gitignore`, **file vẫn còn trên đĩa** | Xác nhận: giữ local vĩnh viễn, hay xoá hẳn. Tôi không xoá vì không hoàn tác được |
-| Version tiếp theo | `package.json` + `config.json` đang `1.0.0` | Bump cả **hai** chỗ cùng lúc; test `release-artifacts` pin chúng với nhau, workflow assert tag khớp `package.json` |
+Hai việc dưới đây từng là "chờ người dùng quyết". Người dùng giao lại quyền quyết
+(2026-09-04), đã chốt như sau.
+
+### 2.1 `relay/` — GIỮ trên đĩa, không xoá
+
+Quyết định: **giữ**, và giữ nguyên trong `.gitignore`.
+
+Lý do quyết định được, không phải phỏng đoán:
+
+- `git log --all -- relay/` **rỗng**, và `git rev-list --all --objects` có **0** object
+  nào mang path `relay/`. Tức là `relay/` chưa từng được commit. Xoá là mất vĩnh viễn,
+  không `git checkout` nào lấy lại được — đây là bản duy nhất còn tồn tại.
+- Giữ tốn **183 KB / 36 file**. Đã gitignore nên không lọt vào commit; `build.js` đã
+  liệt `relay` trong `--exclude` của caxa nên không lọt vào `.exe` (đã verify bằng
+  cách bung tar trong exe đã publish của v1.0.0: 436 entry, không có `relay/`).
+- Bất đối xứng rõ: giữ tốn 183 KB, xoá mất không hoàn tác. Không có lý do chọn cái thứ hai.
+
+Chống nhầm lẫn: `relay/wrangler.jsonc:1-11` đã ghi rõ ABANDONED + ngày, và tên Worker
+đã bị đổi thành `valorant-alert-relay-abandoned-do-not-deploy` để `wrangler deploy`
+lỡ chạy thì tạo Worker rác chứ không ghi đè Worker notice đang live. Thêm
+`relay/README-ABANDONED.md` ở gốc thư mục để không phải mở `wrangler.jsonc` mới biết.
+
+### 2.2 Version — xoá bản copy, không đồng bộ nó
+
+Quyết định: **`package.json` là nguồn duy nhất.** Đã xoá block `build` khỏi
+`config.json`.
+
+Lý do: `config.json:build.version` **không có gì đọc**. `resolveAppVersion`
+(`server/licensing/config.js:41-48`) đọc `package.json`; không route nào trong
+`server/routes/` serve version; không frontend nào hiển thị. Nó chỉ tồn tại để bị
+quên lúc bump. Cùng lý do đã xoá `keylicense.allowedPlans` — field chết trong file
+người dùng sửa được thì phải xoá, không phải đồng bộ.
+
+Bump version từ giờ = sửa **một** dòng `package.json`, rồi `git tag` đúng con số đó.
+Workflow assert tag khớp `package.json`; test assert `config.json` không mọc lại field
+version. Chi tiết ở `release-runbook.md` §4.
 
 ---
 

@@ -27,8 +27,5 @@
     "sessionTtlDays": 7,
     "trialDays": 3,
     "defaultTab": "overview"
-  },
-  "build": {
-    "version": "1.0.0"
   }
 }
