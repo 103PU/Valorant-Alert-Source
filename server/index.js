@@ -12,6 +12,7 @@ const { getRegionInfo } = require('./riot/riot-region');
 const ScorePoller = require('./core/score-poller');
 const ScoreWSServer = require('./transport/ws-server');
 const { createApp } = require('./app');
+const { createLicensing } = require('./licensing');
 
 // Resolve paths robustly for Source and Standalone Binary environments
 const cwd = process.cwd();
@@ -70,9 +71,16 @@ function getLocalLanIp() {
 
 const lanIp = getLocalLanIp();
 
+// Keylicense Dashboard gate (login + license). Always constructed: a missing or
+// malformed keylicense block falls back to the built-in defaults rather than
+// disabling the gate, because config.json is user-writable.
+const licensing = createLicensing({ rawConfig: config, rootDir });
+
 // Create HTTP Server & WebSocket Server
 const server = http.createServer();
-const wsServer = new ScoreWSServer(server);
+const wsServer = new ScoreWSServer(server, {
+  isEntitled: () => licensing.entitled
+});
 const authToken = wsServer.getToken();
 const fullAppUrl = `http://${lanIp}:${PORT}?token=${authToken}`;
 const dashboardUrl = `http://localhost:${PORT}/dashboard.html?token=${authToken}`;
@@ -83,7 +91,8 @@ const appHandler = createApp({
   lanIp,
   port: PORT,
   rootDir,
-  publicDir
+  publicDir,
+  licensing
 });
 server.on('request', appHandler);
 
@@ -234,6 +243,36 @@ server.listen(PORT, '0.0.0.0', async () => {
     launchBrowserDashboard(dashboardUrl);
   } catch (e) {}
 
-  // Start polling
-  poller.start();
+  // Licensing gate: the score feed is the paid feature, so polling follows
+  // entitlement for the whole session, not just at boot. start()/stop() are both
+  // idempotent (score-poller.js:95, :119), so re-firing on a state change is safe.
+  // There is deliberately no "licensing absent" branch — the poller starts only
+  // from an entitled gate state, never from the shape of config.json.
+  try {
+    const snap = await licensing.start();
+    logger.info('===========================================================');
+    if (snap.entitled) {
+      const label = snap.license && snap.license.plan ? `plan ${snap.license.plan}` : snap.state;
+      logger.info(`✅ License hợp lệ (${label}). Bắt đầu theo dõi tỉ số.`);
+    } else if (snap.state === 'NOT_LOGGED_IN') {
+      logger.warn('🔑 Chưa đăng nhập. Mở Dashboard và bấm "Đăng nhập Google" để kích hoạt.');
+    } else {
+      logger.warn(`⚠️ Chưa có license khả dụng (${snap.state}${snap.reason ? `: ${snap.reason}` : ''}).`);
+    }
+    logger.info('===========================================================');
+  } catch (e) {
+    // A failed check leaves the gate on its last state, which is never entitled
+    // on a first run — so this logs and falls through without starting polling.
+    logger.error('Không kiểm tra được license:', e.message);
+  }
+
+  licensing.onChange((snap) => {
+    if (snap.entitled) {
+      poller.start();
+    } else {
+      poller.stop();
+    }
+  });
+
+  if (licensing.entitled) poller.start();
 });

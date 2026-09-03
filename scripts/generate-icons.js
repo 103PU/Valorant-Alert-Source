@@ -9,73 +9,101 @@ const publicDir = path.join(rootDir, 'public');
 if (!fs.existsSync(assetsDir)) fs.mkdirSync(assetsDir, { recursive: true });
 if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
 
-// 1. Generate 256x256 High-Res PNG for PWA & Browser
-const size = 256;
-const png = new PNG({ width: size, height: size });
+// 1. Generate the crosshair PNG at every size the app ships.
+//
+// The drawing was originally written against a hardcoded 256px canvas. Radii are
+// now expressed as fractions of that reference so 192 and 512 come out
+// identical in proportion instead of needing a second copy of the geometry.
+const REF = 256;
 
-function setPixel(x, y, r, g, b, a) {
-  if (x < 0 || x >= size || y < 0 || y >= size) return;
-  const idx = (size * y + x) << 2;
-  png.data[idx] = r;
-  png.data[idx + 1] = g;
-  png.data[idx + 2] = b;
-  png.data[idx + 3] = a;
-}
+function renderCrosshairPng(size, { bleed = false } = {}) {
+  const png = new PNG({ width: size, height: size });
+  const k = size / REF;
+  const cx = size / 2;
+  const cy = size / 2;
 
-const cx = size / 2;
-const cy = size / 2;
+  const setPixel = (x, y, r, g, b, a) => {
+    const px = Math.round(x);
+    const py = Math.round(y);
+    if (px < 0 || px >= size || py < 0 || py >= size) return;
+    const idx = (size * py + px) << 2;
+    png.data[idx] = r;
+    png.data[idx + 1] = g;
+    png.data[idx + 2] = b;
+    png.data[idx + 3] = a;
+  };
 
-// Draw Dark Background with chamfered corners
-for (let y = 0; y < size; y++) {
-  for (let x = 0; x < size; x++) {
-    const isInside = (x + y >= 30) && (size - 1 - x + y >= 30) && (x + size - 1 - y >= 30) && (size - 1 - x + size - 1 - y >= 30);
-    if (isInside) {
-      setPixel(x, y, 15, 25, 35, 255); // #0F1923
-    } else {
-      setPixel(x, y, 0, 0, 0, 0); // Transparent
+  // Dark background. `bleed` fills the whole square instead of chamfering the
+  // corners: an Android adaptive-icon mask crops to a squircle, and a
+  // transparent chamfer under that mask shows as a bitten-off corner.
+  const chamfer = bleed ? 0 : 30 * k;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const isInside = bleed || ((x + y >= chamfer) && (size - 1 - x + y >= chamfer)
+        && (x + size - 1 - y >= chamfer) && (size - 1 - x + size - 1 - y >= chamfer));
+      if (isInside) {
+        setPixel(x, y, 15, 25, 35, 255); // #0F1923
+      } else {
+        setPixel(x, y, 0, 0, 0, 0); // Transparent
+      }
     }
   }
-}
 
-// Draw Cyan Circle Outline
-for (let y = 0; y < size; y++) {
-  for (let x = 0; x < size; x++) {
-    const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
-    if (dist >= 85 && dist <= 92) {
-      setPixel(x, y, 0, 245, 212, 180); // #00F5D4
-    }
-    if (dist >= 60 && dist <= 66) {
-      setPixel(x, y, 255, 70, 85, 220); // #FF4655
-    }
-  }
-}
-
-// Draw Red Crosshair lines
-for (let i = 25; i <= 60; i++) {
-  for (let w = -3; w <= 3; w++) {
-    setPixel(cx + w, cy - i, 255, 70, 85, 255);
-    setPixel(cx + w, cy + i, 255, 70, 85, 255);
-    setPixel(cx - i, cy + w, 255, 70, 85, 255);
-    setPixel(cx + i, cy + w, 255, 70, 85, 255);
-  }
-}
-
-// Draw Red Center Target & White Center
-for (let y = 0; y < size; y++) {
-  for (let x = 0; x < size; x++) {
-    const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
-    if (dist <= 25) {
-      setPixel(x, y, 255, 70, 85, 255); // #FF4655
-    }
-    if (dist <= 10) {
-      setPixel(x, y, 255, 255, 255, 255); // White
+  // Cyan and red rings
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+      if (dist >= 85 * k && dist <= 92 * k) {
+        setPixel(x, y, 0, 245, 212, 180); // #00F5D4
+      }
+      if (dist >= 60 * k && dist <= 66 * k) {
+        setPixel(x, y, 255, 70, 85, 220); // #FF4655
+      }
     }
   }
+
+  // Red crosshair arms
+  const armInner = 25 * k;
+  const armOuter = 60 * k;
+  const halfWidth = Math.max(1, Math.round(3 * k));
+  for (let i = armInner; i <= armOuter; i += 0.5) {
+    for (let w = -halfWidth; w <= halfWidth; w++) {
+      setPixel(cx + w, cy - i, 255, 70, 85, 255);
+      setPixel(cx + w, cy + i, 255, 70, 85, 255);
+      setPixel(cx - i, cy + w, 255, 70, 85, 255);
+      setPixel(cx + i, cy + w, 255, 70, 85, 255);
+    }
+  }
+
+  // Red centre target with a white core
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+      if (dist <= 25 * k) {
+        setPixel(x, y, 255, 70, 85, 255); // #FF4655
+      }
+      if (dist <= 10 * k) {
+        setPixel(x, y, 255, 255, 255, 255); // White
+      }
+    }
+  }
+
+  return PNG.sync.write(png);
 }
 
-const pngBuffer = PNG.sync.write(png);
+// 256 keeps its original filenames (the tray, the shortcut and the two pages all
+// reference icon.png / icon.ico by name), so it also keeps the chamfer.
+const pngBuffer = renderCrosshairPng(REF);
 fs.writeFileSync(path.join(assetsDir, 'icon.png'), pngBuffer);
 fs.writeFileSync(path.join(publicDir, 'icon.png'), pngBuffer);
+
+// 192 and 512 are the sizes a PWA install actually reads. They are declared
+// "any maskable", so they bleed to the edges — a mask crops them itself.
+for (const pwaSize of [192, 512]) {
+  const buf = renderCrosshairPng(pwaSize, { bleed: true });
+  fs.writeFileSync(path.join(publicDir, `icon-${pwaSize}.png`), buf);
+  console.log(`✅ Generated public/icon-${pwaSize}.png (${pwaSize}x${pwaSize} maskable, ${buf.length} bytes)`);
+}
 
 // 2. Generate 100% Native Windows GDI+ 32x32 & 16x16 DIB-encoded .ICO binary
 function createDibIco(w, h) {

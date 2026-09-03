@@ -1,5 +1,27 @@
+# Dependencies and build output
 node_modules/
 dist/
-logs/*.log
+.wrangler/
+.worker-dist/
+
+# Secrets — never commit these. `.dev.vars` is wrangler's local secret file.
+.dev.vars
+.env
+.env.local
+
+# Logs
+*.log
+
+# OS / editor junk. `git add .` sweeps these in otherwise.
 .DS_Store
 Thumbs.db
+.claude/settings.local.json
+
+# relay/ — the web license SPA + Cloudflare Worker, ABANDONED on 2026-09-02
+# ("Bỏ relay, để KLD lo phần web"). See relay/wrangler.jsonc:1-11. Kept on disk as
+# a local reference implementation only: it has no package.json of its own, cannot
+# build from this repo's dependencies, and the live notice Worker it used to deploy
+# to now has its source in the KLD repo. Ignored rather than deleted so the copy
+# survives; ignored rather than committed so an abandoned Worker (and the Cloudflare
+# account id in its comments) stays out of a public repo's history.
+relay/

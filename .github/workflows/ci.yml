@@ -24,5 +24,38 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      # Discovered, not hand-listed. The previous version enumerated 13 paths and
+      # silently missed 9 files under server/ — core/score-poller.js,
+      # core/alert-rules.js, all of riot/, utils/logger.js and three api-* routes —
+      # so a syntax error in any of them reached main unchecked. A hand-kept list
+      # also means every new file is unprotected until someone remembers to add it.
+      # public/jsQR.min.js is vendored third-party, so public/sw.js is named
+      # explicitly rather than sweeping public/.
+      - name: Syntax-check server sources
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem -Path server, scripts, test -Recurse -Filter *.js -File) +
+                   @(Get-Item public/sw.js)
+          # A floor guard: if discovery ever returns nothing (renamed dir, wrong
+          # cwd), the loop below would pass vacuously and CI would go green while
+          # checking zero files. Fail loudly instead.
+          if ($files.Count -lt 15) {
+            throw "Only $($files.Count) .js file(s) discovered - expected 15+. Discovery is broken, not the code."
+          }
+          $failed = @()
+          foreach ($f in $files) {
+            node --check $f.FullName
+            if ($LASTEXITCODE -ne 0) { $failed += $f.FullName }
+          }
+          Write-Host "node --check passed on $($files.Count - $failed.Count)/$($files.Count) file(s)."
+          if ($failed.Count -gt 0) { throw "node --check failed: $($failed -join ', ')" }
+
       - name: Execute Unit Tests
         run: npm test
+
+      # Regenerating must be a no-op for the committed 256px icon and the .ico —
+      # a diff here means the generator drifted from what ships.
+      - name: Verify icon generation is reproducible
+        run: |
+          node scripts/generate-icons.js
+          git diff --exit-code -- public/icon.png public/favicon.ico assets/icon.png assets/icon.ico public/icon-192.png public/icon-512.png

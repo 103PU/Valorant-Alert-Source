@@ -3,11 +3,22 @@ const crypto = require('crypto');
 const logger = require('../utils/logger');
 
 class ScoreWSServer {
-  constructor(httpServer) {
+  // isEntitled: () => boolean. Injected rather than importing the licensing
+  // module here, so the transport stays testable on its own.
+  //
+  // Anything that is not a function becomes () => false. It used to default to
+  // null with the call site written `if (this.isEntitled && !this.isEntitled())`,
+  // so a missing gate read as "allowed" — a wiring mistake or a forgotten
+  // argument silently unlocked the paid feed. A destructuring default alone is
+  // not enough either: it only covers undefined, so an explicit null would then
+  // throw inside the upgrade handler and take the process down. An entitlement
+  // check must fail closed and stay up: no usable gate means no stream.
+  constructor(httpServer, { isEntitled } = {}) {
     this.httpServer = httpServer;
     this.authToken = this.generateToken();
     this.wss = new WebSocketServer({ noServer: true });
     this.lastPayloadJson = null;
+    this.isEntitled = typeof isEntitled === 'function' ? isEntitled : () => false;
 
     this.init();
   }
@@ -25,6 +36,15 @@ class ScoreWSServer {
       if (!clientToken || clientToken !== this.authToken) {
         logger.warn(`[WSServer] Handshake rejected. Invalid token: "${clientToken}"`);
         socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+        socket.destroy();
+        return;
+      }
+
+      // A valid pin is not enough: the score feed is the paid feature, so an
+      // unentitled instance must not stream it to any client, local or LAN.
+      if (!this.isEntitled()) {
+        logger.warn('[WSServer] Handshake rejected: license not active.');
+        socket.write('HTTP/1.1 402 Payment Required\r\n\r\n');
         socket.destroy();
         return;
       }

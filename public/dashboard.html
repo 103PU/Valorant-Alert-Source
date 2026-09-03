@@ -383,6 +383,84 @@
       background: rgba(0, 245, 212, 0.05);
     }
 
+    /* Keylicense Gate & Account Panel */
+    .lic-banner {
+      background: var(--val-surface);
+      border: 1px solid var(--val-border);
+      border-left: 4px solid var(--val-gold);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .lic-banner.is-ok { border-left-color: var(--val-cyan); }
+    .lic-banner.is-bad { border-left-color: var(--val-red); }
+    .lic-banner-text { flex: 1; min-width: 220px; }
+    .lic-banner-title {
+      font-family: var(--val-font-display);
+      font-size: 1.1rem;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--val-white);
+      margin-bottom: 4px;
+    }
+    .lic-banner-msg {
+      font-family: var(--val-font-tactical);
+      font-size: 0.9rem;
+      color: var(--val-gray);
+      line-height: 1.5;
+    }
+    .lic-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .lic-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1px;
+      background: var(--val-border);
+      border: 1px solid var(--val-border);
+    }
+    .lic-info-cell { background: var(--val-surface-dark); padding: 12px 14px; }
+    .lic-info-label {
+      font-family: var(--val-font-tactical);
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      color: var(--val-gray);
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .lic-info-val {
+      font-family: var(--val-font-tactical);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--val-white);
+      word-break: break-all;
+    }
+    .lic-info-val.accent { color: var(--val-gold); letter-spacing: 1px; }
+    .lic-info-val.ok { color: var(--val-cyan); }
+    .lic-info-val.bad { color: var(--val-red); }
+
+    .lic-key-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .lic-key-input {
+      flex: 1;
+      min-width: 200px;
+      background: var(--val-surface-dark);
+      border: 1px solid var(--val-border);
+      color: var(--val-gold);
+      font-family: var(--val-font-tactical);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 10px 12px;
+      outline: none;
+    }
+    .lic-key-input:focus { border-color: var(--val-cyan); }
+    .lic-hidden { display: none !important; }
+
     /* Scoreboard Live Card */
     .score-arena {
       background: var(--val-surface-dark);
@@ -552,6 +630,18 @@
     </header>
 
     <div class="dashboard-grid">
+      <!-- Keylicense Gate Banner (hidden while the license is valid) -->
+      <div id="licBanner" class="lic-banner lic-hidden">
+        <div class="lic-banner-text">
+          <div id="licBannerTitle" class="lic-banner-title">ĐANG KIỂM TRA LICENSE...</div>
+          <div id="licBannerMsg" class="lic-banner-msg">Vui lòng đợi.</div>
+        </div>
+        <div class="lic-actions">
+          <button id="btnLicLogin" class="val-btn lic-hidden" style="padding: 10px 16px; font-size: 0.9rem;">🔐 ĐĂNG NHẬP GOOGLE</button>
+          <button id="btnLicRecheck" class="val-btn val-btn-outline lic-hidden" style="padding: 10px 16px; font-size: 0.9rem;">♻️ KIỂM TRA LẠI</button>
+        </div>
+      </div>
+
       <!-- 3 Status Chips -->
       <div class="status-chips-grid">
         <div class="chip-card active">
@@ -687,6 +777,50 @@
               </label>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Account & License Info (user / key / date) -->
+      <div id="licCard" class="val-card">
+        <div class="val-card-header">
+          <div class="val-card-title">🔑 TÀI KHOẢN & LICENSE</div>
+          <div id="licStateTag" class="val-tag">[ CHECKING ]</div>
+        </div>
+
+        <div class="lic-info-grid">
+          <div class="lic-info-cell">
+            <div class="lic-info-label">// Tài khoản</div>
+            <div id="licUser" class="lic-info-val">—</div>
+          </div>
+          <div class="lic-info-cell">
+            <div class="lic-info-label">// License key</div>
+            <div id="licKey" class="lic-info-val accent">—</div>
+          </div>
+          <div class="lic-info-cell">
+            <div class="lic-info-label">// Gói</div>
+            <div id="licPlan" class="lic-info-val">—</div>
+          </div>
+          <div class="lic-info-cell">
+            <div class="lic-info-label">// Hết hạn</div>
+            <div id="licExpires" class="lic-info-val">—</div>
+          </div>
+          <div class="lic-info-cell">
+            <div class="lic-info-label">// Thiết bị</div>
+            <div id="licDevice" class="lic-info-val">—</div>
+          </div>
+          <div class="lic-info-cell">
+            <div class="lic-info-label">// Xác thực lần cuối</div>
+            <div id="licVerified" class="lic-info-val">—</div>
+          </div>
+        </div>
+
+        <div id="licKeyRow" class="lic-key-row lic-hidden">
+          <input id="licKeyInput" class="lic-key-input" type="text" placeholder="NHẬP LICENSE KEY..." autocomplete="off" spellcheck="false">
+          <button id="btnLicApply" class="val-btn val-btn-cyan" style="padding: 10px 16px; font-size: 0.9rem;">KÍCH HOẠT</button>
+        </div>
+
+        <div class="lic-key-row">
+          <button id="btnLicLogout" class="val-btn val-btn-outline lic-hidden" style="padding: 8px 14px; font-size: 0.8rem;">ĐĂNG XUẤT</button>
         </div>
       </div>
     </div>
@@ -923,16 +1057,236 @@
       }
 
       initDashboardWS(info.token);
+      // Must run after currentAuthToken is set — /api/license requires the pin.
+      initLicense();
     }).catch(err => {
       console.log('Error fetching info:', err);
     });
 
+    /* ===================== KEYLICENSE GATE ===================== */
+    const licBanner = document.getElementById('licBanner');
+    const licBannerTitle = document.getElementById('licBannerTitle');
+    const licBannerMsg = document.getElementById('licBannerMsg');
+    const btnLicLogin = document.getElementById('btnLicLogin');
+    const btnLicRecheck = document.getElementById('btnLicRecheck');
+    const btnLicLogout = document.getElementById('btnLicLogout');
+    const btnLicApply = document.getElementById('btnLicApply');
+    const licKeyRow = document.getElementById('licKeyRow');
+    const licKeyInput = document.getElementById('licKeyInput');
+    const licStateTag = document.getElementById('licStateTag');
+    const licUser = document.getElementById('licUser');
+    const licKey = document.getElementById('licKey');
+    const licPlan = document.getElementById('licPlan');
+    const licExpires = document.getElementById('licExpires');
+    const licDevice = document.getElementById('licDevice');
+    const licVerified = document.getElementById('licVerified');
+
+    // Mirrors the server's entitlement states (server/licensing/gate.js STATE).
+    let licEntitled = false;
+    let licLoading = false;
+    // null = not yet known, true = server is gating, false = licensing disabled.
+    // While it is null we still retry the socket, so a slow status call cannot
+    // strand a perfectly valid connection.
+    let licActive = null;
+    let licWs = null;
+
+    // api-license.js requires a loopback caller for login/logout/apply-key,
+    // because those spawn a browser on, or destroy the session of, the host PC.
+    // Viewing from a phone or another laptop is read-only, so hide the controls
+    // instead of letting the user press them into a 403.
+    const licIsHostView = ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(window.location.hostname);
+
+    // Server error codes are for logs; these are for people.
+    const LIC_ERRORS = {
+      loopback_only: 'Chỉ kích hoạt được trên máy đang chạy app.',
+      licensing_unavailable: 'Không khởi tạo được tính năng license. Vui lòng tải lại bản gốc.',
+      invalid_token: 'Mã PIN không đúng.',
+      not_logged_in: 'Cần đăng nhập trước.',
+      licenseKey_required: 'Vui lòng nhập license key.',
+      login_timeout: 'Hết thời gian đăng nhập, vui lòng thử lại.',
+      login_in_progress: 'Đang có một phiên đăng nhập khác.',
+      nonce_invalid: 'Phiên kích hoạt đã hết hạn, vui lòng thử lại.',
+      device_limit_reached: 'License đã dùng hết số thiết bị cho phép.',
+      license_expired: 'License đã hết hạn.',
+      license_revoked: 'License đã bị thu hồi.',
+      kld_unreachable: 'Không kết nối được Keylicense Dashboard.'
+    };
+
+    const licErrText = (d) =>
+      d.message || LIC_ERRORS[d.error] || d.error || 'Có lỗi xảy ra.';
+
+    const show = (el, on) => el.classList.toggle('lic-hidden', !on);
+
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      if (isNaN(d)) return iso;
+      return d.toLocaleString('vi-VN', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+    }
+
+    function licApi(action, method, body) {
+      if (!currentAuthToken) return Promise.reject(new Error('Chưa có auth token'));
+      return fetch(`/api/license/${action}?token=${encodeURIComponent(currentAuthToken)}`, {
+        method: method || 'GET',
+        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        body: body ? JSON.stringify(body) : undefined
+      }).then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        // A 400 from the route still carries a full snapshot, so it is worth
+        // rendering. Anything without one is a genuine failure.
+        if (!res.ok && !data.state) throw new Error(licErrText(data));
+        return data;
+      });
+    }
+
+    const LIC_VIEWS = {
+      NOT_LOGGED_IN: {
+        tag: '[ CHƯA ĐĂNG NHẬP ]', cls: '',
+        title: 'CẦN ĐĂNG NHẬP',
+        msg: 'Đăng nhập bằng Google để kiểm tra license trên Keylicense Dashboard.',
+        login: true, recheck: false, keyRow: false
+      },
+      NEEDS_LICENSE: {
+        tag: '[ CHƯA CÓ LICENSE ]', cls: '',
+        title: 'CẦN KÍCH HOẠT KEYLICENSE',
+        msg: 'Tài khoản chưa có license khả dụng. Nhập license key bên dưới hoặc mua trên Keylicense Dashboard.',
+        login: false, recheck: true, keyRow: true
+      },
+      LICENSED: {
+        tag: '[ ĐÃ KÍCH HOẠT ]', cls: 'is-ok',
+        title: 'LICENSE HỢP LỆ', msg: '', banner: false,
+        login: false, recheck: false, keyRow: false
+      },
+      TRIAL: {
+        tag: '[ DÙNG THỬ ]', cls: 'is-ok',
+        title: 'ĐANG DÙNG THỬ',
+        msg: 'Bản dùng thử đang hoạt động. Kích hoạt license để dùng lâu dài.',
+        login: false, recheck: true, keyRow: true
+      },
+      OFFLINE_GRACE: {
+        tag: '[ OFFLINE ]', cls: '',
+        title: 'CHẾ ĐỘ OFFLINE',
+        msg: 'Không kết nối được Keylicense Dashboard, đang dùng license đã lưu.',
+        login: false, recheck: true, keyRow: false
+      },
+      BLOCKED: {
+        tag: '[ BỊ TỪ CHỐI ]', cls: 'is-bad',
+        title: 'LICENSE KHÔNG HỢP LỆ',
+        msg: 'License đã hết hạn, bị thu hồi, hoặc vượt số thiết bị cho phép.',
+        login: true, recheck: true, keyRow: true
+      }
+    };
+
+    function renderLicense(snap) {
+      if (!snap || !snap.state) return;
+      const view = LIC_VIEWS[snap.state] || LIC_VIEWS.BLOCKED;
+      const wasEntitled = licEntitled;
+      licActive = true;
+      licEntitled = !!snap.entitled;
+
+      licStateTag.innerText = view.tag;
+      licBannerTitle.innerText = view.title;
+      licBannerMsg.innerText = snap.message || view.msg;
+      licBanner.className = `lic-banner ${view.cls}`;
+
+      // The banner is a call to action, so it is hidden once nothing is required.
+      show(licBanner, view.banner !== false);
+      // recheck is safe from anywhere; the other three are loopback-only.
+      show(btnLicLogin, !!view.login && licIsHostView);
+      show(btnLicRecheck, !!view.recheck);
+      show(licKeyRow, !!view.keyRow && licIsHostView);
+      show(btnLicLogout, !!snap.user && licIsHostView);
+
+      if (!licIsHostView && !licEntitled) {
+        licBannerMsg.innerText =
+          (snap.message || view.msg) + ' Hãy thao tác trên máy đang chạy app.';
+      }
+
+      licUser.innerText = snap.user ? (snap.user.email || snap.user.name || '—') : '—';
+      licDevice.innerText = snap.device ? snap.device.name : '—';
+      licVerified.innerText = fmtDate(snap.lastVerifiedAt);
+
+      const lic = snap.license;
+      const trial = snap.trial;
+      if (lic) {
+        licKey.innerText = lic.key || '—';
+        licPlan.innerText = lic.plan ? lic.plan.toUpperCase() : '—';
+        licExpires.innerText = lic.expiresAt ? fmtDate(lic.expiresAt) : 'VĨNH VIỄN';
+      } else if (trial) {
+        licKey.innerText = 'TRIAL';
+        licPlan.innerText = 'DÙNG THỬ';
+        licExpires.innerText = fmtDate(trial.expiresAt);
+      } else {
+        licKey.innerText = '—';
+        licPlan.innerText = '—';
+        licExpires.innerText = '—';
+      }
+
+      licPlan.className = 'lic-info-val ' + (licEntitled ? 'ok' : 'bad');
+
+      // Becoming entitled mid-session means the score feed just opened up.
+      if (licEntitled && !wasEntitled && currentAuthToken) {
+        initDashboardWS(currentAuthToken);
+      }
+    }
+
+    function licAct(action, method, body, pendingMsg) {
+      if (licLoading) return;
+      licLoading = true;
+      if (pendingMsg) showToast(pendingMsg);
+      licApi(action, method, body)
+        .then((snap) => {
+          renderLicense(snap);
+          if (snap.ok === false) showToast('⚠️ ' + licErrText(snap));
+        })
+        .catch((e) => showToast('⚠️ ' + e.message))
+        .finally(() => { licLoading = false; });
+    }
+
+    btnLicLogin.addEventListener('click', () =>
+      licAct('login', 'POST', null, '🌐 Đang mở trình duyệt để đăng nhập...'));
+    btnLicRecheck.addEventListener('click', () =>
+      licAct('recheck', 'POST', null, '♻️ Đang kiểm tra license...'));
+    btnLicLogout.addEventListener('click', () =>
+      licAct('logout', 'POST', null, 'Đã đăng xuất.'));
+    btnLicApply.addEventListener('click', () => {
+      const key = licKeyInput.value.trim();
+      if (!key) return showToast('⚠️ Vui lòng nhập license key.');
+      licAct('apply-key', 'POST', { licenseKey: key }, '🔑 Đang kích hoạt license...');
+    });
+    licKeyInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') btnLicApply.click();
+    });
+
+    function initLicense() {
+      licApi('status')
+        .then(renderLicense)
+        .catch((e) => {
+          // Licensing disabled server-side: hide the whole gate rather than
+          // showing a permanently broken panel, and let the socket retry
+          // freely since nothing is gating it.
+          licActive = false;
+          licBanner.classList.add('lic-hidden');
+          document.getElementById('licCard').classList.add('lic-hidden');
+          console.log('License status unavailable:', e.message);
+        });
+    }
+
     function initDashboardWS(token) {
       if (!token) return;
+      // /api/info and the license state change can both ask for a socket.
+      // Keep exactly one.
+      if (licWs && (licWs.readyState === WebSocket.OPEN || licWs.readyState === WebSocket.CONNECTING)) {
+        return;
+      }
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}?token=${token}`;
 
       const ws = new WebSocket(wsUrl);
+      licWs = ws;
 
       ws.onopen = () => {
         clientStatusVal.innerHTML = '<span style="color:var(--val-cyan)">●</span> CONNECTED';
@@ -1039,7 +1393,14 @@
       };
 
       ws.onclose = () => {
-        setTimeout(() => initDashboardWS(token), 3000);
+        if (licWs === ws) licWs = null;
+        clientStatusVal.innerHTML = '<span style="color:var(--val-red)">●</span> DISCONNECTED';
+        // Only retry while we are actually allowed in. Without this guard an
+        // unlicensed client would re-request the upgrade every 3s forever and
+        // the server would answer 402 every time.
+        if (!licActive || licEntitled) {
+          setTimeout(() => initDashboardWS(token), 3000);
+        }
       };
     }
   </script>

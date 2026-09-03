@@ -1,5 +1,25 @@
 name: Official Tag Release
 
+# `git tag v1.0.0 && git push origin v1.0.0` builds, publishes and then verifies.
+# workflow_dispatch is a dry run: same build, same checks, archive attached to the
+# workflow run, no release created.
+#
+# What changed here and why — the previous version of this workflow was itself a
+# cause of the dead download button. It compressed the release folder into
+# `ValorantAlert-${{ github.ref_name }}.zip`, e.g. ValorantAlert-v1.0.0.zip. That
+# name ends in .zip but contains no `win-x64`, so KLD's download resolver rejected
+# it and returned null for the portable asset. It also shipped no SHA256SUMS.txt,
+# which the resolver hands to the client as checksumUrl.
+#
+# So: the ad-hoc Compress-Archive step is gone — scripts/build.js now produces the
+# archive under the name the resolver matches (scripts/release-naming.js), and
+# re-adding a second zip step here would reintroduce exactly the old bug.
+#
+# Two further resolver conditions live on the release rather than the file names and
+# are asserted in the last step: the release must be neither a draft nor a
+# prerelease, and every asset must reach state === 'uploaded'.
+# (Keylicensedashboard/worker/domains/applications/download-resolver.ts:88-101.)
+
 on:
   push:
     tags: [ "v*" ]
@@ -8,10 +28,10 @@ on:
 jobs:
   build-and-release:
     name: Build & Publish Official Release
-    runs-on: windows-latest
+    runs-on: windows-latest # caxa targets win32 and Compress-Archive is PowerShell
 
     permissions:
-      contents: write
+      contents: write # scoped to the job, not the workflow; nothing else is granted
 
     steps:
       - name: Checkout Source Repository
@@ -26,26 +46,98 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      # The artifact naming contract is a unit test (test/release-artifacts.test.js),
+      # so the suite gates the build rather than trailing it.
       - name: Run Unit Tests
         run: npm test
 
       - name: Generate Multi-Format Icons
         run: node scripts/generate-icons.js
 
+      # The tag is what users and KLD's release lookup see; the archive name comes
+      # from package.json. If they disagree, tag v1.0.1 ships an asset named
+      # ...-v1.0.0-win-x64.zip and nothing surfaces the mismatch until a download.
+      # TAG goes through env rather than ${{ }} interpolation into the script body:
+      # a tag name is attacker-shaped text and must never be pasted into a shell.
+      - name: Assert the tag matches package.json version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          $tag = node -e "process.stdout.write(require('./scripts/release-naming').normalizeVersion(process.env.TAG))"
+          $pkg = node -e "process.stdout.write(require('./package.json').version)"
+          if ($tag -ne $pkg) {
+            throw "Tag $env:TAG normalises to '$tag' but package.json says '$pkg'. Bump the version or retag."
+          }
+          Write-Host "Tag $env:TAG matches package.json $pkg."
+
+      # Emits dist/ValorantScoreAlert-v<version>-win-x64.zip and SHA256SUMS.txt.
       - name: Build Standalone Executable Release Package
         run: node scripts/build.js
 
-      - name: Compress Release Package
-        run: |
-          powershell -Command "Compress-Archive -Path 'dist/ValorantScoreAlert-Release/*' -DestinationPath 'ValorantAlert-${{ github.ref_name }}.zip' -Force"
+      # build.js guards its own output, but it cannot see a stale dist/ from an
+      # earlier version or a checksum file describing a zip rebuilt after it was
+      # written. This re-derives both names, recomputes the digest from the bytes on
+      # disk, and exports the two paths for the publish step.
+      - name: Verify release artifacts
+        id: artifacts
+        run: node scripts/verify-release-artifacts.js
 
-      - name: Create Official GitHub Release
-        uses: softprops/action-gh-release@v2
+      # Dispatch runs stop here: the archive rides on the workflow run so it can be
+      # smoke-tested on a real machine before anyone cuts a tag.
+      - name: Upload archive to the workflow run (dry run)
+        if: "!startsWith(github.ref, 'refs/tags/v')"
+        uses: actions/upload-artifact@v4
         with:
-          files: ValorantAlert-${{ github.ref_name }}.zip
-          name: Valorant Score Alert ${{ github.ref_name }}
-          generate_release_notes: true
-          draft: false
-          prerelease: false
+          name: portable-dry-run
+          path: |
+            dist/*.zip
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+
+      # Was softprops/action-gh-release@v2; swapped for the preinstalled gh CLI to
+      # keep a third-party action out of the release path. Same flags: not a draft,
+      # not a prerelease, generated notes. --verify-tag refuses to invent a tag.
+      - name: Create Official GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          PORTABLE: ${{ steps.artifacts.outputs.portable }}
+          CHECKSUMS: ${{ steps.artifacts.outputs.checksums }}
+        run: |
+          gh release create $env:TAG $env:PORTABLE $env:CHECKSUMS `
+            --title "Valorant Score Alert $env:TAG" `
+            --generate-notes `
+            --verify-tag `
+            --latest
+
+      # Asserting the resolver's release-level conditions against what was actually
+      # published, not against intent. An asset stuck in 'starter' is still listed by
+      # the API but serves nothing, which reads to a user as a corrupt download.
+      - name: Verify the published release is resolvable
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          $release = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$env:TAG" | ConvertFrom-Json
+          if ($release.draft)      { throw "Release $env:TAG is a draft; the resolver skips drafts." }
+          if ($release.prerelease) { throw "Release $env:TAG is a prerelease; the resolver skips prereleases." }
+
+          foreach ($a in $release.assets) {
+            Write-Host "$($a.name): state=$($a.state) size=$($a.size)"
+            if ($a.state -ne 'uploaded') { throw "Asset $($a.name) is '$($a.state)', not 'uploaded'." }
+          }
+
+          $portable = $release.assets |
+            Where-Object { $_.name -like '*win-x64.zip' -and $_.name -notlike '*installer*' }
+          if (-not $portable) { throw "No portable win-x64 .zip asset; the download button would dead-end." }
+
+          $sums = $release.assets | Where-Object { $_.name -ieq 'SHA256SUMS.txt' }
+          if (-not $sums) { throw "SHA256SUMS.txt is missing; downloads could not be verified." }
+
+          Write-Host "Release $env:TAG is public with $($release.assets.Count) verified asset(s)."

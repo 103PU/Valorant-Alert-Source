@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="/icon.svg">
   <link rel="alternate icon" type="image/x-icon" href="/favicon.ico">
-  <link rel="apple-touch-icon" href="/icon.png">
+  <link rel="apple-touch-icon" href="/icon-192.png">
   <title>VALORANT // SCORE ALERT</title>
   
   <!-- Local Pure JS QR Code Decoder Engine -->
@@ -483,6 +483,83 @@
       letter-spacing: 1px;
       text-transform: uppercase;
     }
+
+    /* ---------- Keylicense (read-only on mobile) ---------- */
+    .lic-hidden { display: none !important; }
+
+    .lic-notice {
+      background: var(--val-surface);
+      border-left: 3px solid var(--val-gold);
+      padding: 12px 14px;
+      margin: 14px 0;
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+    }
+    .lic-notice.is-ok { border-left-color: var(--val-cyan); }
+    .lic-notice.is-bad { border-left-color: var(--val-red); }
+
+    .lic-notice-title {
+      font-family: var(--val-font-display);
+      font-size: 1rem;
+      font-weight: 900;
+      color: var(--val-white);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .lic-notice-msg {
+      font-family: var(--val-font-tactical);
+      font-size: 0.8rem;
+      color: var(--val-gray);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    .lic-card {
+      background: var(--val-surface-dark);
+      border: 1px solid var(--val-border);
+      padding: 12px 14px;
+      margin-top: 14px;
+      clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+    }
+    .lic-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--val-font-display);
+      font-size: 0.9rem;
+      font-weight: 900;
+      color: var(--val-cyan);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .lic-tag {
+      font-family: var(--val-font-tactical);
+      font-size: 0.7rem;
+      color: var(--val-gray);
+      letter-spacing: 1px;
+    }
+    .lic-rows { display: flex; flex-direction: column; gap: 6px; }
+    .lic-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-family: var(--val-font-tactical);
+      font-size: 0.78rem;
+    }
+    .lic-row-label {
+      color: var(--val-gray);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .lic-row-val {
+      color: var(--val-white);
+      font-weight: 700;
+      text-align: right;
+      word-break: break-all;
+    }
+    .lic-row-val.ok { color: var(--val-cyan); }
+    .lic-row-val.bad { color: var(--val-red); }
   </style>
 </head>
 <body>
@@ -634,6 +711,46 @@
         </div>
       </div>
     </div>
+
+  <!-- Keylicense notice + info. Read-only here: activation is loopback-only, so
+       it has to happen on the PC running the app. -->
+  <div id="licNotice" class="lic-notice lic-hidden">
+    <div id="licNoticeTitle" class="lic-notice-title">ĐANG KIỂM TRA LICENSE...</div>
+    <div id="licNoticeMsg" class="lic-notice-msg"></div>
+  </div>
+
+  <div id="licCard" class="lic-card lic-hidden">
+    <div class="lic-card-head">
+      <span>// LICENSE //</span>
+      <span id="licStateTag" class="lic-tag">[ ... ]</span>
+    </div>
+    <div class="lic-rows">
+      <div class="lic-row">
+        <span class="lic-row-label">Tài khoản</span>
+        <span id="licUser" class="lic-row-val">—</span>
+      </div>
+      <div class="lic-row">
+        <span class="lic-row-label">License key</span>
+        <span id="licKey" class="lic-row-val">—</span>
+      </div>
+      <div class="lic-row">
+        <span class="lic-row-label">Gói</span>
+        <span id="licPlan" class="lic-row-val">—</span>
+      </div>
+      <div class="lic-row">
+        <span class="lic-row-label">Hết hạn</span>
+        <span id="licExpires" class="lic-row-val">—</span>
+      </div>
+      <div class="lic-row">
+        <span class="lic-row-label">Thiết bị</span>
+        <span id="licDevice" class="lic-row-val">—</span>
+      </div>
+      <div class="lic-row">
+        <span class="lic-row-label">Xác thực lần cuối</span>
+        <span id="licVerified" class="lic-row-val">—</span>
+      </div>
+    </div>
+  </div>
   </main>
 
   <footer class="footer-info">
@@ -739,6 +856,8 @@
         tokenModal.style.display = 'none';
         showToast(`ĐÃ LƯU TOKEN: ${token}`);
         connectWebSocket();
+        // A newly entered pin is the first chance to read the license state.
+        checkLicense();
       }
     }
 
@@ -1188,6 +1307,122 @@
     btnActivate.addEventListener('click', handleToggle);
     btnActivate.addEventListener('touchend', handleToggle);
 
+    /* ===================== KEYLICENSE (READ-ONLY) =====================
+       The phone cannot activate anything: /api/license login, logout and
+       apply-key are loopback-only by design, since they open a browser on, or
+       destroy the session of, the host PC. So this surface only explains the
+       state and shows the account info. */
+    const licNotice = document.getElementById('licNotice');
+    const licNoticeTitle = document.getElementById('licNoticeTitle');
+    const licNoticeMsg = document.getElementById('licNoticeMsg');
+    const licCard = document.getElementById('licCard');
+    const licStateTag = document.getElementById('licStateTag');
+    const licUser = document.getElementById('licUser');
+    const licKey = document.getElementById('licKey');
+    const licPlan = document.getElementById('licPlan');
+    const licExpires = document.getElementById('licExpires');
+    const licDevice = document.getElementById('licDevice');
+    const licVerified = document.getElementById('licVerified');
+
+    let licEntitled = false;
+    // null = unknown, true = server is gating, false = licensing off. While it
+    // is null the socket still retries, so a slow check cannot strand it.
+    let licActive = null;
+    let licPollTimer = null;
+
+    function licFmtDate(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      if (isNaN(d)) return iso;
+      return d.toLocaleString('vi-VN', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+    }
+
+    const LIC_VIEWS_M = {
+      NOT_LOGGED_IN: { tag: '[ CHƯA ĐĂNG NHẬP ]', cls: '', title: 'CHƯA ĐĂNG NHẬP',
+        msg: 'Hãy đăng nhập Google trên Dashboard ở máy đang chạy app.' },
+      NEEDS_LICENSE: { tag: '[ CHƯA CÓ LICENSE ]', cls: '', title: 'CẦN KÍCH HOẠT KEYLICENSE',
+        msg: 'Tài khoản chưa có license khả dụng. Hãy kích hoạt trên máy đang chạy app.' },
+      LICENSED: { tag: '[ ĐÃ KÍCH HOẠT ]', cls: 'is-ok', title: 'LICENSE HỢP LỆ', msg: '', notice: false },
+      TRIAL: { tag: '[ DÙNG THỬ ]', cls: 'is-ok', title: 'ĐANG DÙNG THỬ',
+        msg: 'Bản dùng thử đang hoạt động.' },
+      OFFLINE_GRACE: { tag: '[ OFFLINE ]', cls: '', title: 'CHẾ ĐỘ OFFLINE',
+        msg: 'Máy chủ không kết nối được Keylicense Dashboard.' },
+      BLOCKED: { tag: '[ BỊ TỪ CHỐI ]', cls: 'is-bad', title: 'LICENSE KHÔNG HỢP LỆ',
+        msg: 'License đã hết hạn, bị thu hồi, hoặc vượt số thiết bị cho phép.' }
+    };
+
+    function renderLicenseMobile(snap) {
+      if (!snap || !snap.state) return;
+      const view = LIC_VIEWS_M[snap.state] || LIC_VIEWS_M.BLOCKED;
+      const wasEntitled = licEntitled;
+      licActive = true;
+      licEntitled = !!snap.entitled;
+
+      licStateTag.innerText = view.tag;
+      licNoticeTitle.innerText = view.title;
+      licNoticeMsg.innerText = snap.message || view.msg;
+      licNotice.className = `lic-notice ${view.cls}`;
+      licNotice.classList.toggle('lic-hidden', view.notice === false);
+      licCard.classList.remove('lic-hidden');
+
+      licUser.innerText = snap.user ? (snap.user.email || snap.user.name || '—') : '—';
+      licDevice.innerText = snap.device ? snap.device.name : '—';
+      licVerified.innerText = licFmtDate(snap.lastVerifiedAt);
+
+      if (snap.license) {
+        licKey.innerText = snap.license.key || '—';
+        licPlan.innerText = snap.license.plan ? snap.license.plan.toUpperCase() : '—';
+        licExpires.innerText = snap.license.expiresAt ? licFmtDate(snap.license.expiresAt) : 'VĨNH VIỄN';
+      } else if (snap.trial) {
+        licKey.innerText = 'TRIAL';
+        licPlan.innerText = 'DÙNG THỬ';
+        licExpires.innerText = licFmtDate(snap.trial.expiresAt);
+      } else {
+        licKey.innerText = '—';
+        licPlan.innerText = '—';
+        licExpires.innerText = '—';
+      }
+      licPlan.className = 'lic-row-val ' + (licEntitled ? 'ok' : 'bad');
+
+      // Activation happens on the PC, so the phone polls while locked out and
+      // stops as soon as it is let in.
+      if (licEntitled && !wasEntitled) {
+        stopLicensePoll();
+        connectWebSocket();
+      } else if (!licEntitled) {
+        startLicensePoll();
+      }
+    }
+
+    function checkLicense() {
+      if (!token) return Promise.resolve();
+      return fetch(`/api/license/status?token=${encodeURIComponent(token)}`)
+        .then((res) => (res.status === 503 ? null : res.json()))
+        .then((snap) => {
+          if (!snap) throw new Error('licensing_disabled');
+          renderLicenseMobile(snap);
+        })
+        .catch(() => {
+          // Licensing off or unreachable: hide the panels rather than showing a
+          // dead one, and let the socket retry unimpeded.
+          licActive = false;
+          licNotice.classList.add('lic-hidden');
+          licCard.classList.add('lic-hidden');
+          stopLicensePoll();
+        });
+    }
+
+    function startLicensePoll() {
+      if (licPollTimer) return;
+      licPollTimer = setInterval(checkLicense, 15000);
+    }
+    function stopLicensePoll() {
+      if (licPollTimer) { clearInterval(licPollTimer); licPollTimer = null; }
+    }
+
     // --- WebSocket Manager with Heartbeat & Instant Wakeup ---
     function connectWebSocket() {
       if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
@@ -1238,7 +1473,25 @@
           tokenModal.style.display = 'flex';
           tokenModalNotice.innerText = 'CHƯA CÓ TOKEN HOẶC TOKEN HẾT HẠN. VUI LÒNG NHẬP MÃ PIN HOẶC QUÉT MÃ QR TRÊN PC!';
         }
-        setTimeout(connectWebSocket, 2500);
+
+        // Licensing off: behave exactly as before.
+        if (licActive === false) {
+          setTimeout(connectWebSocket, 2500);
+          return;
+        }
+
+        // A 402 upgrade rejection and a real network drop are indistinguishable
+        // in the browser WebSocket API, so ask the server which one it was
+        // rather than hammering the upgrade every 2.5s forever.
+        checkLicense().then(() => {
+          if (licActive && !licEntitled) {
+            connStatus.className = 'status-badge status-disconnected';
+            connStatusText.innerText = 'CHƯA KÍCH HOẠT';
+            startLicensePoll();
+          } else {
+            setTimeout(connectWebSocket, 2500);
+          }
+        });
       };
 
       ws.onerror = () => {
@@ -1372,6 +1625,10 @@
       lastAlliedScore = alliedScore;
       lastEnemyScore = enemyScore;
     }
+
+    // Runs last on purpose: the license consts above are block-scoped, so an
+    // earlier call (the token setup at the top) would hit the temporal dead zone.
+    if (token) checkLicense();
   </script>
 </body>
 </html>

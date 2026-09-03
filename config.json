@@ -4,5 +4,31 @@
   "idlePollingIntervalMs": 5000,
   "tokenAutoRefreshMins": 45,
   "alertEnemyScoreThreshold": 12,
-  "logLevel": "info"
+  "logLevel": "info",
+  "keylicense": {
+    "baseUrl": "https://keylicensedashboard.dungbd2005.workers.dev",
+    "productId": "valorant-alert",
+    "googleClientId": "727313395408-mr5anm7ae8l27km2mtko7lkeist9ggvh.apps.googleusercontent.com",
+    "platform": "windows",
+    "loopbackPort": 8750,
+    "redirectUri": "http://127.0.0.1:8750/oauth/callback/",
+    "httpTimeoutMs": 5000,
+    "oauthLoginTimeoutMins": 5,
+    "allowOfflineGrace": true,
+    "maxOfflineDays": 3,
+    "allowTrial": true,
+    "appDataFolderName": "ValorantAlert"
+  },
+  "app": {
+    "name": "Valorant Alert",
+    "shortName": "VA",
+    "themeColor": "#1e1b4b",
+    "bgColor": "#1e1b4b",
+    "sessionTtlDays": 7,
+    "trialDays": 3,
+    "defaultTab": "overview"
+  },
+  "build": {
+    "version": "1.0.0"
+  }
 }
