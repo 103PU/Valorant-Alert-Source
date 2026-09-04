@@ -5,6 +5,7 @@ const { execSync } = require('child_process');
 
 const {
   portableZipName,
+  installerZipName,
   checksumFileName,
   checksumLine,
   normalizeVersion,
@@ -31,7 +32,13 @@ function psLiteral(value) {
   return `'${String(value).replace(/'/g, "''")}'`;
 }
 
-function copyDirSync(src, dest) {
+// Directories that must never follow the repo root into a shipped tree. Passed as
+// a parameter rather than hardcoded because the installer stage copies an
+// already-clean release folder, where skipping anything would silently ship a
+// payload that differs from the portable zip QA actually tested.
+const REPO_ONLY_DIRS = ['logs', 'dist', '.git', 'test'];
+
+function copyDirSync(src, dest, skipDirs = REPO_ONLY_DIRS) {
   fs.mkdirSync(dest, { recursive: true });
   const entries = fs.readdirSync(src, { withFileTypes: true });
 
@@ -40,8 +47,8 @@ function copyDirSync(src, dest) {
     const destPath = path.join(dest, entry.name);
 
     if (entry.isDirectory()) {
-      if (entry.name !== 'logs' && entry.name !== 'dist' && entry.name !== '.git' && entry.name !== 'test') {
-        copyDirSync(srcPath, destPath);
+      if (!skipDirs.includes(entry.name)) {
+        copyDirSync(srcPath, destPath, skipDirs);
       }
     } else {
       fs.copyFileSync(srcPath, destPath);
@@ -50,19 +57,19 @@ function copyDirSync(src, dest) {
 }
 
 // 1. Copy public PWA frontend assets
-console.log('[1/7] Copying public PWA frontend assets...');
+console.log('[1/8] Copying public PWA frontend assets...');
 copyDirSync(path.join(rootDir, 'public'), path.join(releaseDir, 'public'));
 
 // 2. Copy branding assets
-console.log('[2/7] Copying branding assets (icons)...');
+console.log('[2/8] Copying branding assets (icons)...');
 copyDirSync(path.join(rootDir, 'assets'), path.join(releaseDir, 'assets'));
 
 // 3. Copy launcher scripts
-console.log('[3/7] Copying launcher & tray scripts...');
+console.log('[3/8] Copying launcher & tray scripts...');
 copyDirSync(path.join(rootDir, 'scripts'), path.join(releaseDir, 'scripts'));
 
 // 4. Copy configuration and batch files
-console.log('[4/7] Copying launcher batch files & configuration...');
+console.log('[4/8] Copying launcher batch files & configuration...');
 fs.copyFileSync(path.join(rootDir, 'config.json'), path.join(releaseDir, 'config.json'));
 fs.copyFileSync(path.join(rootDir, 'Start-ValorantAlert.bat'), path.join(releaseDir, 'Start-ValorantAlert.bat'));
 fs.copyFileSync(path.join(rootDir, 'Create-Desktop-Shortcut.vbs'), path.join(releaseDir, 'Create-Desktop-Shortcut.vbs'));
@@ -91,7 +98,7 @@ fs.writeFileSync(path.join(releaseDir, 'README-Release.txt'), readmeContent, 'ut
 fs.mkdirSync(path.join(releaseDir, 'logs'), { recursive: true });
 
 // 5. Package Standalone Executable with caxa
-console.log('[5/7] Compiling standalone ValorantScoreAlert.exe binary...');
+console.log('[5/8] Compiling standalone ValorantScoreAlert.exe binary...');
 const exeOutputPath = path.join(releaseDir, 'ValorantScoreAlert.exe');
 
 try {
@@ -101,9 +108,11 @@ try {
   // a desktop binary, and they were verified as shipped before being listed here.
   // "docs" holds the licence-enforcement design notes, which are a roadmap of the
   // trust model and have no business inside the shipped binary; ".claude" is
-  // machine-local editor state.
+  // machine-local editor state. "tools" is the installer package — it wraps the
+  // exe, so shipping it inside the exe would nest a copy of the installer in
+  // every install.
   execSync(
-    `npx caxa --input . --output "${exeOutputPath}" --exclude "dist" ".git" ".github" "test" "logs" "relay" ".worker-dist" ".wrangler" ".data" "docs" ".claude" -- "{{caxa}}/node_modules/.bin/node" "{{caxa}}/server/index.js"`,
+    `npx caxa --input . --output "${exeOutputPath}" --exclude "dist" ".git" ".github" "test" "logs" "relay" ".worker-dist" ".wrangler" ".data" "docs" ".claude" "tools" -- "{{caxa}}/node_modules/.bin/node" "{{caxa}}/server/index.js"`,
     { cwd: rootDir, stdio: 'inherit' }
   );
   console.log(`✅ Standalone binary created: ${exeOutputPath}`);
@@ -117,7 +126,7 @@ try {
 //    download button used to dead-end. See scripts/release-naming.js.
 const zipName = portableZipName(appVersion);
 const zipPath = path.join(distDir, zipName);
-console.log(`[6/7] Packaging portable archive ${zipName}...`);
+console.log(`[6/8] Packaging portable archive ${zipName}...`);
 
 if (!resolver.matchesPortable(zipName)) {
   console.error(`⚠️ ${zipName} does not satisfy the KLD portable-asset contract.`);
@@ -140,18 +149,90 @@ try {
   process.exit(1);
 }
 
-// 7. SHA256SUMS.txt — the resolver reads this name case-insensitively and hands
-//    it to the client as checksumUrl, so a release without it downloads fine but
-//    cannot be verified.
-const checksumPath = path.join(distDir, checksumFileName());
-console.log(`[7/7] Writing ${checksumFileName()}...`);
+// 7. Installer archive. Same payload as the portable zip, wrapped in the four
+//    scripts from tools/installer with the tree under app/ — the layout
+//    Install-ValorantAlert.ps1 expects, and the same layout ValorantTweaks uses
+//    (tools/Create-InstallerPackage.ps1 there). KLD selects this asset by the word
+//    "installer" in its name and prefers it over the portable one
+//    (recommended = installer ?? portable), so the name is load-bearing twice: it
+//    must match the installer predicate and must NOT match the portable one, or it
+//    would shadow the download it is supposed to sit beside.
+const installerZip = installerZipName(appVersion);
+const installerZipPath = path.join(distDir, installerZip);
+const installerStageDir = path.join(distDir, 'installer-package');
+console.log(`[7/8] Packaging installer archive ${installerZip}...`);
 
-const digest = crypto.createHash('sha256').update(fs.readFileSync(zipPath)).digest('hex');
-fs.writeFileSync(checksumPath, `${checksumLine(digest, zipName)}\n`, 'utf8');
-console.log(`✅ ${checksumFileName()}: ${digest}`);
+if (!resolver.matchesInstaller(installerZip) || resolver.matchesPortable(installerZip)) {
+  console.error(`⚠️ ${installerZip} does not satisfy the KLD installer-asset contract.`);
+  process.exit(1);
+}
+
+// Named individually rather than copied as a directory: a stray file left in
+// tools/installer would otherwise ride along into every user's download.
+const INSTALLER_ASSETS = [
+  'Install-ValorantAlert.ps1',
+  'Install-ValorantAlert.cmd',
+  'Uninstall-ValorantAlert.ps1',
+  'README-FIRST.txt'
+];
+
+try {
+  fs.rmSync(installerStageDir, { recursive: true, force: true });
+  fs.rmSync(installerZipPath, { force: true });
+  fs.mkdirSync(installerStageDir, { recursive: true });
+
+  // No skip list: app/ must be the same tree the portable zip ships, or the
+  // installer would deliver something QA never tested.
+  copyDirSync(releaseDir, path.join(installerStageDir, 'app'), []);
+
+  for (const asset of INSTALLER_ASSETS) {
+    const from = path.join(rootDir, 'tools', 'installer', asset);
+    if (!fs.existsSync(from)) throw new Error(`tools/installer/${asset} is missing`);
+    fs.copyFileSync(from, path.join(installerStageDir, asset));
+  }
+
+  execSync(
+    `powershell -NoProfile -NonInteractive -Command "Compress-Archive -Path ${psLiteral(path.join(installerStageDir, '*'))} -DestinationPath ${psLiteral(installerZipPath)} -CompressionLevel Optimal -Force"`,
+    { cwd: rootDir, stdio: 'inherit' }
+  );
+  if (!fs.existsSync(installerZipPath)) throw new Error('Compress-Archive produced no file');
+  console.log(`✅ Installer archive created: ${installerZipPath}`);
+} catch (err) {
+  console.error('⚠️ Installer packaging error:', err.message);
+  // Staging tree is left in place on failure — it is the only evidence of what
+  // was about to be zipped. process.exit skips finally blocks, so cleanup lives
+  // on the success path below rather than pretending to be unconditional.
+  process.exit(1);
+}
+
+// A duplicate of a ~37 MB release folder; leaving it in dist/ would double the
+// directory and make a later "stale dist" diagnosis harder.
+fs.rmSync(installerStageDir, { recursive: true, force: true });
+
+// 8. SHA256SUMS.txt — the resolver reads this name case-insensitively and hands
+//    it to the client as checksumUrl, so a release without it downloads fine but
+//    cannot be verified. One line per published archive, in sha256sum format, so
+//    `sha256sum -c` works on the file as-is.
+const checksumPath = path.join(distDir, checksumFileName());
+console.log(`[8/8] Writing ${checksumFileName()}...`);
+
+const sha256Of = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const checksums = [
+  [sha256Of(zipPath), zipName],
+  [sha256Of(installerZipPath), installerZip]
+];
+
+fs.writeFileSync(
+  checksumPath,
+  `${checksums.map(([hex, name]) => checksumLine(hex, name)).join('\n')}\n`,
+  'utf8'
+);
+for (const [hex, name] of checksums) {
+  console.log(`✅ ${name}: ${hex}`);
+}
 
 console.log('\n===========================================================');
 console.log('🎉 PORTABLE RELEASE PACKAGE CREATED SUCCESSFULLY!');
 console.log(`📁 RELEASE FOLDER: ${releaseDir}`);
-console.log(`📦 UPLOAD TO THE GITHUB RELEASE: ${zipName} + ${checksumFileName()}`);
+console.log(`📦 UPLOAD TO THE GITHUB RELEASE: ${zipName} + ${installerZip} + ${checksumFileName()}`);
 console.log('===========================================================');
