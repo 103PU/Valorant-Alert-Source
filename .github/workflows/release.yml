@@ -72,14 +72,15 @@ jobs:
           }
           Write-Host "Tag $env:TAG matches package.json $pkg."
 
-      # Emits dist/ValorantScoreAlert-v<version>-win-x64.zip and SHA256SUMS.txt.
+      # Emits dist/ValorantScoreAlert-v<version>-win-x64.zip, the matching
+      # ...-installer.zip and SHA256SUMS.txt covering both.
       - name: Build Standalone Executable Release Package
         run: node scripts/build.js
 
       # build.js guards its own output, but it cannot see a stale dist/ from an
       # earlier version or a checksum file describing a zip rebuilt after it was
-      # written. This re-derives both names, recomputes the digest from the bytes on
-      # disk, and exports the two paths for the publish step.
+      # written. This re-derives all three names, recomputes each digest from the
+      # bytes on disk, and exports the paths for the publish step.
       - name: Verify release artifacts
         id: artifacts
         run: node scripts/verify-release-artifacts.js
@@ -106,9 +107,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
           PORTABLE: ${{ steps.artifacts.outputs.portable }}
+          INSTALLER: ${{ steps.artifacts.outputs.installer }}
           CHECKSUMS: ${{ steps.artifacts.outputs.checksums }}
         run: |
-          gh release create $env:TAG $env:PORTABLE $env:CHECKSUMS `
+          gh release create $env:TAG $env:PORTABLE $env:INSTALLER $env:CHECKSUMS `
             --title "Valorant Score Alert $env:TAG" `
             --generate-notes `
             --verify-tag `
@@ -137,7 +139,53 @@ jobs:
             Where-Object { $_.name -like '*win-x64.zip' -and $_.name -notlike '*installer*' }
           if (-not $portable) { throw "No portable win-x64 .zip asset; the download button would dead-end." }
 
+          # KLD serves recommended = installer ?? portable, so this is the asset most
+          # users actually get. Missing, it silently downgrades everyone to portable.
+          $installer = $release.assets | Where-Object { $_.name -like '*win-x64-installer.zip' }
+          if (-not $installer) { throw "No installer win-x64 .zip asset; KLD would recommend the portable build instead." }
+
           $sums = $release.assets | Where-Object { $_.name -ieq 'SHA256SUMS.txt' }
           if (-not $sums) { throw "SHA256SUMS.txt is missing; downloads could not be verified." }
 
           Write-Host "Release $env:TAG is public with $($release.assets.Count) verified asset(s)."
+
+      # Announcing the release only after the step above proved it resolvable: a notice
+      # whose buttons 404 is worse than no notice. Deliberately the last step, so a
+      # Discord outage cannot fail a release that is already published and correct.
+      #
+      # The message goes to a Cloudflare Worker, not to a Discord webhook — the same relay
+      # ValorantTweaks uses (notify-discord-bot.yml). A webhook cannot render the link
+      # buttons under the embed; only a bot can, and the Worker is what holds the bot
+      # token. Both secrets are the user's to add; with CLOUDFLARE_WORKER_URL unset this
+      # step skips instead of failing, so the release path works before Discord is wired.
+      - name: Notify Discord
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          WORKER_URL: ${{ secrets.CLOUDFLARE_WORKER_URL }}
+          AUTH_TOKEN: ${{ secrets.CLOUDFLARE_AUTH_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          # Where the release actually lives. Today that is this repository; set the
+          # RELEASE_REPO variable if publishing ever moves to a separate release repo, and
+          # the buttons follow without a code change.
+          RELEASE_REPO: ${{ vars.RELEASE_REPO || github.repository }}
+        run: |
+          if (-not $env:WORKER_URL) {
+            Write-Host '::notice::CLOUDFLARE_WORKER_URL is not set — skipping the Discord announcement.'
+            exit 0
+          }
+
+          # The payload has one definition (scripts/discord-release-notice.js) and is
+          # pinned by test/discord-notice.test.js. Written as bytes and POSTed as bytes:
+          # the message is Vietnamese plus emoji, and a string round-trip through a shell
+          # is how that becomes '?' in the channel.
+          node scripts/discord-release-notice.js --tag $env:TAG --repo $env:RELEASE_REPO --out notice.json
+          $body = [System.IO.File]::ReadAllBytes("$PWD/notice.json")
+
+          Invoke-RestMethod -Uri $env:WORKER_URL -Method Post -Body $body -Headers @{
+            'Content-Type' = 'application/json; charset=utf-8'
+            'X-Auth-Token' = $env:AUTH_TOKEN
+          } | Out-Null
+
+          Remove-Item notice.json -Force
+          Write-Host "Announced $env:TAG to Discord."

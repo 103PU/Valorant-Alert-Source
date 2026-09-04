@@ -1,56 +1,112 @@
 # Đang chờ gì, chờ ai, yêu cầu chính xác cái gì
 
-Cập nhật: 2026-09-04. Nhánh `feature/license-gate`.
+Cập nhật: 2026-09-04. Nhánh `chore/single-version-source`.
 
 Mục đích của file này: mọi thứ **chưa xong** đều phải có tên người chịu và một câu
 yêu cầu cụ thể. Không có mục nào ghi "đang chờ" chung chung.
 
 ---
 
-## 1. Chờ KLD — 3 việc, theo đúng thứ tự này
+## 1. Chờ KLD đúng 1 việc (1.4). 1.2 + 1.3 là việc của MÌNH, 1.5 là của người dùng
 
-Thứ tự không đổi được: đảo lại là **mọi** install đang chạy sẽ không activate được.
-Lý do đầy đủ ở `kld-entitlement-signing.md` §7.
+Thứ tự 1.1 → 1.3 không đổi được: đảo lại là **mọi** install đang chạy sẽ không
+activate được. Lý do đầy đủ ở `kld-entitlement-signing.md` §7.
 
-### 1.1 KLD sinh keypair Ed25519 và deploy signing
+1.2 trước đây ghi ở đây là "chờ KLD". **Sai.** Đã verify bằng API production ngày
+2026-09-04: KLD trỏ đúng repo theo convention của cả họ sản phẩm; chỗ thiếu nằm ở
+phía mình. Chi tiết và bằng chứng ở 1.2.
 
-**Yêu cầu gửi KLD, nguyên văn:**
+| # | Việc | Ai làm | Trạng thái |
+|---|---|---|---|
+| 1.1 | KLD sinh keypair Ed25519 + deploy signing | KLD | **XONG** 2026-09-04 |
+| 1.2 | Publish release vào repo `-release` | mình | chờ approval |
+| 1.3 | Bật `REQUIRE_SIGNATURE` | mình | mở khoá, chờ ship 1 build |
+| 1.4 | Tách `app_version_config` theo product | **KLD** | **chờ KLD** |
+| 1.5 | Thêm 2 secret Discord | **người dùng** | chờ chốt channel |
 
-> Implement §11 của `docs/kld-entitlement-signing.md`. Cụ thể: sinh 1 keypair
-> Ed25519, để private key trong Worker secret (`wrangler secret put`), rồi thêm 3
-> field `entitlement` / `sig` / `kid` vào response của **cả hai** endpoint:
-> `POST /api/me/licenses/{key}/activate` và `/api/trials/*`. Field cũ giữ nguyên
-> hết — client cũ không đọc `sig` vẫn phải activate bình thường.
-> Bắt buộc dùng WebCrypto (`crypto.subtle`), **không** dùng `node:crypto` (§11.3).
-> Sign trên **đúng bytes của string `entitlement`** đã base64url, không sign trên
-> object đã parse — canonicalisation là chỗ hai bên lệch nhau dễ nhất (§3).
+### 1.1 KLD sinh keypair Ed25519 và deploy signing — XONG 2026-09-04
 
-**Cần họ trả về:** `kid` (string) + public key 32 byte raw, base64. Public key
-không phải secret, gửi qua kênh nào cũng được. **Private key thì không.**
+Private key nằm trong Worker secret `LICENSE_SIGNING_KEY`, không có bản copy nào
+ngoài secret store của Cloudflare. Public key đã nằm trong
+`server/licensing/signing-keys.js`:
 
-**Chặn cái gì:** không có key thì `PUBLIC_KEYS` trong `server/licensing/signing-keys.js`
-phải để rỗng, và `REQUIRE_SIGNATURE` phải là `false`. Đây là lý do app hiện tolerate
-response không có `sig`.
+```
+kid: va-2026-09
+```
 
-### 1.2 KLD trỏ application record về đúng repo
+Verify **trước khi** cài kid vào code, vì cài kid là điểm không quay lại được:
+`signature_invalid` và mọi mismatch của `assertBinding` đều throw bất kể
+`REQUIRE_SIGNATURE`, nên một key sai sẽ **chặn** activate chứ không fallback. Đã
+chạy `verifyEnvelope` của chính module đó trên một envelope ký thật từ production
+với `requireSignature: true` — positive verify đủ binding, và các negative case
+throw đúng code (`signature_product_mismatch`, `signature_device_mismatch`,
+`signature_kind_mismatch`, `signature_unknown_kid`, `signature_invalid` khi sửa
+1 byte).
 
-**Yêu cầu:**
+Không còn gì phải xin KLD ở mục này.
 
-> Application record của `valorant-alert` trong KLD phải trỏ owner/repo về
-> `103PU/Valorant-Alert-Source`. Download resolver quét release của repo này;
-> trỏ sai repo thì nút Download vẫn dead end dù asset đã đúng tên.
+### 1.2 Publish release vào repo phân phối `103PU/Valorant-Alert-Release`
 
-**Không kiểm được từ repo này.** Phía app đã làm hết phần của mình: release sinh ra
-`ValorantScoreAlert-v<ver>-win-x64.zip` + `SHA256SUMS.txt`, release không draft,
-không prerelease, asset `state === 'uploaded'` — cả 3 điều kiện release đều được
-assert trong `.github/workflows/release.yml`. Chi tiết ở `release-runbook.md`.
+**Đây là việc của mình, không phải của KLD.** Cần approval để publish (xem
+`release-runbook.md` §3), nên nó nằm ở file này.
+
+Trạng thái thật, đo bằng API production ngày 2026-09-04:
+
+```
+GET https://keylicensedashboard.dungbd2005.workers.dev/api/app-config/applications/valorant-alert/download
+→ {"ok":true,"status":"degraded","release":null,"recommended":null,
+   "portable":null,"checksumUrl":null,
+   "releasePageUrl":"https://github.com/103PU/Valorant-Alert-Release/releases",
+   "error":"github_http_404"}
+```
+
+Application record **có thật** và `downloadEnabled: true` (thấy trong
+`/api/app-config/applications`). Repo nó trỏ về — `103PU/Valorant-Alert-Release` —
+cũng **có thật**: public, 9 MB, commit `26181f87` ngày 2026-08-26 *"release: initial
+portable standalone release v1.0.0"*, chứa một bản portable đã bung sẵn
+(`Start-ValorantAlert.bat`, `Create-Desktop-Shortcut.vbs`, `server/`, `public/`,
+`node_modules/`).
+
+Thiếu đúng một thứ: repo đó có **0 GitHub Release và 0 tag**. Build 2026-08-26 được
+commit thành file rời trên `main`, chưa bao giờ tạo Release object. Nên
+`GET /repos/103PU/Valorant-Alert-Release/releases/latest` trả **404**, và resolver
+báo `github_http_404`.
+
+**`-release` là convention, không phải cấu hình sai.** App đang chạy được của cùng
+chủ dùng đúng kiểu đó:
+
+| product | repo KLD đọc | status |
+|---|---|---|
+| `valorant-tweaks` | `103PU/ValorantTweaks.App-release` | `available` — có installer + portable + checksum |
+| `valorant-alert` | `103PU/Valorant-Alert-Release` | `degraded` — 0 release |
+
+**Việc phải làm:** publish 2 asset của `v1.0.0` vào `103PU/Valorant-Alert-Release`,
+release không draft / không prerelease. Ba điểm bắt buộc:
+
+1. Dùng **đúng bytes CI đã build** — sha256 `8121a019…9077`, tải từ release của
+   `Valorant-Alert-Source` rồi đẩy sang. **Không** dùng `dist/` local: bản local
+   37.8 MB, digest `d700f08e…`, khác bytes vì `npm ci` từ lockfile cho
+   `node_modules` sạch hơn cây local.
+2. Không cần installer. `download-resolver.ts:100-101` là
+   `recommended = installer ?? portable`, chỉ `return null` khi thiếu **cả hai**.
+   Portable-only cho `status: "available"` với `recommended.kind === "portable"`.
+3. `.github/workflows/release.yml:111` gọi `gh release create` **không** có
+   `--repo`, và `GH_TOKEN` là `secrets.GITHUB_TOKEN` — chỉ ghi được vào repo đang
+   chạy. Muốn CI tự đẩy sang repo kia thì phải thêm PAT làm secret mới; đó là thay
+   đổi secret nên phải xin phép riêng. Lần này publish tay bằng `gh` local là đủ.
+
+**Lựa chọn thay thế (không khuyến nghị):** nhờ KLD trỏ record về
+`103PU/Valorant-Alert-Source`, nơi `v1.0.0` đã nằm sẵn. Được, nhưng cần người khác
+làm và phá convention `-release` của cả họ sản phẩm.
 
 ### 1.3 Sau khi 1.1 xong — bật `REQUIRE_SIGNATURE`
 
-Việc của phía app, nhưng **chỉ làm được sau** 1.1. Ba bước, không gộp:
+Việc của phía app. 1.1 đã xong nên mục này **đã mở khoá**; bước 1 dưới đây cũng
+xong rồi. Ba bước, không gộp:
 
-1. Điền `kid` + public key vào `PUBLIC_KEYS` (`signing-keys.js`). Có test invariant
-   chặn tổ hợp `REQUIRE_SIGNATURE = true` + map rỗng, nên bước này phải trước.
+1. ~~Điền `kid` + public key vào `PUBLIC_KEYS`~~ — **XONG 2026-09-04** (`va-2026-09`).
+   Có test invariant chặn tổ hợp `REQUIRE_SIGNATURE = true` + map rỗng, nên bước này
+   phải trước.
 2. Theo dõi trên máy thật bằng endpoint có sẵn — app đang chạy thì:
 
    ```
@@ -61,6 +117,164 @@ Việc của phía app, nhưng **chỉ làm được sau** 1.1. Ba bước, khô
    `signature: {verified, kid, warning}`. Cần thấy: mọi activate đã có `sig` chưa
    (`verified: true`), và `warning: 'signature_missing'` còn xuất hiện không.
 3. Chỉ khi (2) sạch mới đổi `REQUIRE_SIGNATURE = false` → `true`, ship version mới.
+
+### 1.4 KLD tách `app_version_config` theo product
+
+**Quyết định của người dùng (2026-09-04):** *"tôi muốn tách theo product giống
+valorant tweaks luôn"* — mỗi product có version row riêng, `valorant-alert` không
+dùng chung row với `valorant-tweaks` nữa.
+
+**Vì sao bắt buộc, không phải nice-to-have.** Bảng version của KLD là **một row
+duy nhất ở tầng schema**, không phải "tình cờ đang có một row":
+
+```sql
+-- Keylicensedashboard/migrations/0013_add_app_version_config.sql:2
+-- (khẳng định lại trong worker/index.ts:2442)
+CREATE TABLE IF NOT EXISTS app_version_config (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  ...
+);
+```
+
+`CHECK (id = 1)` làm cho row thứ hai **không insert được**. Cộng thêm:
+
+| Chỗ | Bằng chứng | Hệ quả |
+|---|---|---|
+| `worker/index.ts:3790` | `getAppVersionConfig(env)` — không có tham số product | 1 row cho mọi app |
+| `worker/index.ts:3862` | `key: publicCacheKey("app-version")` | cache không có chiều product |
+| `worker/index.ts:15405` | `getGitHubReleaseRepository(env)` đọc env var | sync về 1 repo |
+| `worker/index.ts:739` | `DEFAULT_GITHUB_RELEASE_REPOSITORY = "103PU/ValorantTweaks.App-source"` | mặc định là ValorantTweaks |
+
+Đo live 2026-09-04 — `?productId=` bị **bỏ qua hoàn toàn**, hai call trả byte
+giống nhau:
+
+```
+GET /api/app/version
+GET /api/app/version?productId=valorant-alert
+→ {"ok":true,"version":{"current_version":"3.4.4","minimum_version":"3.4.4",
+   "force_update":false,"release_notes":"Release highlights\n- Fix Key License Not Found...
+```
+
+**Rủi ro cụ thể nếu app cứ tin con số đó:** Valorant Alert 1.0.0 thấy 3.4.4 →
+banner "có bản mới" vĩnh viễn, bấm vào không có gì để tải. Và nếu có ai bật
+`force_update` cho ValorantTweaks với `minimum_version` 3.4.x thì **toàn bộ install
+Valorant Alert bị khoá cứng** khỏi app — 1.0.0 < 3.4.4. Đây là lý do phải tách,
+không phải để cho đẹp.
+
+**Mẫu để làm theo đã có sẵn trong KLD, không phải mình bịa ra.** Chính KLD đã
+product-scope một bảng khác đúng kiểu này:
+
+```sql
+-- migrations/0027_app_plan_catalog_hardening.sql:12,19
+CREATE TABLE IF NOT EXISTS service_categories (
+  product_id TEXT NOT NULL DEFAULT 'valorant-tweaks',
+  key TEXT NOT NULL,
+  ...
+  PRIMARY KEY (product_id, key)
+);
+```
+
+Và repo phát hành **đã** per-application rồi, chỉ riêng version channel là chưa
+dùng nó: `migrations/0037_application_download_config.sql:2` thêm
+`applications.release_repository`, với `valorant-tweaks` →
+`103PU/ValorantTweaks.App-release` và `valorant-alert` →
+`103PU/Valorant-Alert-Release`.
+
+**Yêu cầu gửi KLD, nguyên văn:**
+
+> Tách `app_version_config` theo product, đúng kiểu các bạn đã làm với
+> `service_categories` ở `migrations/0027_app_plan_catalog_hardening.sql:12,19`.
+>
+> 1. **Migration.** Bảng mới hoặc migrate bảng cũ, khoá chính là `product_id`:
+>    `product_id TEXT PRIMARY KEY REFERENCES applications(id)`. Bỏ
+>    `CHECK (id = 1)`. Backfill row đang có thành `product_id = 'valorant-tweaks'`
+>    (nó là row của ValorantTweaks, xác nhận bằng `current_version = 3.4.4`), rồi
+>    seed thêm row `valorant-alert` với `current_version = '0.0.0'`,
+>    `force_update = 0`. **`0.0.0` là mặc định an toàn:** mọi install đều `>=` nó
+>    nên không ai bị nag và không ai bị khoá trong lúc chuyển.
+> 2. **`getAppVersionConfig(env, productId)`** — thêm tham số. Product không có
+>    row thì trả `0.0.0 / 0.0.0 / force_update: false`, **không** fallback sang
+>    row của product khác.
+> 3. **Cache key phải có chiều product:** `publicCacheKey("app-version", productId)`
+>    (`worker/index.ts:3862`). Giữ nguyên key cũ là hai product ghi đè cache của
+>    nhau — lỗi này khó thấy hơn cả lỗi hiện tại vì nó phụ thuộc ai gọi trước.
+> 4. **`GET /api/app/version?productId=<id>`** đọc row của product đó. **Không
+>    truyền `productId` thì phải vẫn trả `valorant-tweaks`** — mọi client
+>    ValorantTweaks 3.4.x đang chạy đều gọi endpoint này không kèm param
+>    (`ValorantTweaks.App/Licensing/AppVersionService.cs`: request là
+>    `"/api/app/version"` trần), nên đổi default là làm chết auto-update của app
+>    đang bán. `productId` lạ / không tồn tại → `404` hoặc row `0.0.0`, tuỳ các
+>    bạn, miễn đừng trả row của product khác.
+> 5. **Response phải echo lại `productId`** — thêm field `productId` (và
+>    `product_id` nếu muốn giữ cặp snake/camel như các field khác) vào object
+>    `version` ở `appVersionConfigResponse` (`worker/index.ts:3817-3839`). Đây là
+>    yêu cầu **bắt buộc**, không phải cosmetic: client của Valorant Alert **từ
+>    chối** mọi response không echo product id, vì không có echo thì client không
+>    phân biệt được "KLD đã tách" với "KLD trả row của ValorantTweaks". Có echo là
+>    lúc auto-update của Valorant Alert tự bật.
+> 6. **`syncLatestGitHubRelease(env, productId)`** nên đọc
+>    `applications.release_repository` của product đó
+>    (`migrations/0037_application_download_config.sql:2`) thay vì env var toàn cục
+>    `GITHUB_RELEASE_REPOSITORY`. Giữ env var làm fallback cho `valorant-tweaks` để
+>    không đổi hành vi hiện tại. Không sửa chỗ này thì admin bấm sync trên trang
+>    `valorant-alert` sẽ ghi tag của ValorantTweaks vào row của Valorant Alert.
+> 7. Trang admin: thêm bộ chọn product cho khối App Version, giống các khối đã
+>    product-scoped khác.
+>
+> **Không cần** đổi gì ở `/api/app-config/applications/{id}/download` —
+> `download-resolver.ts` đã product-aware và đã đúng.
+
+**Trong lúc chờ, app đã an toàn — không phải chờ mới chạy được.**
+`server/licensing/app-version.js` yêu cầu KLD chứng minh câu trả lời là của
+`valorant-alert` trước khi tin: response không echo `productId` → bị từ chối với
+warning `kld_not_product_scoped`, và client rơi xuống nguồn thứ hai là
+`releases/latest` của `103PU/Valorant-Alert-Release`. Nguồn GitHub **chỉ được
+phép nag, không được phép khoá** (`forceUpdate` hard-false), vì
+`releases/latest` không có khái niệm `minimum_version` — suy ra force từ một tag
+nghĩa là mỗi lần publish là một lần khoá cứng toàn bộ user.
+
+Đo live 2026-09-04, sau khi wire xong:
+
+```json
+{"appVersion":"1.0.0","source":"none","forceUpdateRequired":false,
+ "softUpdateAvailable":false,
+ "warnings":["kld_not_product_scoped","github_http_404"]}
+```
+
+Đúng như thiết kế: không banner sai, không khoá. `github_http_404` là **cùng một
+nguyên nhân** với nút Download chết ở 1.2 — repo `-release` chưa có Release nào.
+Làm 1.2 là cả hai đường tự sống, kể cả khi KLD chưa làm 1.4.
+
+Test giữ hợp đồng này: `test/app-version.test.js` — 15 test, trong đó
+*"an unscoped KLD row cannot force-update this product"* dựng đúng payload 3.4.4
+live kèm `force_update: true` và assert `forceUpdateRequired === false`. Xoá guard
+là test đó đỏ. Ba test cuối giữ phía UI: dashboard phải **gọi** endpoint này (trước
+đó endpoint không có ai gọi), phải render quyết định của server chứ không tự so
+version, và banner bắt buộc cập nhật không được có nút "để sau".
+
+### 1.5 Hai secret cho Discord — chỉ chủ repo thêm được
+
+Việc của **người dùng**, không ai khác làm thay được: thêm 2 secret vào repo
+`103PU/Valorant-Alert-Source` (Settings → Secrets and variables → Actions).
+
+| Secret | Dùng ở đâu | Thiếu thì sao |
+|---|---|---|
+| `CLOUDFLARE_WORKER_URL` | `release.yml` step *Notify Discord*, `notify-discord.yml` | `release.yml` **bỏ qua** step (`::notice`, exit 0) — release vẫn xanh; `notify-discord.yml` fail có chủ ý vì đó là lệnh gửi tay |
+| `CLOUDFLARE_AUTH_TOKEN` | cùng hai chỗ | Worker trả 401 → `curl --fail` / `Invoke-RestMethod` làm đỏ step |
+
+**Câu hỏi phải trả lời trước khi thêm:** payload không mang channel id
+(`scripts/discord-release-notice.js` chỉ có `embeds` + `components`), nên channel
+đích **nằm trong Worker**. Dùng lại đúng URL Worker của ValorantTweaks thì thông báo
+của Valorant Alert sẽ vào **channel của ValorantTweaks**. Source của Worker không
+có trong `Valorant-Alert-Source` cũng không có trong `Keylicensedashboard` — đã
+grep cả hai. Ba lựa chọn: (a) Worker riêng cho app này, (b) Worker nhận thêm tham
+số channel/product rồi mình gửi kèm, (c) chấp nhận chung channel. Chưa chọn thì
+đừng thêm secret.
+
+Không liên quan repo này nhưng phải nói: `ValorantTweaks.App/.github/workflows/`
+`notify-discord-manual.yml:14` commit **thẳng** một webhook URL Discord dạng
+plaintext. Nếu repo đó public thì webhook đó cần **rotate**. Không copy sang đây,
+không in lại giá trị.
 
 ---
 
@@ -115,9 +329,11 @@ Ghi ra để không ai tưởng đây là việc còn dở. Chi tiết ở
   ValorantTweaks cũng có đúng giới hạn này.
 - **Patch JS trong archive caxa.** Xoá dòng verify là xong. Đây là trần của mọi app
   Node plaintext; code signing chỉ làm nó ồn ào hơn, không chặn được.
-- **Installer artifact.** `installerZipName()` đã có trong `release-naming.js` và có
-  test, nhưng chưa có installer thật. Resolver phân biệt bằng chữ `installer` trong
-  tên, nên thêm sau không phá gì.
+- **Installer artifact — XONG 2026-09-04.** Không còn là việc dở. `build.js` phát cả
+  `...-win-x64.zip` và `...-win-x64-installer.zip` + `SHA256SUMS.txt`; bộ cài
+  (`tools/installer/`) đã chạy thật trên máy này qua harness 24 mục, 24/24 OK: cài,
+  nâng cấp, 4 trường hợp từ chối, gỡ cài giữ `%APPDATA%\ValorantAlert`. Giữ bullet này
+  để không ai đọc bản cũ rồi tưởng vẫn thiếu.
 
 Nói gọn: signing đưa bypass từ *"sửa file text, 0 công cụ"* lên *"phải patch code
 trong archive"*. Đúng bằng mức ValorantTweaks đang có, và đó là toàn bộ mục tiêu.

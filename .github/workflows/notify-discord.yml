@@ -1,0 +1,93 @@
+name: Notify Discord
+
+# Manual re-send of a release announcement: dispatch it with a tag and the same message
+# the release workflow posts goes out again. Useful when a release was cut before the
+# Discord secrets existed, when the relay was down, or to re-post after editing notes.
+#
+# The message body is built by scripts/discord-release-notice.js — the one definition,
+# shared with release.yml and pinned by test/discord-notice.test.js. ValorantTweaks keeps
+# two hand-maintained copies of its payload (release.yml and notify-discord-bot.yml) and
+# they have already drifted apart; that is the mistake this file exists to not repeat.
+#
+# Nothing here can reach the app or the release: it only reads a release and POSTs a
+# message. No `contents: write`.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag of the release to announce (v1.0.0)'
+        required: true
+      repo:
+        description: 'Repository holding the release (blank = the RELEASE_REPO variable, else this repo)'
+        required: false
+        default: ''
+
+jobs:
+  notify:
+    name: Announce a release on Discord
+    runs-on: ubuntu-latest # no build here, so the cheapest runner
+    permissions:
+      contents: read # enough for `gh release view`; the announcement needs nothing more
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Every value below travels through env, never through ${{ }} interpolation into the
+      # script body. A workflow_dispatch input is arbitrary text typed by whoever can run
+      # the workflow, and pasting it into a shell line is a command-injection hole — the
+      # upstream ValorantTweaks version does exactly that with `$tag = "${{ ... }}"`.
+      - name: Announce
+        shell: bash
+        env:
+          WORKER_URL: ${{ secrets.CLOUDFLARE_WORKER_URL }}
+          AUTH_TOKEN: ${{ secrets.CLOUDFLARE_AUTH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          RELEASE_REPO: ${{ inputs.repo || vars.RELEASE_REPO || github.repository }}
+          THIS_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # A manual dispatch is an explicit "send it now", so a missing relay URL is an
+          # error here — unlike release.yml, where the announcement is a side effect of a
+          # release that must still succeed without it.
+          if [ -z "${WORKER_URL}" ]; then
+            echo "::error::CLOUDFLARE_WORKER_URL is not set; nothing to post to."
+            exit 1
+          fi
+
+          # Announcing a tag that has no release sends everyone to a 404. GITHUB_TOKEN only
+          # reaches this repository, so the check runs when the release lives here and is
+          # skipped (with a warning) when it lives somewhere else.
+          if [ "${RELEASE_REPO}" = "${THIS_REPO}" ]; then
+            gh release view "${TAG}" --repo "${RELEASE_REPO}" --json isDraft,isPrerelease > release.json
+            if [ "$(node -p "require('./release.json').isDraft")" != "false" ]; then
+              echo "::error::${TAG} is a draft; publish it before announcing."
+              exit 1
+            fi
+            if [ "$(node -p "require('./release.json').isPrerelease")" != "false" ]; then
+              echo "::error::${TAG} is a prerelease; KLD's resolver skips it, so do not announce it."
+              exit 1
+            fi
+            rm -f release.json
+          else
+            echo "::warning::${RELEASE_REPO} is not this repository — the release could not be verified before announcing."
+          fi
+
+          node scripts/discord-release-notice.js --tag "${TAG}" --repo "${RELEASE_REPO}" --out notice.json
+
+          # --fail turns a 4xx/5xx from the relay into a failed step. Without it curl exits
+          # 0 on an HTTP error and the run goes green having sent nothing.
+          curl --fail --silent --show-error \
+            -X POST "${WORKER_URL}" \
+            -H 'Content-Type: application/json; charset=utf-8' \
+            -H "X-Auth-Token: ${AUTH_TOKEN}" \
+            --data-binary @notice.json
+
+          rm -f notice.json
+          echo "Announced ${TAG} (release repo: ${RELEASE_REPO})."

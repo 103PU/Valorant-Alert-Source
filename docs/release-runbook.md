@@ -25,7 +25,8 @@ Bốn điều kiện sau là *trạng thái release* nên chỉ assert được 
 
 ## 2. Chuỗi phòng thủ
 
-Bốn lớp, mỗi lớp bắt một loại lỗi khác nhau — không phải một lớp lặp bốn lần:
+Bốn lớp cho **tên artifact**, mỗi lớp bắt một loại lỗi khác nhau — không phải một lớp
+lặp bốn lần:
 
 1. `test/release-artifacts.test.js` — tên do `release-naming.js` sinh ra có khớp
    predicate không, và `build.js` có còn hardcode tên không (drift giữa hai bản copy
@@ -39,15 +40,28 @@ Bốn lớp, mỗi lớp bắt một loại lỗi khác nhau — không phải m
 4. `.github/workflows/release.yml` — assert tag khớp `package.json`, rồi assert
    trạng thái release sau khi publish.
 
+Tên đúng nhưng **chạy không được** là một lớp lỗi khác, nên có lớp riêng: cũng trong
+`test/release-artifacts.test.js`, các test encoding (mọi `.ps1` shipped có non-ASCII
+phải có BOM; `.cmd` phải ASCII thuần không BOM; `README-FIRST.txt` phải có BOM), test
+`-LiteralPath` + wildcard, test "verify bản stage trước khi xoá bản cũ", test shortcut
+trỏ `launcher.vbs` chứ không phải .exe, và test uninstaller giữ `%APPDATA%`. Xem §6.
+
 ## 3. Cắt một release
 
 ```bash
-npm test                     # 87/87 phải xanh; naming contract nằm trong đây
-npm run build                # → dist/ValorantScoreAlert-v<ver>-win-x64.zip + SHA256SUMS.txt
+npm test                     # 121/121 phải xanh; naming contract nằm trong đây
+npm run build                # → dist/ValorantScoreAlert-v<ver>-win-x64.zip
+                             #   + ...-win-x64-installer.zip + SHA256SUMS.txt
 node scripts/verify-release-artifacts.js
 ```
 
-Chạy thử toàn bộ pipeline **không** publish: Actions → *Release Portable Build* →
+**Build không byte-reproducible.** Hai lần `node scripts/build.js` với payload y
+nguyên cho ra hai digest portable khác nhau (`746c4036…` rồi `e1e236f5…`) — caxa nhét
+tar.gz kèm timestamp, zip entry cũng có timestamp. Hệ quả bắt buộc: release phải ship
+**bytes của CI** và `SHA256SUMS.txt` của CI. `dist/` local không bao giờ khớp, nên
+đừng upload nó rồi lấy checksum từ máy khác.
+
+Chạy thử toàn bộ pipeline **không** publish: Actions → *Official Tag Release* →
 `workflow_dispatch`. Nó build, verify, rồi attach zip vào workflow run để test tay.
 
 Publish thật cần **tag**, và tag/push/publish là việc **phải xin phép trước**, không
@@ -60,7 +74,17 @@ git tag v1.0.0 && git push origin v1.0.0
 
 Tag `v*` kích hoạt workflow: test → assert tag khớp `package.json` → build → verify →
 `gh release create --verify-tag --latest` (không draft, không prerelease) → assert lại
-release vừa publish có resolvable thật không.
+release vừa publish có resolvable thật không → **thông báo Discord**.
+
+Step Discord nằm **cuối cùng, có chủ ý**: nó chỉ chạy sau khi step trước đã chứng minh
+release resolvable, nên không thể gửi đi một thông báo mà nút bấm trong đó 404. Và vì
+nó ở cuối, Discord chết cũng không làm đỏ một release đã publish đúng. Thiếu
+`CLOUDFLARE_WORKER_URL` thì step tự bỏ qua (`::notice`, exit 0) — đường release chạy
+được **trước** khi Discord được nối. Gửi lại tay: Actions → *Notify Discord* →
+`workflow_dispatch` với tag. Payload có **một** định nghĩa duy nhất
+(`scripts/discord-release-notice.js`, pin bởi `test/discord-notice.test.js`); tên asset
+trong 2 nút download lấy từ `release-naming.js` chứ không gõ lại. Hai secret cần thêm
+và câu hỏi channel: `pending-and-blocked.md` §1.5.
 
 ## 4. Version chỉ có MỘT chỗ
 
@@ -76,8 +100,68 @@ thứ hai của một con số chỉ là thứ thứ hai để quên lúc releas
 
 Bump version = sửa **một** dòng trong `package.json`, rồi tag đúng con số đó.
 
-## 5. Còn lại ở phía KLD
+## 5. Release phải đi vào repo `-release`, không phải repo này
 
-Repo này chỉ chịu trách nhiệm *đẩy asset đúng tên lên một release đúng trạng thái*.
-Để nút download thật sự chạy, phía KLD vẫn phải trỏ application record về đúng
-owner/repo (`103PU/Valorant-Alert-Source`). Không kiểm chứng được từ repo này.
+KLD đọc release của **`103PU/Valorant-Alert-Release`**, không phải của repo source.
+Đó là convention chung: `valorant-tweaks` cũng resolve về
+`103PU/ValorantTweaks.App-release`. Verify ngày 2026-09-04 bằng
+`GET /api/app-config/applications/valorant-alert/download` — repo `-release` có 0
+GitHub Release nên resolver trả `error: "github_http_404"`, `portable: null`, và nút
+Download dead end dù `v1.0.0` ở repo source đã đúng tên 100%.
+
+`.github/workflows/release.yml:113` gọi `gh release create` không có `--repo`, và
+`GH_TOKEN` là `secrets.GITHUB_TOKEN`, nên **CI chỉ publish được vào repo này**. Đẩy
+sang repo `-release` hiện phải làm tay bằng `gh` local, dùng đúng bytes CI đã build
+(tải asset từ release của repo source, không dùng `dist/` local — digest khác).
+
+Tự động hoá bước đó cần một PAT có quyền ghi repo `-release` làm secret mới. Thêm
+secret là thay đổi phải xin phép riêng — xem `pending-and-blocked.md` §1.2.
+
+Trong lúc chờ, `vars.RELEASE_REPO` là **một** công tắc: nút trong thông báo Discord
+đọc nó (`release.yml` env `RELEASE_REPO`), nên khi release chuyển sang repo `-release`
+thì đặt biến đó là xong, không phải sửa code.
+
+## 6. Cài và cập nhật — cái người dùng thật sự thấy
+
+Không có `setup.exe` biên dịch, và ValorantTweaks cũng không có: bộ cài của cả hai app
+là **script PowerShell nằm trong một file zip**. Ở đây là `tools/installer/` gồm 4 file
+(`Install-ValorantAlert.ps1`, `.cmd` bọc ngoài, `Uninstall-ValorantAlert.ps1`,
+`README-FIRST.txt`), `build.js` đóng vào `...-win-x64-installer.zip` cùng `app/`.
+
+| Thuộc tính | Giá trị |
+|---|---|
+| Cài vào | `%LOCALAPPDATA%\Programs\ValorantAlert` — per-user, **không UAC** |
+| Shortcut | `wscript.exe //nologo <dir>\scripts\launcher.vbs`, **không** trỏ vào .exe |
+| Dữ liệu user | `%APPDATA%\ValorantAlert` — gỡ cài **giữ nguyên**, xoá phải `-PurgeUserData` |
+| Nâng cấp | chạy lại bộ cài: nó tự dừng bản đang chạy, thay cả thư mục |
+
+Hai lỗi chỉ hiện ra khi chạy thật, đã sửa và đã có test giữ:
+
+1. **BOM.** PowerShell 5.1 đọc `.ps1` không BOM theo ANSI code page; tiếng Việt thành
+   mojibake, và mojibake của bộ cài chứa ký tự quote nên script **không parse được**
+   (`Install-ValorantAlert.ps1:103 Unexpected token 'i'`) — 100% người double-click
+   .cmd đều gãy. Ngược lại `.cmd` phải **ASCII thuần, không BOM**: cmd.exe đọc theo OEM
+   code page và sẽ *thực thi* BOM như phần của dòng 1.
+2. **`Copy-Item -LiteralPath "$src\*"` copy 0 file và không raise gì** (`*` thành tên
+   file literal). Bộ cài từng chạy dòng đó *sau* khi đã xoá bản cũ → thư mục rỗng +
+   shortcut + báo "Cài đặt xong". Đổi sang `-Path` cũng không cứu: thư mục kiểu
+   `Valorant-Alert [1]` làm `[1]` thành character class. Cách đúng: liệt kê con bằng
+   `Get-ChildItem -LiteralPath` rồi copy từng cái. Và thứ tự đã đổi — verify cây đã
+   stage **trước** khi xoá bản cũ, nên trường hợp xấu nhất là "cài bị từ chối, bản cũ
+   vẫn chạy".
+
+Cập nhật thì app **tự phát hiện**, không tự tải: `GET /api/license/app-version` hỏi KLD
+trước, không được thì đọc GitHub release mới nhất, rồi trả về
+`forceUpdateRequired` / `softUpdateAvailable` đã tính sẵn. Dashboard render banner từ
+đó (`renderUpdate()` trong `public/dashboard.html`). Bất đối xứng có chủ ý: chỉ KLD
+được phép **khoá**, GitHub chỉ được **nhắc** — suy ra force-update từ một cái tag nghĩa
+là mỗi lần publish sẽ hard-lock toàn bộ install ngoài field. Check này **fail open**:
+không hỏi được thì `source:'none'` và banner ẩn, vì một lần check hỏng không được phép
+trông giống "bắt buộc cập nhật".
+
+Chỗ khác ValorantTweaks: bên đó có `UpdateDownloadService` tự tải zip → giải nén → tìm
+`Updater.exe` → chạy → app tự restart. Bên này **chưa có** phần tự tải đó; banner đưa
+người dùng tới release page, tải bộ cài, chạy lại. Muốn làm giống hẳn thì cần thêm:
+tải asset theo tên từ `release-naming.js`, **verify sha256 với `SHA256SUMS.txt`** (thứ
+ValorantTweaks không có), giải nén, chạy `Install-ValorantAlert.cmd` detached rồi tự
+thoát — bộ cài đã tự lo phần dừng app đang chạy nên không cần Updater.exe riêng.
