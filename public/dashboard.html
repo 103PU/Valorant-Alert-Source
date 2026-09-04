@@ -630,6 +630,21 @@
     </header>
 
     <div class="dashboard-grid">
+      <!-- Update banner. Hidden unless GET /api/license/app-version reports an
+           update; see renderUpdate(). Reuses the license banner's styling so an
+           update reads with the same weight as a license problem. -->
+      <div id="updBanner" class="lic-banner lic-hidden">
+        <div class="lic-banner-text">
+          <div id="updBannerTitle" class="lic-banner-title">CÓ BẢN CẬP NHẬT</div>
+          <div id="updBannerMsg" class="lic-banner-msg"></div>
+        </div>
+        <div class="lic-actions">
+          <a id="btnUpdOpen" class="val-btn" target="_blank" rel="noopener noreferrer"
+             style="padding: 10px 16px; font-size: 0.9rem; text-decoration: none;">⬇️ TẢI BẢN MỚI</a>
+          <button id="btnUpdLater" class="val-btn val-btn-outline lic-hidden" style="padding: 10px 16px; font-size: 0.9rem;">✕ ĐỂ SAU</button>
+        </div>
+      </div>
+
       <!-- Keylicense Gate Banner (hidden while the license is valid) -->
       <div id="licBanner" class="lic-banner lic-hidden">
         <div class="lic-banner-text">
@@ -1059,6 +1074,7 @@
       initDashboardWS(info.token);
       // Must run after currentAuthToken is set — /api/license requires the pin.
       initLicense();
+      initUpdateCheck();
     }).catch(err => {
       console.log('Error fetching info:', err);
     });
@@ -1272,6 +1288,78 @@
           licBanner.classList.add('lic-hidden');
           document.getElementById('licCard').classList.add('lic-hidden');
           console.log('License status unavailable:', e.message);
+        });
+    }
+
+    /* ===================== UPDATE CHECK ===================== */
+    // The only consumer of GET /api/license/app-version. The server does the
+    // deciding (server/licensing/app-version.js): it asks KLD first, falls back
+    // to the GitHub release, and returns forceUpdateRequired / softUpdateAvailable
+    // already computed, so nothing here compares version strings.
+    const updBanner = document.getElementById('updBanner');
+    const updBannerTitle = document.getElementById('updBannerTitle');
+    const updBannerMsg = document.getElementById('updBannerMsg');
+    const btnUpdOpen = document.getElementById('btnUpdOpen');
+    const btnUpdLater = document.getElementById('btnUpdLater');
+
+    // Trim release notes rather than letting a long changelog push the whole
+    // dashboard down. The full text is on the release page the button opens.
+    const updNotes = (text) => {
+      const oneLine = String(text || '').replace(/\r/g, '').split('\n')
+        .map((l) => l.trim()).filter(Boolean).join(' · ');
+      return oneLine.length > 220 ? `${oneLine.slice(0, 220)}…` : oneLine;
+    };
+
+    function renderUpdate(info) {
+      if (!info || (!info.forceUpdateRequired && !info.softUpdateAvailable)) {
+        // source:'none' lands here too, which is the point: a check that could
+        // not run must read as "no update", never as "update required".
+        updBanner.classList.add('lic-hidden');
+        return;
+      }
+
+      const notes = updNotes(info.releaseNotes);
+      btnUpdOpen.href = info.releasePageUrl || '#';
+
+      if (info.forceUpdateRequired) {
+        // Deliberately a banner, not a lockout. Entitlement is the server's
+        // decision (server/licensing/gate.js) and app-version cannot touch it;
+        // hiding the UI in JS would only look like enforcement. Unreachable
+        // today in any case — KLD's version row is not product-scoped yet, so
+        // checkKld refuses it (docs/pending-and-blocked.md §1.4).
+        updBanner.className = 'lic-banner is-bad';
+        updBannerTitle.innerText = 'BẮT BUỘC CẬP NHẬT';
+        updBannerMsg.innerText =
+          `Bản ${info.appVersion} đã quá cũ. Cần cập nhật lên ${info.latestVersion} để tiếp tục dùng.`
+          + (notes ? ` — ${notes}` : '');
+        btnUpdLater.classList.add('lic-hidden');
+      } else {
+        updBanner.className = 'lic-banner';
+        updBannerTitle.innerText = 'CÓ BẢN CẬP NHẬT';
+        updBannerMsg.innerText =
+          `Đang dùng ${info.appVersion}, bản mới nhất là ${info.latestVersion}.`
+          + ' Tải bộ cài rồi chạy lại — bộ cài tự dừng bản đang chạy và giữ nguyên dữ liệu đăng nhập.'
+          + (notes ? ` — ${notes}` : '');
+        btnUpdLater.classList.remove('lic-hidden');
+      }
+
+      updBanner.classList.remove('lic-hidden');
+    }
+
+    // Dismiss is in-memory only, so the banner comes back on the next dashboard
+    // load. Persisting it would let one click hide a real update forever.
+    btnUpdLater.addEventListener('click', () => updBanner.classList.add('lic-hidden'));
+
+    function initUpdateCheck() {
+      // One check per dashboard load. The server caches the result for 30
+      // minutes (UPDATE_CHECK_TTL_MS), so a reload is cheap and polling adds
+      // nothing but GitHub rate-limit exposure.
+      licApi('app-version')
+        .then(renderUpdate)
+        .catch((e) => {
+          // Never surfaced: an update check is advisory, and a failed one must
+          // not add a broken panel to a working dashboard.
+          console.log('Update check unavailable:', e.message);
         });
     }
 

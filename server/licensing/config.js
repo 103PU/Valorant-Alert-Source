@@ -21,8 +21,22 @@ const ENDPOINTS = {
   // each activate call. Reusing one yields reason "nonce_invalid".
   challenge: '/api/licenses/challenge',
   startTrial: '/api/trials/start',
-  verifyTrial: '/api/trials/verify'
+  verifyTrial: '/api/trials/verify',
+  // Update check. Scoped with ?productId= and only trusted when KLD echoes the
+  // product back — see ./app-version.js for why an unscoped answer is refused.
+  appVersion: '/api/app/version'
 };
+
+// Where releases are published, and therefore where the update check looks when
+// KLD cannot answer for this product. A code constant, not a config.json field,
+// for the same reason the endpoint paths above are: it is part of the product's
+// identity, not an operator tunable. Leaving it editable in a plaintext file the
+// end user owns would also make "which repo do updates come from" user-settable.
+//
+// `-release` is the family convention, not a typo: KLD reads
+// 103PU/ValorantTweaks.App-release for valorant-tweaks and this repo's
+// distribution twin for valorant-alert, never the source repo.
+const RELEASE_REPO = '103PU/Valorant-Alert-Release';
 
 const DEFAULTS = {
   baseUrl: 'https://keylicensedashboard.dungbd2005.workers.dev',
@@ -79,6 +93,7 @@ function resolveLicenseConfig(rawConfig, rootDir) {
   merged.appVersion = resolveAppVersion(rootDir);
   merged.appDataDir = resolveAppDataDir(merged.appDataFolderName);
   merged.endpoints = ENDPOINTS;
+  merged.releaseRepo = RELEASE_REPO;
 
   return merged;
 }
@@ -87,4 +102,4 @@ function url(cfg, endpointPath) {
   return `${cfg.baseUrl}${endpointPath}`;
 }
 
-module.exports = { ENDPOINTS, DEFAULTS, resolveLicenseConfig, resolveAppDataDir, url };
+module.exports = { ENDPOINTS, DEFAULTS, RELEASE_REPO, resolveLicenseConfig, resolveAppDataDir, url };

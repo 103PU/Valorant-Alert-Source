@@ -87,6 +87,12 @@ async function handleApiLicense(req, res, { licensing, wsServer }) {
         return sendJson(res, 200, { ok: true, ...snap });
       }
 
+      // Update availability. GET because it is a read and the dashboard polls it,
+      // and deliberately separate from `status`: an update check that fails must
+      // not be able to make the entitlement snapshot look degraded.
+      case 'app-version':
+        return sendJson(res, 200, await licensing.checkAppVersion());
+
       case 'login': {
         if (!requirePost() || !requireLocal()) return;
         const snap = await licensing.login();

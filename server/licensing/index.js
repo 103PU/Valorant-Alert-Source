@@ -5,11 +5,18 @@ const { LicenseStore } = require('./store');
 const { getDeviceId, getDeviceName } = require('./device-id');
 const { LicenseGate, STATE, isEntitled } = require('./gate');
 const { loginWithGoogle } = require('./auth');
+const { checkForUpdate } = require('./app-version');
 
 // Re-verify periodically so a revoked or expired license stops working within a
 // bounded window rather than only at next launch. 6h is a compromise: frequent
 // enough to matter commercially, rare enough not to hammer KLD.
 const RECHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+// The update check's GitHub fallback is unauthenticated, and GitHub allows 60
+// requests per hour per IP. The dashboard can be reopened and refreshed freely,
+// so cache the answer instead of spending a request per page load — a version
+// that changed five minutes ago is not worth a 403 for the next hour.
+const UPDATE_CHECK_TTL_MS = 30 * 60 * 1000;
 
 class Licensing {
   constructor({ rawConfig, rootDir }) {
@@ -27,6 +34,7 @@ class Licensing {
     });
     this.loginInFlight = null;
     this.timer = null;
+    this.updateCache = null;
   }
 
   get state() {
@@ -83,6 +91,22 @@ class Licensing {
     this.gate.set(STATE.NOT_LOGGED_IN);
     logger.info('[license] logged out');
     return this.gate.snapshot();
+  }
+
+  /**
+   * Update availability, cached. Never throws: checkForUpdate reports refused
+   * sources in `warnings` and returns source:'none' when nothing could answer,
+   * because an update check that cannot run must not look like a blocked app.
+   * Entitlement is decided by this.gate and nothing here touches it.
+   */
+  async checkAppVersion() {
+    const now = Date.now();
+    if (this.updateCache && now - this.updateCache.at < UPDATE_CHECK_TTL_MS) {
+      return this.updateCache.result;
+    }
+    const result = await checkForUpdate(this.cfg, this.kld);
+    this.updateCache = { at: now, result };
+    return result;
   }
 
   /**
