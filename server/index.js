@@ -11,6 +11,7 @@ const { getAuthData } = require('./riot/riot-auth');
 const { getRegionInfo } = require('./riot/riot-region');
 const ScorePoller = require('./core/score-poller');
 const ScoreWSServer = require('./transport/ws-server');
+const CloudRelay = require('./transport/cloud-relay');
 const { createApp } = require('./app');
 const { createLicensing } = require('./licensing');
 
@@ -56,20 +57,31 @@ if (fs.existsSync(configPath)) {
 
 const PORT = process.env.PORT || config.port || 3000;
 
-// Helper: Get local LAN IPv4 address
+// Helper: Get local LAN IPv4 address (prioritizing physical Wi-Fi / Ethernet over virtual adapters)
 function getLocalLanIp() {
   const interfaces = os.networkInterfaces();
-  for (const name of Object.keys(interfaces)) {
-    for (const net of interfaces[name]) {
-      if (net.family === 'IPv4' && !net.internal) {
-        return net.address;
+  const candidates = [];
+
+  for (const [name, nets] of Object.entries(interfaces)) {
+    if (!nets) continue;
+    const isVirtual = /vethernet|virtual|wsl|docker|vmware|loopback/i.test(name);
+    for (const net of nets) {
+      if (net.family === 'IPv4' && !net.internal && !net.address.startsWith('169.254.')) {
+        let score = 0;
+        if (!isVirtual) score += 10;
+        if (/wi-fi|wifi|wlan|ethernet/i.test(name)) score += 5;
+        if (net.address.startsWith('192.168.') || net.address.startsWith('10.')) score += 3;
+        candidates.push({ address: net.address, score });
       }
     }
   }
-  return '127.0.0.1';
+
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates.length ? candidates[0].address : '127.0.0.1';
 }
 
 const lanIp = getLocalLanIp();
+const publicUrl = (process.env.PUBLIC_URL || config.publicUrl || '').trim().replace(/\/+$/, '');
 
 // Keylicense Dashboard gate (login + license). Always constructed: a missing or
 // malformed keylicense block falls back to the built-in defaults rather than
@@ -81,14 +93,25 @@ const server = http.createServer();
 const wsServer = new ScoreWSServer(server, {
   isEntitled: () => licensing.entitled
 });
+
+// Create Cloud Relay Client (Syncs match scores to Cloudflare Worker)
+const cloudRelay = new CloudRelay({
+  baseUrl: config.keylicense?.baseUrl || 'https://keylicensedashboard.dungbd2005.workers.dev',
+  webBaseUrl: config.cloudRelayWebUrl || 'https://valorant-alert.pages.dev',
+  getSession: () => licensing.gate.snapshot(),
+  isEntitled: () => licensing.entitled
+});
+
 const authToken = wsServer.getToken();
-const fullAppUrl = `http://${lanIp}:${PORT}?token=${authToken}`;
+const fullAppUrl = `${publicUrl || `http://${lanIp}:${PORT}`}?token=${authToken}`;
 const dashboardUrl = `http://localhost:${PORT}/dashboard.html?token=${authToken}`;
 
 // Attach Modular HTTP Request Handler
 const appHandler = createApp({
   wsServer,
+  cloudRelay,
   lanIp,
+  publicUrl,
   port: PORT,
   rootDir,
   publicDir,
@@ -99,6 +122,7 @@ server.on('request', appHandler);
 // Initialize Core Score Poller
 const poller = new ScorePoller(config, (scoreData) => {
   wsServer.broadcastScore(scoreData);
+  cloudRelay.broadcastScore(scoreData);
 });
 
 let reclaimAttempts = 0;
@@ -196,6 +220,9 @@ server.listen(PORT, '0.0.0.0', async () => {
   logger.info(`🔑 AUTH TOKEN:    ${authToken}`);
   logger.info(`🖥️ PC DASHBOARD: ${dashboardUrl}`);
   logger.info(`📱 LAN IPHONE:   ${fullAppUrl}`);
+  if (cloudRelay.getRelayWebUrl()) {
+    logger.info(`☁️ CLOUD RELAY:  ${cloudRelay.getRelayWebUrl()}`);
+  }
   logger.info(`📝 LOG FILE:      ${logger.getLogFilePath()}`);
   logger.info('===========================================================');
   logger.info('📱 SCAN THE QR CODE BELOW WITH YOUR MOBILE CAMERA:\n');

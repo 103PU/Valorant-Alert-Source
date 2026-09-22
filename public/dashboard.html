@@ -1331,9 +1331,15 @@
 
         <!-- HÀNG 1 - CỘT 2: MULTI-DEVICE SYNC & QR (NẰM CẠNH SCOREBOARD TRÊN CÙNG 1 HÀNG) -->
         <div id="syncCard" class="val-card">
-          <div class="val-card-header" style="margin-bottom: 12px;">
+          <div class="val-card-header" style="margin-bottom: 8px;">
             <div class="val-card-title" data-i18n="syncTitle">📱 MULTI-DEVICE SYNC & QR</div>
-            <div class="val-tag">[ LAN_CONNECT ]</div>
+            <div id="syncModeTag" class="val-tag">[ LAN_CONNECT ]</div>
+          </div>
+
+          <!-- Connection Mode Switcher (Wi-Fi vs 4G Cloud Relay) -->
+          <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <button id="btnModeLan" class="val-btn val-btn-sm" style="flex: 1; font-size: 0.75rem; padding: 6px 8px;" data-i18n="btnModeLan">🏠 LOCAL WI-FI</button>
+            <button id="btnModeCloud" class="val-btn val-btn-outline val-btn-sm" style="flex: 1; font-size: 0.75rem; padding: 6px 8px;" data-i18n="btnModeCloud">☁️ CLOUD RELAY (4G)</button>
           </div>
 
           <div class="qr-box-wrapper" style="align-items: flex-start; margin-top: 0;">
@@ -1345,7 +1351,7 @@
               <!-- PIN Code Highlight Box (Đưa lên sát header) -->
               <div class="pin-box" style="padding: 6px 12px;">
                 <div class="pin-label">
-                  <span data-i18n="pinLabel">AUTH PIN:</span> <strong id="tokenDisplay" class="pin-value" style="font-size: 1.15rem;">FETCHING...</strong>
+                  <span id="syncStatusLabel" data-i18n="pinLabel">AUTH PIN:</span> <strong id="tokenDisplay" class="pin-value" style="font-size: 1.15rem;">FETCHING...</strong>
                 </div>
                 <button id="btnCopyToken" class="val-btn val-btn-outline val-btn-sm" data-i18n="btnCopyPin">📋 COPY PIN</button>
               </div>
@@ -1746,6 +1752,8 @@
         btnToggleSyncOpen: '📱 QR CODE & SYNC',
         btnToggleSyncClose: '📱 COLLAPSE QR CODE',
         syncTitle: '📱 MULTI-DEVICE SYNC & QR',
+        btnModeLan: '🏠 LOCAL WI-FI',
+        btnModeCloud: '☁️ CLOUD RELAY (4G)',
         pinLabel: 'AUTH PIN:',
         btnCopyPin: '📋 COPY PIN',
         mobilePlaceholder: 'Mobile Browser Link...',
@@ -1890,6 +1898,8 @@
         btnToggleSyncOpen: '📱 MÃ QR & ĐỒNG BỘ',
         btnToggleSyncClose: '📱 THU GỌN MÃ QR',
         syncTitle: '📱 MULTI-DEVICE SYNC & QR',
+        btnModeLan: '🏠 WI-FI NỘI BỘ',
+        btnModeCloud: '☁️ CLOUD RELAY (4G)',
         pinLabel: 'MÃ PIN XÁC THỰC:',
         btnCopyPin: '📋 COPY PIN',
         mobilePlaceholder: 'Link Mobile...',
@@ -2413,12 +2423,56 @@
         riotStatusVal.innerHTML = `<span style="color:var(--val-red)">●</span> OFFLINE`;
       }
 
+      if (info.cloudRelay && info.cloudRelay.relayWebUrl) {
+        cloudRelayUrl = info.cloudRelay.relayWebUrl;
+      }
+
       initDashboardWS(info.token);
       initLicense();
       initUpdateCheck();
     }).catch(err => {
       console.log('Error fetching info:', err);
     });
+
+    // Connection Mode Switcher (LAN vs 4G Cloud Relay)
+    const btnModeLan = document.getElementById('btnModeLan');
+    const btnModeCloud = document.getElementById('btnModeCloud');
+    const syncModeTag = document.getElementById('syncModeTag');
+    const syncStatusLabel = document.getElementById('syncStatusLabel');
+    let activeSyncMode = 'lan';
+    let cloudRelayUrl = '';
+
+    function switchSyncMode(mode) {
+      activeSyncMode = mode;
+      if (mode === 'cloud') {
+        if (btnModeCloud) btnModeCloud.className = 'val-btn val-btn-sm val-btn-cyan';
+        if (btnModeLan) btnModeLan.className = 'val-btn val-btn-outline val-btn-sm';
+        if (syncModeTag) {
+          syncModeTag.innerText = '[ ☁️ CLOUD_RELAY ]';
+          syncModeTag.style.color = 'var(--val-cyan)';
+        }
+        if (syncStatusLabel) syncStatusLabel.innerText = 'CLOUD SYNC:';
+        if (tokenDisplay) tokenDisplay.innerText = cloudRelayUrl ? 'SYNCED (4G)' : 'LOGIN TO SYNC';
+        if (lanUrlInput) lanUrlInput.value = cloudRelayUrl || (currentLang === 'vi' ? 'Đăng nhập Google để bật Cloud Relay' : 'Sign in with Google to enable Cloud Relay');
+        if (qrImg) qrImg.src = '/api/qr?type=cloud&t=' + Date.now();
+        if (btnCopy) btnCopy.innerText = '☁️ 4G LINK';
+      } else {
+        if (btnModeLan) btnModeLan.className = 'val-btn val-btn-sm';
+        if (btnModeCloud) btnModeCloud.className = 'val-btn val-btn-outline val-btn-sm';
+        if (syncModeTag) {
+          syncModeTag.innerText = '[ LAN_CONNECT ]';
+          syncModeTag.style.color = '';
+        }
+        if (syncStatusLabel) syncStatusLabel.innerText = t('pinLabel');
+        if (tokenDisplay) tokenDisplay.innerText = currentAuthToken;
+        if (lanUrlInput) lanUrlInput.value = fullLanUrl;
+        if (qrImg) qrImg.src = '/api/qr?t=' + Date.now();
+        if (btnCopy) btnCopy.innerText = t('btnCopyMobile');
+      }
+    }
+
+    btnModeLan?.addEventListener('click', () => switchSyncMode('lan'));
+    btnModeCloud?.addEventListener('click', () => switchSyncMode('cloud'));
 
     /* ===================== KEYLICENSE GATE ===================== */
     const licBanner = document.getElementById('licBanner');

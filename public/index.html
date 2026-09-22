@@ -851,7 +851,14 @@
   <script>
     // --- State Variables ---
     let ws = null;
-    let token = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('val_alert_token');
+    const urlParams = new URLSearchParams(window.location.search);
+    let token = urlParams.get('token') || localStorage.getItem('val_alert_token');
+    let relayUserId = urlParams.get('userId') || localStorage.getItem('val_relay_user_id');
+    let relayMode = urlParams.get('mode') === 'relay' || !!urlParams.get('userId');
+    let relayPollTimer = null;
+    if (urlParams.get('userId')) {
+      localStorage.setItem('val_relay_user_id', urlParams.get('userId'));
+    }
     let audioCtx = null;
     let masterGainNode = null;
     let isAudioUnlocked = false;
@@ -960,10 +967,45 @@
     const btnOpenAuth = document.getElementById('btnOpenAuth');
     const tokenModalNotice = document.getElementById('tokenModalNotice');
 
-    let videoStream = null;
-    let scanAnimationId = null;
+    const RELAY_BASE_URL = 'https://keylicensedashboard.dungbd2005.workers.dev';
 
-    if (!token) {
+    async function pollCloudRelay(userId) {
+      try {
+        const res = await fetch(`${RELAY_BASE_URL}/api/relay/score?userId=${encodeURIComponent(userId)}`, {
+          headers: { 'Accept': 'application/json' }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          connStatus.className = 'status-badge status-connected';
+          connStatusText.innerText = '☁️ CLOUD RELAY';
+
+          if (data.inGame && data.score) {
+            updateUI(data.score);
+          } else if (data.ok && !data.inGame) {
+            updateUI({ inGame: false });
+          }
+        } else {
+          connStatus.className = 'status-badge status-connecting';
+          connStatusText.innerText = 'CONNECTING CLOUD...';
+        }
+      } catch (err) {
+        connStatus.className = 'status-badge status-disconnected';
+        connStatusText.innerText = 'CLOUD RECONNECTING';
+      }
+    }
+
+    function startCloudRelay(userId) {
+      if (!userId) return;
+      if (relayPollTimer) clearInterval(relayPollTimer);
+      pollCloudRelay(userId);
+      relayPollTimer = setInterval(() => pollCloudRelay(userId), 2000);
+      showToast('☁️ ĐANG NHẬN TỈ SỐ TỪ CLOUD RELAY');
+    }
+
+    if (relayUserId) {
+      tokenModal.style.display = 'none';
+      startCloudRelay(relayUserId);
+    } else if (!token) {
       tokenModal.style.display = 'flex';
     } else {
       localStorage.setItem('val_alert_token', token);

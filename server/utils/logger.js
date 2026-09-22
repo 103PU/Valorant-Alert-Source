@@ -42,6 +42,13 @@ const logger = {
     console.error(`[ERROR] ${msg}`);
     writeToFile('error', msg);
   },
+  debug: (...args) => {
+    if (process.env.DEBUG) {
+      const msg = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : a)).join(' ');
+      console.log(`[DEBUG] ${msg}`);
+      writeToFile('debug', msg);
+    }
+  },
   getLogFilePath: () => logFile
 };
 

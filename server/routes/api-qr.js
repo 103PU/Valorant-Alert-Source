@@ -1,8 +1,14 @@
 const QRCode = require('qrcode');
 
-async function handleApiQr(req, res, { wsServer, lanIp, port }) {
+async function handleApiQr(req, res, { wsServer, cloudRelay, lanIp, port, publicUrl }) {
+  const parsed = new URL(req.url, 'http://localhost');
+  const qrType = parsed.searchParams.get('type');
   const token = wsServer.getToken();
-  const appUrl = `http://${lanIp}:${port}?token=${token}`;
+
+  let appUrl = `${publicUrl || `http://${lanIp}:${port}`}?token=${token}`;
+  if (qrType === 'cloud' && cloudRelay && cloudRelay.getRelayWebUrl()) {
+    appUrl = cloudRelay.getRelayWebUrl();
+  }
   try {
     const pngBuffer = await QRCode.toBuffer(appUrl, { type: 'png', margin: 1, width: 280 });
     res.writeHead(200, {
