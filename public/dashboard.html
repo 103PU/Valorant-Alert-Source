@@ -2493,17 +2493,48 @@
       });
     }
 
-    function licApi(action, method, body) {
-      if (!currentAuthToken) return Promise.reject(new Error(currentLang === 'vi' ? 'Chưa có auth token' : 'No auth token available'));
-      return fetch(`/api/license/${action}?token=${encodeURIComponent(currentAuthToken)}`, {
+    async function refreshAuthToken() {
+      try {
+        const res = await fetch('/api/info');
+        if (res.ok) {
+          const info = await res.json();
+          if (info && info.token) {
+            currentAuthToken = info.token;
+            if (tokenDisplay) tokenDisplay.innerText = currentAuthToken;
+            if (lanUrlInput) lanUrlInput.value = info.lanMobileUrl || info.lanUrl || '';
+            if (lanDashboardInput) lanDashboardInput.value = info.lanDashboardUrl || info.dashboardUrl || '';
+            return currentAuthToken;
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to refresh auth token:', err);
+      }
+      return null;
+    }
+
+    async function licApi(action, method, body, isRetry = false) {
+      if (!currentAuthToken) {
+        await refreshAuthToken();
+      }
+      if (!currentAuthToken) {
+        throw new Error(currentLang === 'vi' ? 'Chưa có auth token' : 'No auth token available');
+      }
+      const res = await fetch(`/api/license/${action}?token=${encodeURIComponent(currentAuthToken)}`, {
         method: method || 'GET',
         headers: body ? { 'Content-Type': 'application/json' } : undefined,
         body: body ? JSON.stringify(body) : undefined
-      }).then(async (res) => {
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok && !data.state) throw new Error(licErrText(data));
-        return data;
       });
+      const data = await res.json().catch(() => ({}));
+
+      if ((res.status === 401 || data.error === 'invalid_token') && !isRetry) {
+        const refreshed = await refreshAuthToken();
+        if (refreshed) {
+          return licApi(action, method, body, true);
+        }
+      }
+
+      if (!res.ok && !data.state) throw new Error(licErrText(data));
+      return data;
     }
 
     function getLicView(state) {
