@@ -73,32 +73,151 @@ function New-AppShortcut {
     }
 }
 
-# Stops what is holding the install directory's files open. Two processes, found
-# by identity rather than by name alone: the server exe, and the tray script
-# hosted inside a powershell.exe. Matching "powershell" by name would kill the
-# user's own shells, so the tray is located by its command line instead.
+# Stops what is holding the install directory's files open.
+# Checks:
+#   1. ValorantScoreAlert named processes
+#   2. Tray script (powershell with *tray.ps1*)
+#   3. Launcher script (wscript/cscript with *launcher.vbs*)
+#   4. Node server or caxa unpacker runtime (*server/index.js*, *ValorantScoreAlert*)
+#   5. Any process executing from $TargetDir or locking files within it
+#   6. Process holding the server port (default 3000 or from config.json)
 function Stop-RunningInstance {
     param([Parameter(Mandatory = $true)][string] $TargetDir)
 
-    $stopped = 0
+    $currentPid = $PID
+    $pidsToKill = New-Object 'System.Collections.Generic.HashSet[int]'
+    $normTarget = [System.IO.Path]::GetFullPath($TargetDir).TrimEnd('\', '/')
+
+    # 1. Directly find ValorantScoreAlert named processes
     foreach ($proc in @(Get-Process -Name 'ValorantScoreAlert' -ErrorAction SilentlyContinue)) {
-        try { $null = $proc.CloseMainWindow() } catch { }
-        $stopped++
-    }
-
-    $trayPattern = '*tray.ps1*'
-    foreach ($row in @(Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" -ErrorAction SilentlyContinue)) {
-        if ($row.CommandLine -and $row.CommandLine -like $trayPattern) {
-            try { Stop-Process -Id $row.ProcessId -Force -ErrorAction Stop; $stopped++ } catch { }
+        if ($proc.Id -ne $currentPid) {
+            try { $null = $proc.CloseMainWindow() } catch { }
+            [void]$pidsToKill.Add($proc.Id)
         }
     }
 
-    if ($stopped -gt 0) {
-        Start-Sleep -Milliseconds 1200
-        foreach ($proc in @(Get-Process -Name 'ValorantScoreAlert' -ErrorAction SilentlyContinue)) {
-            try { Stop-Process -Id $proc.Id -Force -ErrorAction Stop } catch { }
+    # 2. Inspect running processes for app identity, target directory, or helper scripts
+    $allProcs = @(try { Get-CimInstance Win32_Process -ErrorAction SilentlyContinue } catch { Get-WmiObject Win32_Process -ErrorAction SilentlyContinue })
+    foreach ($proc in $allProcs) {
+        $procId = [int]$proc.ProcessId
+        if ($procId -le 4 -or $procId -eq $currentPid) { continue }
+
+        $cmd = if ($proc.CommandLine) { $proc.CommandLine } else { '' }
+        $exe = if ($proc.ExecutablePath) { $proc.ExecutablePath } else { '' }
+        $name = if ($proc.Name) { $proc.Name.ToLowerInvariant() } else { '' }
+
+        $shouldKill = $false
+
+        # Any process running from inside the install directory
+        if ($exe -and $exe.StartsWith($normTarget, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $shouldKill = $true
         }
-        Write-Step "Đã dừng $stopped tiến trình đang chạy."
+        # Tray script hosted in powershell/pwsh
+        elseif (($name -eq 'powershell.exe' -or $name -eq 'pwsh.exe') -and $cmd -like '*tray.ps1*') {
+            $shouldKill = $true
+        }
+        # Launcher script hosted in wscript/cscript
+        elseif (($name -eq 'wscript.exe' -or $name -eq 'cscript.exe') -and $cmd -like '*launcher.vbs*') {
+            $shouldKill = $true
+        }
+        # Node server or caxa runtime for ValorantScoreAlert
+        elseif ($name -eq 'node.exe' -and ($cmd -like '*ValorantScoreAlert*' -or $cmd -like '*server/index.js*' -or $cmd -like '*server\index.js*' -or ($cmd -like ('*' + $normTarget + '*')))) {
+            $shouldKill = $true
+        }
+        # Any other process referencing ValorantScoreAlert (excluding current installer script)
+        elseif ($cmd -like '*ValorantScoreAlert*' -and $cmd -notlike '*Install-ValorantAlert*' -and $cmd -notlike '*Uninstall-ValorantAlert*') {
+            $shouldKill = $true
+        }
+
+        if ($shouldKill) {
+            [void]$pidsToKill.Add($procId)
+        }
+    }
+
+    # 3. Clean up process holding the server port (default 3000 or config.json)
+    $portsToCheck = @(3000)
+    $configPath = Join-Path $TargetDir 'config.json'
+    if (Test-Path -LiteralPath $configPath -PathType Leaf) {
+        try {
+            $rawCfg = Get-Content -LiteralPath $configPath -Raw -ErrorAction SilentlyContinue
+            if ($rawCfg) {
+                $parsed = $rawCfg | ConvertFrom-Json -ErrorAction SilentlyContinue
+                if ($parsed -and $parsed.port) {
+                    $p = [int]$parsed.port
+                    if ($p -gt 0 -and -not ($portsToCheck -contains $p)) {
+                        $portsToCheck += $p
+                    }
+                }
+            }
+        } catch { }
+    }
+
+    foreach ($port in $portsToCheck) {
+        $foundOnPort = $false
+        try {
+            $conns = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+            foreach ($conn in $conns) {
+                $owPid = [int]$conn.OwningProcess
+                if ($owPid -gt 4 -and $owPid -ne $currentPid) {
+                    $listenerProc = $allProcs | Where-Object { [int]$_.ProcessId -eq $owPid } | Select-Object -First 1
+                    if ($listenerProc) {
+                        $lName = if ($listenerProc.Name) { $listenerProc.Name.ToLowerInvariant() } else { '' }
+                        $lCmd = if ($listenerProc.CommandLine) { $listenerProc.CommandLine } else { '' }
+                        if ($lName -eq 'node.exe' -or $lCmd -like '*Valorant*' -or $lCmd -like '*server*') {
+                            [void]$pidsToKill.Add($owPid)
+                            $foundOnPort = $true
+                        }
+                    } else {
+                        [void]$pidsToKill.Add($owPid)
+                        $foundOnPort = $true
+                    }
+                }
+            }
+        } catch { }
+
+        if (-not $foundOnPort) {
+            try {
+                $lines = @(netstat -ano 2>$null | Select-String ":$port\s+.*LISTENING\s+(\d+)")
+                foreach ($line in $lines) {
+                    if ($line.Matches -and $line.Matches[0].Groups[1].Value) {
+                        $owPid = [int]$line.Matches[0].Groups[1].Value
+                        if ($owPid -gt 4 -and $owPid -ne $currentPid) {
+                            $listenerProc = $allProcs | Where-Object { [int]$_.ProcessId -eq $owPid } | Select-Object -First 1
+                            if ($listenerProc) {
+                                $lName = if ($listenerProc.Name) { $listenerProc.Name.ToLowerInvariant() } else { '' }
+                                $lCmd = if ($listenerProc.CommandLine) { $listenerProc.CommandLine } else { '' }
+                                if ($lName -eq 'node.exe' -or $lCmd -like '*Valorant*' -or $lCmd -like '*server*') {
+                                    [void]$pidsToKill.Add($owPid)
+                                }
+                            } else {
+                                [void]$pidsToKill.Add($owPid)
+                            }
+                        }
+                    }
+                }
+            } catch { }
+        }
+    }
+
+    $stoppedCount = 0
+    if ($pidsToKill.Count -gt 0) {
+        foreach ($pidToKill in $pidsToKill) {
+            try {
+                Stop-Process -Id $pidToKill -Force -ErrorAction SilentlyContinue
+                $stoppedCount++
+            } catch { }
+        }
+        Start-Sleep -Milliseconds 800
+        # Second pass to ensure everything has exited
+        foreach ($pidToKill in $pidsToKill) {
+            try {
+                if (Get-Process -Id $pidToKill -ErrorAction SilentlyContinue) {
+                    Stop-Process -Id $pidToKill -Force -ErrorAction SilentlyContinue
+                }
+            } catch { }
+        }
+        Start-Sleep -Milliseconds 400
+        Write-Step "Đã dừng $stoppedCount tiến trình đang chạy."
     }
 }
 
@@ -209,10 +328,38 @@ try {
 
     if (Test-Path -LiteralPath $installDirFullPath) {
         Write-Step 'Xoá bản cũ...'
-        Remove-Item -LiteralPath $installDirFullPath -Recurse -Force
+        $removeSuccess = $false
+        $removeAttempts = 0
+        $maxRemoveAttempts = 5
+        while (-not $removeSuccess) {
+            $removeAttempts++
+            try {
+                Remove-Item -LiteralPath $installDirFullPath -Recurse -Force
+                $removeSuccess = $true
+            } catch {
+                if ($removeAttempts -ge $maxRemoveAttempts) {
+                    throw
+                }
+                Stop-RunningInstance -TargetDir $installDirFullPath
+                Start-Sleep -Milliseconds (500 * $removeAttempts)
+            }
+        }
     }
 
-    Move-Item -LiteralPath $stagingDir -Destination $installDirFullPath -Force
+    $moveSuccess = $false
+    $moveAttempts = 0
+    while (-not $moveSuccess) {
+        $moveAttempts++
+        try {
+            Move-Item -LiteralPath $stagingDir -Destination $installDirFullPath -Force
+            $moveSuccess = $true
+        } catch {
+            if ($moveAttempts -ge 5) {
+                throw
+            }
+            Start-Sleep -Milliseconds (400 * $moveAttempts)
+        }
+    }
 } catch {
     if (Test-Path -LiteralPath $stagingDir) {
         Remove-Item -LiteralPath $stagingDir -Recurse -Force -ErrorAction SilentlyContinue

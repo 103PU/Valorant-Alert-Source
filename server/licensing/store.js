@@ -7,6 +7,7 @@ const logger = require('../utils/logger');
 // Holds the KLD JWT, so it is never logged and never sent anywhere except KLD.
 // %APPDATA% is already per-user on Windows; no extra ACL work is done here.
 const STATE_FILE = 'session.json';
+const CREDENTIALS_FILE = 'credentials.json';
 
 const EMPTY = {
   jwt: null,
@@ -24,6 +25,7 @@ class LicenseStore {
   constructor(appDataDir) {
     this.appDataDir = appDataDir;
     this.filePath = path.join(appDataDir, STATE_FILE);
+    this.credentialsPath = path.join(appDataDir, CREDENTIALS_FILE);
     this.state = { ...EMPTY };
     this.load();
   }
@@ -33,6 +35,12 @@ class LicenseStore {
       if (fs.existsSync(this.filePath)) {
         const raw = fs.readFileSync(this.filePath, 'utf8');
         this.state = { ...EMPTY, ...JSON.parse(raw) };
+      } else if (fs.existsSync(this.credentialsPath)) {
+        const raw = fs.readFileSync(this.credentialsPath, 'utf8');
+        const creds = JSON.parse(raw);
+        if (creds && creds.jwt) {
+          this.state = { ...EMPTY, jwt: creds.jwt, user: creds.user || null };
+        }
       }
     } catch (e) {
       logger.warn('Could not read license session, starting clean:', e.message);
@@ -45,6 +53,14 @@ class LicenseStore {
     try {
       fs.mkdirSync(this.appDataDir, { recursive: true });
       fs.writeFileSync(this.filePath, JSON.stringify(this.state, null, 2), 'utf8');
+      if (this.state.jwt) {
+        fs.writeFileSync(this.credentialsPath, JSON.stringify({
+          ok: true,
+          jwt: this.state.jwt,
+          user: this.state.user,
+          savedAt: new Date().toISOString()
+        }, null, 2), 'utf8');
+      }
     } catch (e) {
       logger.warn('Could not persist license session:', e.message);
     }
@@ -59,6 +75,11 @@ class LicenseStore {
   clearSession() {
     this.state = { ...EMPTY };
     this.save();
+    try {
+      if (fs.existsSync(this.credentialsPath)) {
+        fs.unlinkSync(this.credentialsPath);
+      }
+    } catch (e) {}
   }
 
   recordEntitlement(license, trial, envelope) {

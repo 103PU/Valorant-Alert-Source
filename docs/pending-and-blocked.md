@@ -22,7 +22,7 @@ phía mình. Chi tiết và bằng chứng ở 1.2.
 | 1.2 | Publish release vào repo `-release` | mình | chờ approval |
 | 1.3 | Bật `REQUIRE_SIGNATURE` | mình | mở khoá, chờ ship 1 build |
 | 1.4 | Tách `app_version_config` theo product | **KLD** | **chờ KLD** |
-| 1.5 | Thêm 2 secret Discord | **người dùng** | chờ chốt channel |
+| 1.5 | Thêm 2 secret Discord | **người dùng** | channel đã chốt; chờ deploy Worker rồi thêm secret |
 
 ### 1.1 KLD sinh keypair Ed25519 và deploy signing — XONG 2026-09-04
 
@@ -262,14 +262,19 @@ Việc của **người dùng**, không ai khác làm thay được: thêm 2 sec
 | `CLOUDFLARE_WORKER_URL` | `release.yml` step *Notify Discord*, `notify-discord.yml` | `release.yml` **bỏ qua** step (`::notice`, exit 0) — release vẫn xanh; `notify-discord.yml` fail có chủ ý vì đó là lệnh gửi tay |
 | `CLOUDFLARE_AUTH_TOKEN` | cùng hai chỗ | Worker trả 401 → `curl --fail` / `Invoke-RestMethod` làm đỏ step |
 
-**Câu hỏi phải trả lời trước khi thêm:** payload không mang channel id
-(`scripts/discord-release-notice.js` chỉ có `embeds` + `components`), nên channel
-đích **nằm trong Worker**. Dùng lại đúng URL Worker của ValorantTweaks thì thông báo
-của Valorant Alert sẽ vào **channel của ValorantTweaks**. Source của Worker không
-có trong `Valorant-Alert-Source` cũng không có trong `Keylicensedashboard` — đã
-grep cả hai. Ba lựa chọn: (a) Worker riêng cho app này, (b) Worker nhận thêm tham
-số channel/product rồi mình gửi kèm, (c) chấp nhận chung channel. Chưa chọn thì
-đừng thêm secret.
+**Câu hỏi channel: ĐÃ TRẢ LỜI (2026-09-04).** Người dùng chọn phương án (a) —
+"sử dụng worker riêng và sử dụng channel khác tôi muốn tạo thêm channle trong disocrd
+là valorant-alert". Nên: Worker riêng cho app này, channel `#valorant-alert`. Source
+Worker đã viết, nằm ở `tools/discord-relay/` (không đi vào .exe — `tools` nằm trong
+`--exclude` của caxa, `scripts/build.js:115`), README trong đó có đúng 8 bước deploy.
+Thứ tự bắt buộc: tạo channel → tạo webhook của channel đó → deploy Worker với webhook
+làm secret → **rồi mới** thêm 2 secret ở trên. Thêm secret trước khi Worker sống thì
+step Discord sẽ đỏ trên một release vốn đã publish đúng.
+
+Lý do không dùng lại Worker của ValorantTweaks: payload không mang channel id
+(`scripts/discord-release-notice.js` chỉ có `embeds` + `components`), nên channel đích
+nằm trong Worker — dùng chung URL là thông báo của Valorant Alert vào channel của
+ValorantTweaks.
 
 Không liên quan repo này nhưng phải nói: `ValorantTweaks.App/.github/workflows/`
 `notify-discord-manual.yml:14` commit **thẳng** một webhook URL Discord dạng
@@ -280,7 +285,7 @@ không in lại giá trị.
 
 ## 2. Đã quyết — không chờ ai nữa
 
-Hai việc dưới đây từng là "chờ người dùng quyết". Người dùng giao lại quyền quyết
+Ba việc dưới đây từng là "chờ người dùng quyết". Người dùng giao lại quyền quyết
 (2026-09-04), đã chốt như sau.
 
 ### 2.1 `relay/` — GIỮ trên đĩa, không xoá
@@ -316,6 +321,28 @@ người dùng sửa được thì phải xoá, không phải đồng bộ.
 Bump version từ giờ = sửa **một** dòng `package.json`, rồi `git tag` đúng con số đó.
 Workflow assert tag khớp `package.json`; test assert `config.json` không mọc lại field
 version. Chi tiết ở `release-runbook.md` §4.
+
+### 2.3 Tự tải cập nhật trong app — LÀM, đã xong 2026-09-04
+
+Quyết định của người dùng: **"làm luôn trong app"**. Đã làm, `server/updater/index.js`.
+
+Không có `Updater.exe` như ValorantTweaks, và đó là kết luận từ việc đọc bộ cài chứ
+không phải cắt bớt: `Install-ValorantAlert.ps1:80-104` đã tự dừng bản đang chạy,
+`:264-270` (`-Launch`) đã tự khởi động lại bản mới làm việc cuối cùng. Thêm một
+`Updater.exe` chỉ là thêm một binary làm đúng việc bộ cài đang làm.
+
+Khác ValorantTweaks theo hướng chặt hơn: verify sha256 với `SHA256SUMS.txt` **trước**
+khi chạy bất cứ gì (upstream không ship checksum), và route `update/start` không đọc
+body — version lấy từ `checkAppVersion()` của server, còn giá trị **thô** phải qua
+regex `^v?\d{1,4}\.\d{1,4}\.\d{1,4}$` trước khi thành path segment.
+
+Giới hạn phải nói thẳng: sha256 chặn hỏng file và MITM, **không** chặn repo bị chiếm —
+ai thay được zip thì thay được `SHA256SUMS.txt` bên cạnh. Key Ed25519 `va-2026-09` ký
+envelope entitlement của KLD, không ký release, nên nó không đóng được khoảng đó.
+
+Chưa verify được: bộ cài thật **cố tình chưa bao giờ** được updater khởi động trên máy
+này (nó sẽ giết và thay chính bản đang chạy). Toàn bộ 29 test inject `fetch` và `spawn`.
+Bảng ràng buộc đầy đủ ở `release-runbook.md` §6.
 
 ---
 

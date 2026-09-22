@@ -133,16 +133,35 @@ if (!resolver.matchesPortable(zipName)) {
   process.exit(1);
 }
 
+function compressFolder(sourceDir, destinationZipPath) {
+  fs.rmSync(destinationZipPath, { force: true });
+  if (process.platform === 'win32') {
+    execSync(
+      `powershell -NoProfile -NonInteractive -Command "Compress-Archive -Path ${psLiteral(path.join(sourceDir, '*'))} -DestinationPath ${psLiteral(destinationZipPath)} -CompressionLevel Optimal -Force"`,
+      { cwd: rootDir, stdio: 'inherit' }
+    );
+  } else {
+    // Linux / macOS build environments (Cloudflare Pages, CI, Docker)
+    const absSource = path.resolve(sourceDir);
+    const absZip = path.resolve(destinationZipPath);
+    try {
+      execSync(`(cd "${absSource}" && zip -r -q "${absZip}" .) || (cd "${absSource}" && zip -r "${absZip}" *)`, {
+        cwd: absSource,
+        stdio: 'inherit',
+        shell: '/bin/sh'
+      });
+    } catch (e) {
+      execSync(
+        `python3 -c "import zipfile, os; z = zipfile.ZipFile('${absZip}', 'w', zipfile.ZIP_DEFLATED); [z.write(os.path.join(r, f), os.path.relpath(os.path.join(r, f), '${absSource}')) for r, d, fs in os.walk('${absSource}') for f in fs]; z.close()"`,
+        { cwd: absSource, stdio: 'inherit', shell: '/bin/sh' }
+      );
+    }
+  }
+}
+
 try {
-  fs.rmSync(zipPath, { force: true });
-  // Compress-Archive ships with Windows PowerShell 5.1, so this stays at zero new
-  // dependencies. Archiving the folder *contents* keeps the extracted tree one
-  // level deep — Explorer already extracts into a folder named after the zip.
-  execSync(
-    `powershell -NoProfile -NonInteractive -Command "Compress-Archive -Path ${psLiteral(path.join(releaseDir, '*'))} -DestinationPath ${psLiteral(zipPath)} -CompressionLevel Optimal -Force"`,
-    { cwd: rootDir, stdio: 'inherit' }
-  );
-  if (!fs.existsSync(zipPath)) throw new Error('Compress-Archive produced no file');
+  compressFolder(releaseDir, zipPath);
+  if (!fs.existsSync(zipPath)) throw new Error('Zip archive produced no file');
   console.log(`✅ Portable archive created: ${zipPath}`);
 } catch (err) {
   console.error('⚠️ Archive packaging error:', err.message);
@@ -191,11 +210,8 @@ try {
     fs.copyFileSync(from, path.join(installerStageDir, asset));
   }
 
-  execSync(
-    `powershell -NoProfile -NonInteractive -Command "Compress-Archive -Path ${psLiteral(path.join(installerStageDir, '*'))} -DestinationPath ${psLiteral(installerZipPath)} -CompressionLevel Optimal -Force"`,
-    { cwd: rootDir, stdio: 'inherit' }
-  );
-  if (!fs.existsSync(installerZipPath)) throw new Error('Compress-Archive produced no file');
+  compressFolder(installerStageDir, installerZipPath);
+  if (!fs.existsSync(installerZipPath)) throw new Error('Zip archive produced no file');
   console.log(`✅ Installer archive created: ${installerZipPath}`);
 } catch (err) {
   console.error('⚠️ Installer packaging error:', err.message);
@@ -230,6 +246,10 @@ fs.writeFileSync(
 for (const [hex, name] of checksums) {
   console.log(`✅ ${name}: ${hex}`);
 }
+
+// 9. Copy public PWA frontend assets into dist root so Cloudflare Pages can host the dashboard directly
+console.log('[9/9] Copying public PWA web assets to dist root for Cloudflare Pages / Web Hosting...');
+copyDirSync(path.join(rootDir, 'public'), distDir);
 
 console.log('\n===========================================================');
 console.log('🎉 PORTABLE RELEASE PACKAGE CREATED SUCCESSFULLY!');

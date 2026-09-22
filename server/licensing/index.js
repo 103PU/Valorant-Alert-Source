@@ -6,6 +6,7 @@ const { getDeviceId, getDeviceName } = require('./device-id');
 const { LicenseGate, STATE, isEntitled } = require('./gate');
 const { loginWithGoogle } = require('./auth');
 const { checkForUpdate } = require('./app-version');
+const { UpdateInstaller } = require('../updater');
 
 // Re-verify periodically so a revoked or expired license stops working within a
 // bounded window rather than only at next launch. 6h is a compromise: frequent
@@ -35,6 +36,11 @@ class Licensing {
     this.loginInFlight = null;
     this.timer = null;
     this.updateCache = null;
+    // Installing an update is not a licensing concern, but cfg — releaseRepo,
+    // appVersion, appDataDir — is owned here, and this facade is the only object the
+    // route layer is handed. Constructed eagerly and cheaply: the constructor only
+    // computes paths, and every side effect waits for start().
+    this.updater = new UpdateInstaller({ cfg: this.cfg });
   }
 
   get state() {
@@ -107,6 +113,33 @@ class Licensing {
     const result = await checkForUpdate(this.cfg, this.kld);
     this.updateCache = { at: now, result };
     return result;
+  }
+
+  /**
+   * Starts the download-and-install run and returns at once; the dashboard polls
+   * `update/state` for progress.
+   *
+   * The version comes from this server's own update check, never from the caller.
+   * A client-supplied version — let alone a client-supplied URL — would turn a
+   * LAN-reachable route into an arbitrary download-and-execute primitive.
+   *
+   * Refuses when the check found nothing to install. `source:'none'` is what a check
+   * that could reach nobody returns (it fails open on purpose), and "could not tell"
+   * must never start an install of the version already running.
+   */
+  async startUpdate() {
+    const info = await this.checkAppVersion();
+    if (!info.softUpdateAvailable && !info.forceUpdateRequired) {
+      const err = new Error('Chưa có bản cập nhật nào để tải.');
+      err.code = 'no_update_available';
+      throw err;
+    }
+    const started = await this.updater.start(info.latestVersion);
+    return { ...started, releasePageUrl: info.releasePageUrl };
+  }
+
+  updateState() {
+    return this.updater.snapshot();
   }
 
   /**

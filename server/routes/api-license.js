@@ -93,6 +93,27 @@ async function handleApiLicense(req, res, { licensing, wsServer }) {
       case 'app-version':
         return sendJson(res, 200, await licensing.checkAppVersion());
 
+      // Downloads and installs the update. POST because it starts work, and
+      // requireLocal() because it ends by executing a program: a phone on the LAN
+      // holding the share pin must not be able to trigger an install on the host.
+      //
+      // No request body is read at all. The version is resolved server-side from
+      // licensing.checkAppVersion(); accepting one from the caller would let a
+      // request choose what gets downloaded and run.
+      //
+      // Errors need no plumbing here — UpdateError carries `code`, so the catch
+      // below turns update_already_running / bad_version / platform_unsupported
+      // into a 400 with that code intact.
+      case 'update/start': {
+        if (!requirePost() || !requireLocal()) return;
+        return sendJson(res, 200, { ok: true, ...(await licensing.startUpdate()) });
+      }
+
+      // Progress. GET and pin-only, no loopback requirement: this reads a stage name
+      // and a byte count, and the phone UI shows the same banner the dashboard does.
+      case 'update/state':
+        return sendJson(res, 200, { ok: true, ...licensing.updateState() });
+
       case 'login': {
         if (!requirePost() || !requireLocal()) return;
         const snap = await licensing.login();

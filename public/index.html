@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Valorant Alert">
-  <meta name="theme-color" content="#0F1923">
+  <meta name="theme-color" content="#070B0E">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="/icon.svg">
   <link rel="alternate icon" type="image/x-icon" href="/favicon.ico">
@@ -26,16 +26,19 @@
   
   <style>
     :root {
-      --val-bg: #0F1923;
-      --val-surface: #1B2733;
-      --val-surface-dark: #121C26;
-      --val-border: #2B3844;
+      --val-bg: #070B0E;
+      --val-surface: #0F171E;
+      --val-surface-dark: #0A0F14;
+      --val-border: #1E2D3B;
+      --val-border-hover: #37536D;
       --val-red: #FF4655;
       --val-red-hover: #E03E4C;
+      --val-red-glow: rgba(255, 70, 85, 0.45);
       --val-cyan: #00F5D4;
+      --val-cyan-glow: rgba(0, 245, 212, 0.35);
       --val-gold: #FFCE47;
       --val-white: #ECE8E1;
-      --val-gray: #768079;
+      --val-gray: #7E8D85;
       --val-font-display: 'Barlow Condensed', 'Oswald', sans-serif;
       --val-font-tactical: 'Rajdhani', sans-serif;
       --val-font-body: 'Inter', sans-serif;
@@ -63,9 +66,9 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 12px;
-      padding-top: calc(env(safe-area-inset-top) + 10px);
-      padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
+      padding: 14px;
+      padding-top: calc(env(safe-area-inset-top) + 12px);
+      padding-bottom: calc(env(safe-area-inset-bottom) + 14px);
       position: relative;
       overflow-x: hidden;
       width: 100%;
@@ -78,11 +81,29 @@
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       background-image: 
-        linear-gradient(rgba(43, 56, 68, 0.15) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(43, 56, 68, 0.15) 1px, transparent 1px);
+        linear-gradient(rgba(30, 45, 59, 0.16) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30, 45, 59, 0.16) 1px, transparent 1px);
       background-size: 24px 24px;
       pointer-events: none;
       z-index: 0;
+    }
+
+    /* Mobile Danger Border Glow */
+    #dangerBorder {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      box-shadow: inset 0 0 0 0 rgba(255, 70, 85, 0);
+      pointer-events: none;
+      z-index: 90;
+      transition: box-shadow 0.3s ease;
+    }
+    #dangerBorder.active {
+      box-shadow: inset 0 0 40px 10px rgba(255, 70, 85, 0.55);
+      animation: valDangerMobilePulse 1.2s infinite ease-in-out;
+    }
+    @keyframes valDangerMobilePulse {
+      0%, 100% { box-shadow: inset 0 0 30px 6px rgba(255, 70, 85, 0.4); }
+      50% { box-shadow: inset 0 0 60px 18px rgba(255, 70, 85, 0.75); }
     }
 
     main {
@@ -99,7 +120,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
       padding-bottom: 10px;
       border-bottom: 1px solid var(--val-border);
       width: 100%;
@@ -115,22 +136,22 @@
     }
 
     .val-logo {
-      width: 28px;
-      height: 28px;
+      width: 30px;
+      height: 30px;
       flex-shrink: 0;
       background: var(--val-red);
-      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%);
+      clip-path: polygon(0 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 0 10px rgba(255, 70, 85, 0.4);
+      box-shadow: 0 0 10px var(--val-red-glow);
     }
 
     .brand-title {
       font-family: var(--val-font-display);
-      font-size: 1.15rem;
+      font-size: 1.25rem;
       font-weight: 900;
-      letter-spacing: 1px;
+      letter-spacing: 1.5px;
       line-height: 1;
       text-transform: uppercase;
       white-space: nowrap;
@@ -140,239 +161,250 @@
 
     .status-badge {
       font-family: var(--val-font-tactical);
-      font-size: 0.7rem;
+      font-size: 0.72rem;
       font-weight: 800;
       padding: 4px 8px;
       letter-spacing: 0.5px;
       text-transform: uppercase;
-      clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+      clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 4px);
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      white-space: nowrap;
-      flex-shrink: 0;
+      gap: 5px;
     }
-    .status-connected { background: rgba(0, 245, 212, 0.1); color: var(--val-cyan); border: 1px solid var(--val-cyan); }
-    .status-connecting { background: rgba(255, 206, 71, 0.1); color: var(--val-gold); border: 1px solid var(--val-gold); }
-    .status-disconnected { background: rgba(255, 70, 85, 0.1); color: var(--val-red); border: 1px solid var(--val-red); }
+
+    .status-connected {
+      background: rgba(0, 245, 212, 0.12);
+      color: var(--val-cyan);
+      border: 1px solid var(--val-cyan);
+    }
+    .status-disconnected {
+      background: rgba(255, 70, 85, 0.12);
+      color: var(--val-red);
+      border: 1px solid var(--val-red);
+    }
+    .status-connecting {
+      background: rgba(255, 206, 71, 0.12);
+      color: var(--val-gold);
+      border: 1px solid var(--val-gold);
+    }
 
     .status-dot {
-      width: 5px;
-      height: 5px;
-      background: currentColor;
-      box-shadow: 0 0 5px currentColor;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 8px currentColor;
     }
 
-    /* Floating Toast Notification */
-    .val-toast {
-      position: fixed;
-      top: calc(env(safe-area-inset-top) + 12px);
-      left: 50%;
-      transform: translateX(-50%) translateY(-100px);
-      background: var(--val-surface-dark);
-      border: 1px solid var(--val-cyan);
-      color: var(--val-white);
+    /* Buttons */
+    .val-btn {
+      background: var(--val-red);
+      color: #FFF;
+      border: none;
       font-family: var(--val-font-tactical);
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       font-weight: 800;
       letter-spacing: 1px;
+      text-transform: uppercase;
       padding: 12px 20px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.8);
-      z-index: 200;
-      opacity: 0;
-      transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
-      white-space: nowrap;
+      cursor: pointer;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+      transition: all 0.2s ease;
+      text-decoration: none;
     }
-    .val-toast.show {
-      transform: translateX(-50%) translateY(0);
-      opacity: 1;
+    .val-btn:active { transform: scale(0.98); }
+    .val-btn.active {
+      background: var(--val-cyan);
+      color: #070B0E;
+      box-shadow: 0 0 20px var(--val-cyan-glow);
     }
 
-    /* Scoreboard Grid */
+    .val-btn-outline {
+      background: transparent;
+      color: var(--val-white);
+      border: 1px solid var(--val-border);
+    }
+    .val-btn-cyan {
+      background: var(--val-cyan);
+      color: #070B0E;
+    }
+    .val-btn-danger {
+      background: var(--val-red);
+      color: #FFF;
+      box-shadow: 0 0 15px var(--val-red-glow);
+    }
+
+    /* Status Badge Button */
+    .status-badge-btn {
+      font-family: var(--val-font-display);
+      font-size: 0.92rem;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      padding: 8px 12px;
+      border-radius: 2px;
+      text-align: center;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+      transition: all 0.3s ease;
+    }
+    .status-badge-idle {
+      background: #10171E;
+      color: var(--val-gray);
+      border-color: var(--val-border);
+    }
+    .status-badge-live {
+      background: rgba(0, 245, 212, 0.12);
+      color: var(--val-cyan);
+      border-color: var(--val-cyan);
+      box-shadow: 0 0 15px rgba(0, 245, 212, 0.2);
+    }
+    .status-badge-danger {
+      background: var(--val-red);
+      color: #FFFFFF;
+      border-color: var(--val-red);
+      box-shadow: 0 0 25px var(--val-red-glow);
+      animation: valDangerBlink 1s infinite alternate;
+    }
+    @keyframes valDangerBlink {
+      from { opacity: 0.85; transform: scale(0.99); }
+      to { opacity: 1; transform: scale(1.02); }
+    }
+
+    /* Alert Banner */
+    .alert-banner {
+      background: var(--val-surface);
+      border: 1px solid var(--val-red);
+      border-left: 5px solid var(--val-red);
+      padding: 12px;
+      margin-bottom: 12px;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+      box-shadow: 0 0 25px var(--val-red-glow);
+    }
+    .alert-banner.active {
+      display: flex;
+      animation: alertPulse 1.2s infinite alternate ease-in-out;
+    }
+    @keyframes alertPulse {
+      0% { box-shadow: 0 0 15px rgba(255, 70, 85, 0.4); }
+      100% { box-shadow: 0 0 35px rgba(255, 70, 85, 0.8); }
+    }
+    .alert-title {
+      font-family: var(--val-font-display);
+      font-size: 1.15rem;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      color: #FFF;
+      text-transform: uppercase;
+    }
+    .alert-subtitle {
+      font-family: var(--val-font-tactical);
+      font-size: 0.8rem;
+      color: #FEF08A;
+      letter-spacing: 0.5px;
+    }
+
+    /* Scoreboard */
     .scoreboard {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
       margin-bottom: 12px;
     }
-
     .team-card {
-      background: var(--val-surface);
+      background: var(--val-surface-dark);
       border: 1px solid var(--val-border);
-      padding: 16px 12px;
+      padding: 20px 10px;
       text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
       position: relative;
       clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
     }
+    .team-card.allied { border-color: rgba(0, 245, 212, 0.4); }
+    .team-card.enemy { border-color: rgba(255, 70, 85, 0.4); }
 
-    .team-card::before {
-      content: "";
+    .team-card.allied::before {
+      content: "// ĐỒNG MINH";
       position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 3px;
-    }
-    .team-card.allied::before { background: var(--val-cyan); }
-    .team-card.enemy::before { background: var(--val-red); }
-
-    .team-title {
+      top: 6px; left: 10px;
       font-family: var(--val-font-tactical);
-      font-size: 0.78rem;
+      font-size: 0.7rem;
       font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      margin-bottom: 2px;
+      color: var(--val-cyan);
+      letter-spacing: 1.5px;
     }
-    .allied .team-title { color: var(--val-cyan); }
-    .enemy .team-title { color: var(--val-red); }
+    .team-card.enemy::before {
+      content: "// ĐỐI THỦ";
+      position: absolute;
+      top: 6px; right: 10px;
+      font-family: var(--val-font-tactical);
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: var(--val-red);
+      letter-spacing: 1.5px;
+    }
 
     .score-number {
       font-family: var(--val-font-display);
-      font-size: 4.8rem;
+      font-size: 5rem;
       font-weight: 900;
-      line-height: 0.9;
-      margin: 4px 0;
+      line-height: 1;
+      margin-top: 10px;
       letter-spacing: -2px;
     }
-    .allied .score-number { color: var(--val-cyan); text-shadow: 0 0 25px rgba(0, 245, 212, 0.25); }
-    .enemy .score-number { color: var(--val-red); text-shadow: 0 0 25px rgba(255, 70, 85, 0.25); }
-
-    /* Valorant Tactical Button Badge (Clean Solid Style) */
-    .status-badge-btn {
-      font-family: var(--val-font-display);
-      font-size: clamp(0.78rem, 3.8vw, 0.95rem);
-      font-weight: 900;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      padding: 7px 10px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      white-space: nowrap;
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex-shrink: 0;
-      line-height: 1;
-      gap: 4px;
-      color: var(--val-white);
-      clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
-      transition: all 0.2s ease;
-      cursor: default;
-      user-select: none;
+    .team-card.allied .score-number {
+      color: var(--val-cyan);
+      text-shadow: 0 0 25px var(--val-cyan-glow);
     }
-
-    .status-badge-idle {
-      background: #2B3844;
-      color: var(--val-white);
-      border: 1px solid #3E4F5E;
-    }
-
-    .status-badge-live {
-      background: #121C26;
-      border: 1.5px solid var(--val-cyan);
-      color: var(--val-white);
-      box-shadow: 0 0 15px rgba(0, 245, 212, 0.25);
-    }
-
-    .status-badge-danger {
-      background: var(--val-red);
-      color: #FFFFFF;
-      box-shadow: 0 0 20px rgba(255, 70, 85, 0.6);
-      animation: pulse-danger-btn 1.2s infinite alternate;
-    }
-
-    @keyframes pulse-danger-btn {
-      0% { box-shadow: 0 0 10px rgba(255, 70, 85, 0.4); }
-      100% { box-shadow: 0 0 25px rgba(255, 70, 85, 0.8); }
-    }
-
-    /* Match Point Alert Box */
-    .alert-banner {
-      background: rgba(255, 70, 85, 0.15);
-      border: 1px solid var(--val-red);
-      padding: 14px;
-      text-align: center;
-      margin-bottom: 12px;
-      display: none;
-      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
-      animation: pulse-danger 1.5s infinite alternate;
-    }
-    .alert-banner.active { display: block; }
-    @keyframes pulse-danger {
-      0% { box-shadow: 0 0 10px rgba(255, 70, 85, 0.3); }
-      100% { box-shadow: 0 0 30px rgba(255, 70, 85, 0.7); }
-    }
-    .alert-title {
-      font-family: var(--val-font-display);
-      font-size: 1.15rem;
-      font-weight: 900;
+    .team-card.enemy .score-number {
       color: var(--val-red);
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-    }
-    .alert-subtitle {
-      font-family: var(--val-font-tactical);
-      font-size: 0.8rem;
-      color: var(--val-white);
-      margin-top: 2px;
+      text-shadow: 0 0 25px var(--val-red-glow);
     }
 
-    /* Valorant Tactical Button */
-    .val-btn {
-      width: 100%;
-      background: var(--val-red);
-      color: var(--val-white);
-      border: none;
-      font-family: var(--val-font-display);
-      font-size: 1.15rem;
-      font-weight: 900;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      padding: 16px;
-      cursor: pointer;
+    /* Mobile 13-Round Timeline */
+    .round-timeline {
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      justify-content: center;
-      gap: 10px;
-      clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
-      transition: all 0.2s ease;
-      touch-action: manipulation;
+      margin-bottom: 12px;
+      padding: 6px 10px;
+      background: var(--val-surface);
+      border: 1px solid var(--val-border);
     }
-    .val-btn:active { transform: scale(0.98); }
-    .val-btn.active {
-      background: var(--val-cyan);
-      color: #0F1923;
-      box-shadow: 0 0 25px rgba(0, 245, 212, 0.4);
+    .round-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 2px;
+      background: #1E2D3B;
     }
-    .val-btn-danger {
-      background: #E03E4C;
-      margin-top: 8px;
-    }
+    .round-dot.won { background: var(--val-cyan); box-shadow: 0 0 4px var(--val-cyan-glow); }
+    .round-dot.lost { background: var(--val-red); box-shadow: 0 0 4px var(--val-red-glow); }
+    .round-dot.target { border: 1px dashed var(--val-gold); }
 
-    /* Sound & Event Settings Card */
+    /* Settings Card */
     .settings-card {
       background: var(--val-surface);
       border: 1px solid var(--val-border);
-      padding: 16px;
+      padding: 14px;
       margin-top: 12px;
       clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
     }
-
     .settings-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
       font-family: var(--val-font-tactical);
-      font-size: 0.8rem;
-      font-weight: 800;
+      font-size: 0.76rem;
+      font-weight: 700;
       color: var(--val-gray);
-      letter-spacing: 2px;
+      letter-spacing: 1.5px;
+      margin-bottom: 8px;
       text-transform: uppercase;
     }
 
@@ -382,34 +414,29 @@
       border: 1px solid var(--val-border);
       color: var(--val-white);
       font-family: var(--val-font-tactical);
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       font-weight: 700;
-      padding: 12px;
-      letter-spacing: 1px;
-      margin-bottom: 12px;
+      padding: 10px;
       outline: none;
-      clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+      clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
+      margin-bottom: 10px;
     }
+    .val-select option { background: #0F171E; color: #FFF; }
 
-    .toggle-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
+    .toggle-list { display: flex; flex-direction: column; }
     .toggle-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 8px 0;
-      border-bottom: 1px solid rgba(43, 56, 68, 0.5);
+      border-bottom: 1px solid rgba(30, 45, 59, 0.6);
       font-family: var(--val-font-tactical);
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       font-weight: 700;
     }
     .toggle-item:last-child { border-bottom: none; }
 
-    /* Tactical Switch */
+    /* Switch */
     .switch {
       position: relative;
       display: inline-block;
@@ -421,7 +448,7 @@
       position: absolute;
       cursor: pointer;
       top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #2B3844;
+      background-color: #1E2D3B;
       transition: .2s;
       clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
     }
@@ -438,11 +465,35 @@
     input:checked + .slider { background-color: var(--val-red); }
     input:checked + .slider:before { transform: translateX(18px); background-color: #ffffff; }
 
+    /* Mobile Volume Box */
+    .volume-box {
+      margin-bottom: 10px;
+      padding: 8px 10px;
+      background: var(--val-surface-dark);
+      border: 1px solid var(--val-border);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .volume-header {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--val-font-tactical);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--val-gray);
+    }
+    .vol-slider {
+      width: 100%;
+      accent-color: var(--val-cyan);
+      cursor: pointer;
+    }
+
     /* Token Form Modal */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 25, 35, 0.95);
+      background: rgba(7, 11, 14, 0.96);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -460,17 +511,16 @@
     }
     .input-field {
       width: 100%;
-      padding: 14px;
+      padding: 12px;
       border: 1px solid var(--val-border);
       background: var(--val-surface-dark);
       color: var(--val-cyan);
       font-family: var(--val-font-tactical);
-      font-size: 1.2rem;
+      font-size: 1.25rem;
       font-weight: 800;
       text-align: center;
       letter-spacing: 6px;
       text-transform: uppercase;
-      margin: 16px 0;
       outline: none;
     }
 
@@ -484,9 +534,8 @@
       text-transform: uppercase;
     }
 
-    /* ---------- Keylicense (read-only on mobile) ---------- */
+    /* Keylicense Notice & Card */
     .lic-hidden { display: none !important; }
-
     .lic-notice {
       background: var(--val-surface);
       border-left: 3px solid var(--val-gold);
@@ -560,9 +609,35 @@
     }
     .lic-row-val.ok { color: var(--val-cyan); }
     .lic-row-val.bad { color: var(--val-red); }
+
+    /* Toast */
+    .val-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--val-surface-dark);
+      border: 1px solid var(--val-cyan);
+      color: var(--val-white);
+      font-family: var(--val-font-tactical);
+      font-size: 0.9rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      padding: 10px 18px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+      display: none;
+      z-index: 1000;
+      white-space: nowrap;
+      clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+    }
+    .val-toast.show { display: block; animation: toastIn 0.25s ease; }
+    @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
   </style>
 </head>
 <body>
+
+  <!-- Screen Edge Danger Glow for Match Point -->
+  <div id="dangerBorder"></div>
 
   <!-- Floating Toast Banner Notification -->
   <div id="valToast" class="val-toast">// MESSAGE</div>
@@ -570,7 +645,6 @@
   <!-- Token / Auth Modal -->
   <div id="tokenModal" class="modal-overlay" style="display: none;">
     <div class="modal" style="position: relative;">
-      <!-- Close X Button in Top Right Corner -->
       <button id="btnCloseModalX" style="position: absolute; top: 10px; right: 14px; background: transparent; border: none; color: var(--val-gray); font-size: 1.4rem; font-weight: 800; cursor: pointer; line-height: 1; padding: 4px;" onclick="document.getElementById('tokenModal').style.display='none'">✕</button>
 
       <div style="margin-bottom: 6px; font-family: var(--val-font-display); font-size: 1.35rem; font-weight: 900; color: var(--val-cyan); text-align: left; padding-right: 24px;">
@@ -582,18 +656,18 @@
 
       <!-- Manual 6-Digit PIN Input Form -->
       <div id="pinSection">
-        <input type="text" id="tokenInput" class="input-field" maxlength="6" placeholder="X X X X X X" autocomplete="off" autocorrect="off" autocapitalize="characters" style="margin: 4px 0 12px 0; font-size: 1.3rem; padding: 10px;">
+        <input type="text" id="tokenInput" class="input-field" maxlength="6" placeholder="X X X X X X" autocomplete="off" autocorrect="off" autocapitalize="characters" style="margin: 4px 0 12px 0;">
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-          <button id="btnSaveToken" class="val-btn" style="background: var(--val-red); color: #FFF; padding: 10px 6px; font-size: 0.85rem; letter-spacing: 0.5px;">🔑 XÁC NHẬN PIN</button>
-          <button id="btnStartScan" class="val-btn val-btn-cyan" style="padding: 10px 6px; font-size: 0.85rem; letter-spacing: 0.5px;">📷 QUÉT MÃ QR</button>
+          <button id="btnSaveToken" class="val-btn" style="background: var(--val-red); color: #FFF; padding: 10px 6px; font-size: 0.85rem;">🔑 XÁC NHẬN PIN</button>
+          <button id="btnStartScan" class="val-btn val-btn-cyan" style="padding: 10px 6px; font-size: 0.85rem;">📷 QUÉT MÃ QR</button>
         </div>
       </div>
 
       <!-- Hidden camera file input for 100% universal LAN HTTP fallback -->
       <input type="file" id="qrFileInput" accept="image/*" capture="environment" style="display: none;">
 
-      <!-- Live Camera QR Scanner Viewport (When supported) -->
+      <!-- Live Camera QR Scanner Viewport -->
       <div id="scannerSection" style="display: none; margin-top: 10px; position: relative;">
         <div style="position: relative; border-radius: 4px; overflow: hidden; border: 2px solid var(--val-cyan); background: #000;">
           <video id="qrVideo" playsinline style="width: 100%; height: 200px; object-fit: cover; display: block;"></video>
@@ -630,7 +704,7 @@
     <!-- Match Point Alert Box -->
     <div id="alertBanner" class="alert-banner">
       <div class="alert-title">⚠️ ĐỐI THỦ MATCH POINT!</div>
-      <div class="alert-subtitle">CẢNH BÁO ÂM THANH ĐANG PHÁT LẶP LẠI...</div>
+      <div class="alert-subtitle">CẢNH BÁO ÂM THANH & RUNG ĐANG PHÁT LẶP LẠI...</div>
       <button id="btnSilence" class="val-btn val-btn-danger" style="display: flex;">
         🔕 TẮT CHUÔNG CẢNH BÁO
       </button>
@@ -653,6 +727,11 @@
       </div>
     </div>
 
+    <!-- Mobile 13-Round Timeline -->
+    <div class="round-timeline" id="mobileTimeline">
+      <!-- Generated via JS -->
+    </div>
+
     <!-- Main Toggle Action Button -->
     <button id="btnActivate" class="val-btn">
       <span id="btnActivateText">🔊 KÍCH HOẠT CẢNH BÁO NỀN</span>
@@ -673,13 +752,22 @@
         <option value="tacticalDuty">🛡️ 5. Tactical Dual-Tone (Trầm Hùng Chiến Thuật)</option>
       </select>
 
+      <!-- Mobile Volume Control -->
+      <div class="volume-box">
+        <div class="volume-header">
+          <span>ÂM LƯỢNG LOA ĐIỆN THOẠI</span>
+          <span id="mobileVolVal">85%</span>
+        </div>
+        <input type="range" id="mobileVolSlider" class="vol-slider" min="0" max="100" value="85">
+      </div>
+
       <div class="settings-header" style="margin-top: 10px;">
         <span>// KỊCH BẢN PHÁT CẢNH BÁO</span>
       </div>
 
       <div class="toggle-list">
         <div class="toggle-item">
-          <span>⚠️ MATCH POINT ĐỐI THỦ</span>
+          <span>⚠️ MATCH POINT ĐỐI THỦ (RUNG & CHUÔNG)</span>
           <label class="switch">
             <input type="checkbox" id="evtMatchPoint" checked>
             <span class="slider"></span>
@@ -712,45 +800,44 @@
       </div>
     </div>
 
-  <!-- Keylicense notice + info. Read-only here: activation is loopback-only, so
-       it has to happen on the PC running the app. -->
-  <div id="licNotice" class="lic-notice lic-hidden">
-    <div id="licNoticeTitle" class="lic-notice-title">ĐANG KIỂM TRA LICENSE...</div>
-    <div id="licNoticeMsg" class="lic-notice-msg"></div>
-  </div>
+    <!-- Keylicense Notice & Card -->
+    <div id="licNotice" class="lic-notice lic-hidden">
+      <div id="licNoticeTitle" class="lic-notice-title">ĐANG KIỂM TRA LICENSE...</div>
+      <div id="licNoticeMsg" class="lic-notice-msg"></div>
+    </div>
 
-  <div id="licCard" class="lic-card lic-hidden">
-    <div class="lic-card-head">
-      <span>// LICENSE //</span>
-      <span id="licStateTag" class="lic-tag">[ ... ]</span>
+    <div id="licCard" class="lic-card lic-hidden">
+      <div class="lic-card-head">
+        <span>// KEYLICENSE DASHBOARD //</span>
+        <span id="licStateTag" class="lic-tag">[ ... ]</span>
+      </div>
+      <div class="lic-rows">
+        <div class="lic-row">
+          <span class="lic-row-label">Tài khoản</span>
+          <span id="licUser" class="lic-row-val">—</span>
+        </div>
+        <div class="lic-row">
+          <span class="lic-row-label">License key</span>
+          <span id="licKey" class="lic-row-val">—</span>
+        </div>
+        <div class="lic-row">
+          <span class="lic-row-label">Gói</span>
+          <span id="licPlan" class="lic-row-val">—</span>
+        </div>
+        <div class="lic-row">
+          <span class="lic-row-label">Hết hạn</span>
+          <span id="licExpires" class="lic-row-val">—</span>
+        </div>
+        <div class="lic-row">
+          <span class="lic-row-label">Thiết bị</span>
+          <span id="licDevice" class="lic-row-val">—</span>
+        </div>
+        <div class="lic-row">
+          <span class="lic-row-label">Xác thực lần cuối</span>
+          <span id="licVerified" class="lic-row-val">—</span>
+        </div>
+      </div>
     </div>
-    <div class="lic-rows">
-      <div class="lic-row">
-        <span class="lic-row-label">Tài khoản</span>
-        <span id="licUser" class="lic-row-val">—</span>
-      </div>
-      <div class="lic-row">
-        <span class="lic-row-label">License key</span>
-        <span id="licKey" class="lic-row-val">—</span>
-      </div>
-      <div class="lic-row">
-        <span class="lic-row-label">Gói</span>
-        <span id="licPlan" class="lic-row-val">—</span>
-      </div>
-      <div class="lic-row">
-        <span class="lic-row-label">Hết hạn</span>
-        <span id="licExpires" class="lic-row-val">—</span>
-      </div>
-      <div class="lic-row">
-        <span class="lic-row-label">Thiết bị</span>
-        <span id="licDevice" class="lic-row-val">—</span>
-      </div>
-      <div class="lic-row">
-        <span class="lic-row-label">Xác thực lần cuối</span>
-        <span id="licVerified" class="lic-row-val">—</span>
-      </div>
-    </div>
-  </div>
   </main>
 
   <footer class="footer-info">
@@ -766,12 +853,14 @@
     let ws = null;
     let token = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('val_alert_token');
     let audioCtx = null;
+    let masterGainNode = null;
     let isAudioUnlocked = false;
     let alarmInterval = null;
     let isAlarmRinging = false;
     let isSilencedManual = false;
     let lastAlliedScore = -1;
     let lastEnemyScore = -1;
+    let mobileVolume = 0.85;
 
     // --- Elements ---
     const tokenModal = document.getElementById('tokenModal');
@@ -796,6 +885,40 @@
     const lastUpdateText = document.getElementById('lastUpdateText');
     const silentAudio = document.getElementById('silentAudio');
     const valToast = document.getElementById('valToast');
+    const dangerBorder = document.getElementById('dangerBorder');
+    const mobileTimeline = document.getElementById('mobileTimeline');
+    const mobileVolSlider = document.getElementById('mobileVolSlider');
+    const mobileVolVal = document.getElementById('mobileVolVal');
+
+    // Render 13-round timeline
+    function renderMobileTimeline(allied = 0, enemy = 0) {
+      if (!mobileTimeline) return;
+      let html = '';
+      for (let i = 1; i <= 13; i++) {
+        let cls = 'round-dot';
+        if (i <= allied) cls += ' won';
+        if (i === 12) cls += ' target';
+        html += `<div class="${cls}"></div>`;
+      }
+      mobileTimeline.innerHTML = html;
+    }
+    renderMobileTimeline(0, 0);
+
+    // Mobile volume restore
+    const savedMVol = localStorage.getItem('val_mobile_volume');
+    if (savedMVol !== null) {
+      mobileVolume = parseFloat(savedMVol);
+      mobileVolSlider.value = Math.round(mobileVolume * 100);
+      mobileVolVal.innerText = `${mobileVolSlider.value}%`;
+    }
+    mobileVolSlider.addEventListener('input', () => {
+      mobileVolume = parseInt(mobileVolSlider.value, 10) / 100;
+      mobileVolVal.innerText = `${mobileVolSlider.value}%`;
+      localStorage.setItem('val_mobile_volume', mobileVolume);
+      if (masterGainNode && audioCtx) {
+        masterGainNode.gain.setValueAtTime(mobileVolume, audioCtx.currentTime);
+      }
+    });
 
     // Restore Sound Preference & Event Toggles
     const savedSound = localStorage.getItem('val_selected_sound');
@@ -814,12 +937,12 @@
       localStorage.setItem('val_custom_round_val', v);
     });
 
-    // --- Service Worker Registration ---
+    // Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW reg error:', err));
     }
 
-    // --- Toast Popup ---
+    // Toast Popup
     function showToast(message) {
       valToast.innerText = `// ${message}`;
       valToast.classList.add('show');
@@ -828,7 +951,7 @@
       }, 3000);
     }
 
-    // --- Elements for Authentication & Scanner ---
+    // Elements for Authentication & Scanner
     const pinSection = document.getElementById('pinSection');
     const scannerSection = document.getElementById('scannerSection');
     const qrVideo = document.getElementById('qrVideo');
@@ -840,7 +963,6 @@
     let videoStream = null;
     let scanAnimationId = null;
 
-    // --- Token Setup ---
     if (!token) {
       tokenModal.style.display = 'flex';
     } else {
@@ -856,7 +978,6 @@
         tokenModal.style.display = 'none';
         showToast(`ĐÃ LƯU TOKEN: ${token}`);
         connectWebSocket();
-        // A newly entered pin is the first chance to read the license state.
         checkLicense();
       }
     }
@@ -887,11 +1008,10 @@
       stopQrScanner();
     });
 
-    // --- Camera QR Code Scanner with Dual Engine (Live Stream + Native Camera Snap Fallback) ---
+    // Camera QR Scanner
     const qrFileInput = document.getElementById('qrFileInput');
 
     async function startQrScanner() {
-      // If Web Camera getUserMedia is not supported or blocked by HTTP origin on mobile, open native camera file capture directly
       const isLocalOrSecure = window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !isLocalOrSecure) {
         qrFileInput.click();
@@ -946,105 +1066,104 @@
       }
     }
 
-    // Native Camera File Snapshot Scanner with Ultra-Fast Downscaling (< 15ms decoding on iPhone / Android)
     qrFileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
-      showToast('ĐANG QUÉT MÃ QR...');
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = function(event) {
         const img = new Image();
-        img.onload = () => {
-          // Downscale high-res camera photo (e.g. 12MP iPhone) to max 800px for instant 15ms decoding
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
           const maxDim = 800;
-          let w = img.width;
-          let h = img.height;
-          if (w > maxDim || h > maxDim) {
-            if (w > h) {
-              h = Math.round((h * maxDim) / w);
-              w = maxDim;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
             } else {
-              w = Math.round((w * maxDim) / h);
-              h = maxDim;
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
             }
           }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const imageData = ctx.getImageData(0, 0, width, height);
 
-          const canvas = document.createElement('canvas');
-          canvas.width = w;
-          canvas.height = h;
-          const ctx = canvas.getContext('2d', { willReadFrequently: true });
-          ctx.drawImage(img, 0, 0, w, h);
-          const imageData = ctx.getImageData(0, 0, w, h);
-
-          let found = false;
           if (window.jsQR) {
-            const code = window.jsQR(imageData.data, w, h, { inversionAttempts: "dontInvert" });
+            const code = window.jsQR(imageData.data, imageData.width, imageData.height);
             if (code && code.data) {
-              found = true;
               handleScannedQr(code.data);
               return;
             }
-            const codeInv = window.jsQR(imageData.data, w, h, { inversionAttempts: "onlyInvert" });
-            if (codeInv && codeInv.data) {
-              found = true;
-              handleScannedQr(codeInv.data);
-              return;
-            }
           }
-
-          if (!found) {
-            showToast('KHÔNG TÌM THẤY MÃ QR, VUI LÒNG NHẬP MÃ PIN');
-          }
+          showToast('KHÔNG TÌM THẤY MÃ QR TRONG ẢNH');
         };
-        img.src = reader.result;
+        img.src = event.target.result;
       };
       reader.readAsDataURL(file);
-      qrFileInput.value = ''; // Reset for subsequent scans
     });
 
     function stopQrScanner() {
-      if (videoStream) {
-        videoStream.getTracks().forEach(t => t.stop());
-        videoStream = null;
-      }
       if (scanAnimationId) {
         cancelAnimationFrame(scanAnimationId);
         scanAnimationId = null;
       }
-      if (qrVideo) qrVideo.srcObject = null;
-      scannerSection.style.display = 'none';
-      pinSection.style.display = 'block';
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        videoStream = null;
+      }
+      qrVideo.srcObject = null;
     }
 
-    function handleScannedQr(text) {
+    function handleScannedQr(qrData) {
       stopQrScanner();
-      let extractedToken = '';
       try {
-        const url = new URL(text);
-        extractedToken = url.searchParams.get('token') || '';
-      } catch (e) {
-        extractedToken = text.trim().toUpperCase();
-      }
+        let extractedToken = null;
+        if (qrData.includes('token=')) {
+          const urlObj = new URL(qrData);
+          extractedToken = urlObj.searchParams.get('token');
+        } else if (/^[A-Za-z0-9]{4,10}$/.test(qrData.trim())) {
+          extractedToken = qrData.trim();
+        }
 
-      if (extractedToken && extractedToken.length >= 4) {
-        token = extractedToken;
-        tokenInput.value = token;
-        localStorage.setItem('val_alert_token', token);
-        tokenModal.style.display = 'none';
-        showToast(`✅ QUÉT THÀNH CÔNG PIN: ${token}`);
-        connectWebSocket();
-      } else {
-        showToast('MÃ QR KHÔNG HỢP LỆ!');
+        if (extractedToken) {
+          applyTokenAndConnect(extractedToken.toUpperCase());
+        } else {
+          showToast('MÃ QR KHÔNG CHỨA TOKEN HỢP LỆ');
+        }
+      } catch (err) {
+        showToast('LỖI ĐỌC MÃ QR: ' + err.message);
       }
     }
 
     btnStartScan.addEventListener('click', startQrScanner);
-    btnStopScan.addEventListener('click', stopQrScanner);
+    btnStopScan.addEventListener('click', () => {
+      stopQrScanner();
+      scannerSection.style.display = 'none';
+      pinSection.style.display = 'block';
+    });
 
-    // --- 5 Web Audio Sound Presets Engine with Multi-Pitch Urgency Scaling ---
+    // Sound Presets Engine with Master Volume Gain Node
+    function ensureMobileAudioContext() {
+      if (!audioCtx) {
+        const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioCtxClass();
+        masterGainNode = audioCtx.createGain();
+        masterGainNode.gain.setValueAtTime(mobileVolume, audioCtx.currentTime);
+        masterGainNode.connect(audioCtx.destination);
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return { audioCtx, dest: masterGainNode };
+    }
+
     const soundPresets = {
-      melodicChime: (ctx, pitch = 1.0) => {
+      melodicChime: (ctx, dest, pitch = 1.0) => {
         const now = ctx.currentTime;
         const notes = [
           { freq: 659.25 * pitch, start: 0.0, duration: 0.4 },
@@ -1061,12 +1180,12 @@
           gain.gain.linearRampToValueAtTime(0.35, now + n.start + 0.04);
           gain.gain.exponentialRampToValueAtTime(0.001, now + n.start + n.duration);
           osc.connect(gain);
-          gain.connect(ctx.destination);
+          gain.connect(dest);
           osc.start(now + n.start);
           osc.stop(now + n.start + n.duration);
         });
       },
-      radarPulse: (ctx, pitch = 1.0) => {
+      radarPulse: (ctx, dest, pitch = 1.0) => {
         const now = ctx.currentTime;
         [0.0, 0.2].forEach(st => {
           const osc = ctx.createOscillator();
@@ -1077,12 +1196,12 @@
           gain.gain.setValueAtTime(0.4, now + st);
           gain.gain.exponentialRampToValueAtTime(0.001, now + st + 0.15);
           osc.connect(gain);
-          gain.connect(ctx.destination);
+          gain.connect(dest);
           osc.start(now + st);
           osc.stop(now + st + 0.15);
         });
       },
-      crystalBell: (ctx, pitch = 1.0) => {
+      crystalBell: (ctx, dest, pitch = 1.0) => {
         const now = ctx.currentTime;
         [ { freq: 880 * pitch, st: 0 }, { freq: 1318.51 * pitch, st: 0.18 } ].forEach(n => {
           const osc = ctx.createOscillator();
@@ -1093,12 +1212,12 @@
           gain.gain.linearRampToValueAtTime(0.25, now + n.st + 0.02);
           gain.gain.exponentialRampToValueAtTime(0.001, now + n.st + 0.6);
           osc.connect(gain);
-          gain.connect(ctx.destination);
+          gain.connect(dest);
           osc.start(now + n.st);
           osc.stop(now + n.st + 0.6);
         });
       },
-      arcadeRetro: (ctx, pitch = 1.0) => {
+      arcadeRetro: (ctx, dest, pitch = 1.0) => {
         const now = ctx.currentTime;
         const freqs = [523.25 * pitch, 659.25 * pitch, 783.99 * pitch, 1046.50 * pitch];
         freqs.forEach((f, idx) => {
@@ -1109,12 +1228,12 @@
           gain.gain.setValueAtTime(0.12, now + idx * 0.08);
           gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.08);
           osc.connect(gain);
-          gain.connect(ctx.destination);
+          gain.connect(dest);
           osc.start(now + idx * 0.08);
           osc.stop(now + idx * 0.08 + 0.08);
         });
       },
-      tacticalDuty: (ctx, pitch = 1.0) => {
+      tacticalDuty: (ctx, dest, pitch = 1.0) => {
         const now = ctx.currentTime;
         [ { freq: 220 * pitch, st: 0, d: 0.3 }, { freq: 440 * pitch, st: 0.15, d: 0.4 } ].forEach(n => {
           const osc = ctx.createOscillator();
@@ -1124,7 +1243,7 @@
           gain.gain.setValueAtTime(0.4, now + n.st);
           gain.gain.exponentialRampToValueAtTime(0.001, now + n.st + n.d);
           osc.connect(gain);
-          gain.connect(ctx.destination);
+          gain.connect(dest);
           osc.start(now + n.st);
           osc.stop(now + n.st + n.d);
         });
@@ -1132,52 +1251,52 @@
     };
 
     function playSelectedSound(pitch = 1.0) {
-      if (!audioCtx) return;
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
+      const { audioCtx: ctx, dest } = ensureMobileAudioContext();
       const soundKey = soundPicker.value || 'melodicChime';
       const playFn = soundPresets[soundKey] || soundPresets.melodicChime;
-      playFn(audioCtx, pitch);
+      playFn(ctx, dest, pitch);
     }
 
-    // Alarm Loop for Match Point & Custom Round (Repeats for 2 Minutes / 120 Seconds)
+    btnTestChime.addEventListener('click', () => {
+      playSelectedSound(1.0);
+      if (navigator.vibrate) navigator.vibrate(100);
+      showToast('PLAYING AUDIO PRESET TEST (1.0X)');
+    });
+
     let alarmStartTime = 0;
 
-    function startAlarmLoop(pitch = 1.35, title = '⚠️ ĐỐI THỦ MATCH POINT!', subtitle = 'CẢNH BÁO ÂM THANH LẶP LẠI (2 PHÚT)...') {
-      if (isSilencedManual || !isAudioUnlocked) return;
-
-      const bannerTitle = document.querySelector('.alert-title');
-      const bannerSubtitle = document.querySelector('.alert-subtitle');
-      if (bannerTitle) bannerTitle.innerText = title;
-      if (bannerSubtitle) bannerSubtitle.innerText = subtitle;
-
-      alertBanner.classList.add('active');
-      btnSilence.style.display = 'flex';
-
-      if (isAlarmRinging) return;
+    function startAlarmLoop(pitch = 1.35, title = '⚠️ CẢNH BÁO!', subtitle = 'ĐANG PHÁT LẶP LẠI...') {
+      if (alarmInterval) return;
       isAlarmRinging = true;
       alarmStartTime = Date.now();
 
+      alertBanner.querySelector('.alert-title').innerText = title;
+      alertBanner.querySelector('.alert-subtitle').innerText = subtitle;
+      alertBanner.classList.add('active');
+      btnSilence.style.display = 'flex';
+      dangerBorder.classList.add('active');
+
       playSelectedSound(pitch);
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 500]);
+
       alarmInterval = setInterval(() => {
-        if (isAlarmRinging && !isSilencedManual && isAudioUnlocked) {
-          // Auto-stop after 2 minutes (120 seconds)
-          if (Date.now() - alarmStartTime >= 120000) {
-            stopAlarmLoop();
-            return;
-          }
-          playSelectedSound(pitch);
+        if (Date.now() - alarmStartTime >= 120000) {
+          stopAlarmLoop();
+          showToast('HẾT THỜI GIAN CẢNH BÁO (2 PHÚT)');
+          return;
         }
+        playSelectedSound(pitch);
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
       }, 1500);
     }
 
     function stopAlarmLoop() {
-      isAlarmRinging = false;
       if (alarmInterval) {
         clearInterval(alarmInterval);
         alarmInterval = null;
       }
+      isAlarmRinging = false;
+      dangerBorder.classList.remove('active');
     }
 
     btnSilence.addEventListener('click', () => {
@@ -1188,46 +1307,28 @@
       showToast('ĐÃ TẮT CHUÔNG CẢNH BÁO');
     });
 
-    btnTestChime.addEventListener('click', () => {
-      if (!isAudioUnlocked) {
-        toggleAudioContext(false);
-      }
-      playSelectedSound(1.0);
-      showToast('PLAYING AUDIO TEST (PITCH 1.0X)');
-    });
-
     let keepAliveOsc = null;
     let keepAliveGain = null;
     let wakeLockInstance = null;
     let heartbeatInterval = null;
 
-    // Toggle Audio Context & Background Audio Mode
     async function toggleAudioContext(showToastFeedback = true) {
       try {
         if (!isAudioUnlocked) {
-          if (!audioCtx) {
-            const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
-            audioCtx = new AudioCtxClass();
-          }
+          ensureMobileAudioContext();
 
-          if (audioCtx.state === 'suspended') {
-            await audioCtx.resume();
-          }
-
-          // 1. Continuous Inaudible Oscillator (Keeps iOS & Android Audio Engine and Background Thread 100% Alive)
+          // Continuous Inaudible Oscillator to maintain audio thread
           if (!keepAliveOsc) {
             keepAliveOsc = audioCtx.createOscillator();
             keepAliveGain = audioCtx.createGain();
             keepAliveOsc.type = 'sine';
             keepAliveOsc.frequency.setValueAtTime(440, audioCtx.currentTime);
-            // Inaudible to human ear but forces hardware audio stream to stay active
             keepAliveGain.gain.setValueAtTime(0.00001, audioCtx.currentTime);
             keepAliveOsc.connect(keepAliveGain);
             keepAliveGain.connect(audioCtx.destination);
             keepAliveOsc.start();
           }
 
-          // 2. Register MediaSession for Lock Screen Background Audio Keep-Alive
           if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
               title: 'Valorant Score Alert',
@@ -1237,7 +1338,7 @@
             navigator.mediaSession.playbackState = 'playing';
           }
 
-          // 3. Screen Wake Lock (Keep display awake if device is propped up)
+          // Screen Wake Lock
           if ('wakeLock' in navigator) {
             try {
               wakeLockInstance = await navigator.wakeLock.request('screen');
@@ -1249,7 +1350,6 @@
           }
 
           isAudioUnlocked = true;
-
           btnActivate.classList.add('active');
           btnActivateText.innerText = '✅ CẢNH BÁO NỀN: ĐANG BẬT';
 
@@ -1307,11 +1407,7 @@
     btnActivate.addEventListener('click', handleToggle);
     btnActivate.addEventListener('touchend', handleToggle);
 
-    /* ===================== KEYLICENSE (READ-ONLY) =====================
-       The phone cannot activate anything: /api/license login, logout and
-       apply-key are loopback-only by design, since they open a browser on, or
-       destroy the session of, the host PC. So this surface only explains the
-       state and shows the account info. */
+    /* ===================== KEYLICENSE (READ-ONLY) ===================== */
     const licNotice = document.getElementById('licNotice');
     const licNoticeTitle = document.getElementById('licNoticeTitle');
     const licNoticeMsg = document.getElementById('licNoticeMsg');
@@ -1325,8 +1421,6 @@
     const licVerified = document.getElementById('licVerified');
 
     let licEntitled = false;
-    // null = unknown, true = server is gating, false = licensing off. While it
-    // is null the socket still retries, so a slow check cannot strand it.
     let licActive = null;
     let licPollTimer = null;
 
@@ -1387,8 +1481,6 @@
       }
       licPlan.className = 'lic-row-val ' + (licEntitled ? 'ok' : 'bad');
 
-      // Activation happens on the PC, so the phone polls while locked out and
-      // stops as soon as it is let in.
       if (licEntitled && !wasEntitled) {
         stopLicensePoll();
         connectWebSocket();
@@ -1406,8 +1498,6 @@
           renderLicenseMobile(snap);
         })
         .catch(() => {
-          // Licensing off or unreachable: hide the panels rather than showing a
-          // dead one, and let the socket retry unimpeded.
           licActive = false;
           licNotice.classList.add('lic-hidden');
           licCard.classList.add('lic-hidden');
@@ -1446,7 +1536,6 @@
         connStatus.className = 'status-badge status-connected';
         connStatusText.innerText = 'ONLINE';
 
-        // Start 4-second heartbeat to prevent router/mobile TCP drops
         if (heartbeatInterval) clearInterval(heartbeatInterval);
         heartbeatInterval = setInterval(() => {
           if (ws && ws.readyState === WebSocket.OPEN) {
@@ -1458,7 +1547,7 @@
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === 'pong') return; // Heartbeat response
+          if (data.type === 'pong') return;
           updateUI(data);
         } catch (e) {
           console.error('Error parsing WS message:', e);
@@ -1474,15 +1563,11 @@
           tokenModalNotice.innerText = 'CHƯA CÓ TOKEN HOẶC TOKEN HẾT HẠN. VUI LÒNG NHẬP MÃ PIN HOẶC QUÉT MÃ QR TRÊN PC!';
         }
 
-        // Licensing off: behave exactly as before.
         if (licActive === false) {
           setTimeout(connectWebSocket, 2500);
           return;
         }
 
-        // A 402 upgrade rejection and a real network drop are indistinguishable
-        // in the browser WebSocket API, so ask the server which one it was
-        // rather than hammering the upgrade every 2.5s forever.
         checkLicense().then(() => {
           if (licActive && !licEntitled) {
             connStatus.className = 'status-badge status-disconnected';
@@ -1500,7 +1585,6 @@
       };
     }
 
-    // Auto-reconnect & resume Audio immediately when user wakes phone or switches back to tab
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -1529,6 +1613,7 @@
 
       alliedScoreEl.innerText = alliedScore;
       enemyScoreEl.innerText = enemyScore;
+      renderMobileTimeline(alliedScore, enemyScore);
 
       lastUpdateText.innerText = 'SYNC: ' + new Date(timestamp || Date.now()).toLocaleTimeString();
 
@@ -1559,7 +1644,8 @@
           isMatchEndedTriggered = true;
           stopAlarmLoop();
           if (evtMatchEnded.checked && isAudioUnlocked) {
-            playSelectedSound(0.82); // Pitch 0.82x for Victory/Defeat
+            playSelectedSound(0.82);
+            if (navigator.vibrate) navigator.vibrate([200, 100, 400]);
             const resText = alliedScore > enemyScore ? 'VICTORY (CHIẾN THẮNG)' : 'DEFEAT (THẤT BẠI)';
             showToast(`🏆 KẾT THÚC TRẬN: ${resText} [${alliedScore} - ${enemyScore}]`);
           }
@@ -1613,11 +1699,12 @@
         }
       }
 
-      // 4. Check Round Change Event -> Pitch 1.0x (1 Neutral Chime)
+      // 4. Check Round Change Event -> Pitch 1.0x (1 Neutral Chime + Quick Haptic)
       if (lastAlliedScore !== -1 && lastEnemyScore !== -1) {
         if (alliedScore > lastAlliedScore || enemyScore > lastEnemyScore) {
           if (evtRoundChange.checked && isAudioUnlocked && !isAlarmRinging) {
             playSelectedSound(1.0);
+            if (navigator.vibrate) navigator.vibrate(60);
             showToast(`ROUND OVER: ${alliedScore} - ${enemyScore}`);
           }
         }
@@ -1626,8 +1713,6 @@
       lastEnemyScore = enemyScore;
     }
 
-    // Runs last on purpose: the license consts above are block-scoped, so an
-    // earlier call (the token setup at the top) would hit the temporal dead zone.
     if (token) checkLicense();
   </script>
 </body>

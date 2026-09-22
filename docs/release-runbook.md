@@ -49,7 +49,7 @@ trỏ `launcher.vbs` chứ không phải .exe, và test uninstaller giữ `%APPD
 ## 3. Cắt một release
 
 ```bash
-npm test                     # 121/121 phải xanh; naming contract nằm trong đây
+npm test                     # 166/166 phải xanh; naming contract nằm trong đây
 npm run build                # → dist/ValorantScoreAlert-v<ver>-win-x64.zip
                              #   + ...-win-x64-installer.zip + SHA256SUMS.txt
 node scripts/verify-release-artifacts.js
@@ -83,8 +83,14 @@ nó ở cuối, Discord chết cũng không làm đỏ một release đã publis
 được **trước** khi Discord được nối. Gửi lại tay: Actions → *Notify Discord* →
 `workflow_dispatch` với tag. Payload có **một** định nghĩa duy nhất
 (`scripts/discord-release-notice.js`, pin bởi `test/discord-notice.test.js`); tên asset
-trong 2 nút download lấy từ `release-naming.js` chứ không gõ lại. Hai secret cần thêm
-và câu hỏi channel: `pending-and-blocked.md` §1.5.
+trong 2 nút download lấy từ `release-naming.js` chứ không gõ lại.
+
+Webhook Discord **không** nằm trong repo này. CI gọi một Cloudflare Worker riêng
+(`tools/discord-relay/`, 8 bước deploy trong README của nó), Worker giữ webhook làm
+secret và post vào channel `#valorant-alert`. Lý do tách: một webhook URL trong
+workflow là một secret ai fork cũng đọc được — `ValorantTweaks.App` đang để plaintext
+đúng như vậy tại `notify-discord-manual.yml:14`. Hai secret còn lại phải do chủ repo
+thêm sau khi deploy Worker: `pending-and-blocked.md` §1.5.
 
 ## 4. Version chỉ có MỘT chỗ
 
@@ -150,8 +156,8 @@ Hai lỗi chỉ hiện ra khi chạy thật, đã sửa và đã có test giữ:
    stage **trước** khi xoá bản cũ, nên trường hợp xấu nhất là "cài bị từ chối, bản cũ
    vẫn chạy".
 
-Cập nhật thì app **tự phát hiện**, không tự tải: `GET /api/license/app-version` hỏi KLD
-trước, không được thì đọc GitHub release mới nhất, rồi trả về
+Phát hiện cập nhật: `GET /api/license/app-version` hỏi KLD trước, không được thì đọc
+GitHub release mới nhất, rồi trả về
 `forceUpdateRequired` / `softUpdateAvailable` đã tính sẵn. Dashboard render banner từ
 đó (`renderUpdate()` trong `public/dashboard.html`). Bất đối xứng có chủ ý: chỉ KLD
 được phép **khoá**, GitHub chỉ được **nhắc** — suy ra force-update từ một cái tag nghĩa
@@ -160,8 +166,27 @@ không hỏi được thì `source:'none'` và banner ẩn, vì một lần chec
 trông giống "bắt buộc cập nhật".
 
 Chỗ khác ValorantTweaks: bên đó có `UpdateDownloadService` tự tải zip → giải nén → tìm
-`Updater.exe` → chạy → app tự restart. Bên này **chưa có** phần tự tải đó; banner đưa
-người dùng tới release page, tải bộ cài, chạy lại. Muốn làm giống hẳn thì cần thêm:
-tải asset theo tên từ `release-naming.js`, **verify sha256 với `SHA256SUMS.txt`** (thứ
-ValorantTweaks không có), giải nén, chạy `Install-ValorantAlert.cmd` detached rồi tự
-thoát — bộ cài đã tự lo phần dừng app đang chạy nên không cần Updater.exe riêng.
+`Updater.exe` → chạy → app tự restart. Bên này **đã có** phần tự tải, ở
+`server/updater/index.js`, nhưng **không** có `Updater.exe` — vì không cần: bộ cài đã
+chính là chương trình đó (`Install-ValorantAlert.ps1:80-104` dừng bản đang chạy,
+`:264-270` `-Launch` khởi động lại bản mới làm việc cuối cùng). Nên module này chỉ làm 4
+việc: tải → verify → giải nén → spawn bộ cài.
+
+| Bước | Ràng buộc, và lý do nó là ràng buộc |
+|---|---|
+| Version | Lấy từ `checkAppVersion()` của **server**, route không đọc body. Một version do client gửi (chưa nói tới URL) biến route LAN này thành primitive "tải và chạy thứ tuỳ ý" |
+| Version, lần 2 | Regex `^v?\d{1,4}\.\d{1,4}\.\d{1,4}$` áp lên giá trị **thô**, trước `normalizeVersion` — hàm đó chỉ bỏ chữ `v` và mặc định `''` thành `0.0.0`, nên `../..` đi xuyên qua nó |
+| sha256 | Verify với `SHA256SUMS.txt` **trước** khi chạy bất cứ thứ gì; lệch thì xoá zip luôn. ValorantTweaks không ship checksum. Giới hạn thật thà: chặn hỏng file và MITM, **không** chặn repo bị chiếm — ai thay được zip thì thay được cả file sums |
+| Đường dẫn | Work dir `%APPDATA%\ValorantAlert\update`, install `%LOCALAPPDATA%\Programs` — hai cây khác nhau, nên giải nén lỗi không thể để lại app thay nửa vời |
+| PowerShell | Path đi bằng env var (`$env:VA_UPDATE_ZIP`), không nội suy vào `-Command` — đúng luật đã có, vì `Valorant-Alert [1]` là dạng path từng làm gãy `Copy-Item` |
+| Spawn | `cmd.exe /c <path> -Launch`, `detached`, `stdio:'ignore'` — `spawn()` trực tiếp vào `.cmd` bị Node ≥18.20 từ chối (CVE-2024-27980), và bộ cài sắp giết chính process này nên con không được nằm cùng process group |
+| Route | `POST /api/license/update/start` yêu cầu **loopback**: một cái điện thoại trong LAN có share pin không được phép chạy bộ cài trên máy chủ. `GET update/state` thì pin-only, vì nó chỉ đọc stage + byte count |
+
+Test giữ 2 lớp đó riêng: `test/update-download.test.js` (16) chứng minh engine an toàn —
+inject cả `fetch` và `spawn` nên suite không hề chạm mạng hay chạy bộ cài thật;
+`test/update-routes.test.js` (13) chứng minh không ai tới được engine từ chỗ sai, kể cả
+`update/start` bằng GET (405), từ LAN (403), và body có `version: '9.9.9'` — test đó
+assert route **không đăng ký cả listener `data`**.
+
+Chưa verify được ở đây: chưa ai chạy `.exe` v1.0.0 đã publish trên máy sạch, và bộ cài
+thật cố tình chưa bao giờ được updater khởi động trên máy này.

@@ -42,25 +42,156 @@ $marker = Join-Path $installDirFullPath 'install-info.txt'
 $looksLikeOurs = (Test-Path -LiteralPath (Join-Path $installDirFullPath 'ValorantScoreAlert.exe') -PathType Leaf) -or
                  (Test-Path -LiteralPath $marker -PathType Leaf)
 
+function Stop-RunningInstance {
+    param([Parameter(Mandatory = $true)][string] $TargetDir)
+
+    $currentPid = $PID
+    $pidsToKill = New-Object 'System.Collections.Generic.HashSet[int]'
+    $normTarget = [System.IO.Path]::GetFullPath($TargetDir).TrimEnd('\', '/')
+
+    foreach ($proc in @(Get-Process -Name 'ValorantScoreAlert' -ErrorAction SilentlyContinue)) {
+        if ($proc.Id -ne $currentPid) {
+            try { $null = $proc.CloseMainWindow() } catch { }
+            [void]$pidsToKill.Add($proc.Id)
+        }
+    }
+
+    $allProcs = @(try { Get-CimInstance Win32_Process -ErrorAction SilentlyContinue } catch { Get-WmiObject Win32_Process -ErrorAction SilentlyContinue })
+    foreach ($proc in $allProcs) {
+        $procId = [int]$proc.ProcessId
+        if ($procId -le 4 -or $procId -eq $currentPid) { continue }
+
+        $cmd = if ($proc.CommandLine) { $proc.CommandLine } else { '' }
+        $exe = if ($proc.ExecutablePath) { $proc.ExecutablePath } else { '' }
+        $name = if ($proc.Name) { $proc.Name.ToLowerInvariant() } else { '' }
+
+        $shouldKill = $false
+
+        if ($exe -and $exe.StartsWith($normTarget, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $shouldKill = $true
+        } elseif (($name -eq 'powershell.exe' -or $name -eq 'pwsh.exe') -and $cmd -like '*tray.ps1*') {
+            $shouldKill = $true
+        } elseif (($name -eq 'wscript.exe' -or $name -eq 'cscript.exe') -and $cmd -like '*launcher.vbs*') {
+            $shouldKill = $true
+        } elseif ($name -eq 'node.exe' -and ($cmd -like '*ValorantScoreAlert*' -or $cmd -like '*server/index.js*' -or $cmd -like '*server\index.js*' -or ($cmd -like ('*' + $normTarget + '*')))) {
+            $shouldKill = $true
+        } elseif ($cmd -like '*ValorantScoreAlert*' -and $cmd -notlike '*Install-ValorantAlert*' -and $cmd -notlike '*Uninstall-ValorantAlert*') {
+            $shouldKill = $true
+        }
+
+        if ($shouldKill) {
+            [void]$pidsToKill.Add($procId)
+        }
+    }
+
+    $portsToCheck = @(3000)
+    $configPath = Join-Path $TargetDir 'config.json'
+    if (Test-Path -LiteralPath $configPath -PathType Leaf) {
+        try {
+            $rawCfg = Get-Content -LiteralPath $configPath -Raw -ErrorAction SilentlyContinue
+            if ($rawCfg) {
+                $parsed = $rawCfg | ConvertFrom-Json -ErrorAction SilentlyContinue
+                if ($parsed -and $parsed.port) {
+                    $p = [int]$parsed.port
+                    if ($p -gt 0 -and -not ($portsToCheck -contains $p)) {
+                        $portsToCheck += $p
+                    }
+                }
+            }
+        } catch { }
+    }
+
+    foreach ($port in $portsToCheck) {
+        $foundOnPort = $false
+        try {
+            $conns = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+            foreach ($conn in $conns) {
+                $owPid = [int]$conn.OwningProcess
+                if ($owPid -gt 4 -and $owPid -ne $currentPid) {
+                    $listenerProc = $allProcs | Where-Object { [int]$_.ProcessId -eq $owPid } | Select-Object -First 1
+                    if ($listenerProc) {
+                        $lName = if ($listenerProc.Name) { $listenerProc.Name.ToLowerInvariant() } else { '' }
+                        $lCmd = if ($listenerProc.CommandLine) { $listenerProc.CommandLine } else { '' }
+                        if ($lName -eq 'node.exe' -or $lCmd -like '*Valorant*' -or $lCmd -like '*server*') {
+                            [void]$pidsToKill.Add($owPid)
+                            $foundOnPort = $true
+                        }
+                    } else {
+                        [void]$pidsToKill.Add($owPid)
+                        $foundOnPort = $true
+                    }
+                }
+            }
+        } catch { }
+
+        if (-not $foundOnPort) {
+            try {
+                $lines = @(netstat -ano 2>$null | Select-String ":$port\s+.*LISTENING\s+(\d+)")
+                foreach ($line in $lines) {
+                    if ($line.Matches -and $line.Matches[0].Groups[1].Value) {
+                        $owPid = [int]$line.Matches[0].Groups[1].Value
+                        if ($owPid -gt 4 -and $owPid -ne $currentPid) {
+                            $listenerProc = $allProcs | Where-Object { [int]$_.ProcessId -eq $owPid } | Select-Object -First 1
+                            if ($listenerProc) {
+                                $lName = if ($listenerProc.Name) { $listenerProc.Name.ToLowerInvariant() } else { '' }
+                                $lCmd = if ($listenerProc.CommandLine) { $listenerProc.CommandLine } else { '' }
+                                if ($lName -eq 'node.exe' -or $lCmd -like '*Valorant*' -or $lCmd -like '*server*') {
+                                    [void]$pidsToKill.Add($owPid)
+                                }
+                            } else {
+                                [void]$pidsToKill.Add($owPid)
+                            }
+                        }
+                    }
+                }
+            } catch { }
+        }
+    }
+
+    $stoppedCount = 0
+    if ($pidsToKill.Count -gt 0) {
+        foreach ($pidToKill in $pidsToKill) {
+            try {
+                Stop-Process -Id $pidToKill -Force -ErrorAction SilentlyContinue
+                $stoppedCount++
+            } catch { }
+        }
+        Start-Sleep -Milliseconds 800
+        foreach ($pidToKill in $pidsToKill) {
+            try {
+                if (Get-Process -Id $pidToKill -ErrorAction SilentlyContinue) {
+                    Stop-Process -Id $pidToKill -Force -ErrorAction SilentlyContinue
+                }
+            } catch { }
+        }
+        Start-Sleep -Milliseconds 400
+        Write-Host "  Đã dừng $stoppedCount tiến trình đang chạy."
+    }
+}
+
 if (-not (Test-Path -LiteralPath $installDirFullPath -PathType Container)) {
     Write-Host "Không có gì để gỡ ở: $installDirFullPath" -ForegroundColor Yellow
 } elseif (-not $looksLikeOurs) {
     throw "'$installDirFullPath' không giống thư mục cài của Valorant Score Alert (không thấy ValorantScoreAlert.exe hay install-info.txt). Dừng để tránh xoá sai."
 } else {
-    foreach ($proc in @(Get-Process -Name 'ValorantScoreAlert' -ErrorAction SilentlyContinue)) {
-        try { $null = $proc.CloseMainWindow() } catch { }
-    }
-    foreach ($row in @(Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" -ErrorAction SilentlyContinue)) {
-        if ($row.CommandLine -and $row.CommandLine -like '*tray.ps1*') {
-            try { Stop-Process -Id $row.ProcessId -Force -ErrorAction Stop } catch { }
+    Stop-RunningInstance -TargetDir $installDirFullPath
+
+    $removeSuccess = $false
+    $removeAttempts = 0
+    $maxRemoveAttempts = 5
+    while (-not $removeSuccess) {
+        $removeAttempts++
+        try {
+            Remove-Item -LiteralPath $installDirFullPath -Recurse -Force
+            $removeSuccess = $true
+        } catch {
+            if ($removeAttempts -ge $maxRemoveAttempts) {
+                throw
+            }
+            Stop-RunningInstance -TargetDir $installDirFullPath
+            Start-Sleep -Milliseconds (500 * $removeAttempts)
         }
     }
-    Start-Sleep -Milliseconds 1200
-    foreach ($proc in @(Get-Process -Name 'ValorantScoreAlert' -ErrorAction SilentlyContinue)) {
-        try { Stop-Process -Id $proc.Id -Force -ErrorAction Stop } catch { }
-    }
-
-    Remove-Item -LiteralPath $installDirFullPath -Recurse -Force
     Write-Host "Đã xoá: $installDirFullPath" -ForegroundColor Green
 }
 
