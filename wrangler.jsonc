@@ -1,9 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "valorant-score-alert",
+  "name": "valorant-alert-source",
   "compatibility_date": "2026-09-21",
   "assets": {
-    "directory": "./dist",
+    "directory": "./public",
     "not_found_handling": "single-page-application"
   }
 }

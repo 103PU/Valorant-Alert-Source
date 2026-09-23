@@ -18,6 +18,22 @@ console.log('===========================================================');
 
 const rootDir = path.join(__dirname, '..');
 const distDir = path.join(rootDir, 'dist');
+
+// If running in Cloudflare Pages / Workers CI or build environment without Windows binary requirements,
+// skip the heavy standalone exe compilation and packaging.
+const isCloudflareCI = Boolean(
+  process.env.CF_PAGES ||
+  process.env.CF_WORKERS ||
+  process.env.CLOUDFLARE_CI ||
+  (process.env.CI && process.cwd().includes('buildhome'))
+);
+
+if (isCloudflareCI) {
+  console.log('⚡ Cloudflare CI environment detected: web assets are served directly from public/.');
+  console.log('⚡ Skipping standalone Windows executable compilation.');
+  process.exit(0);
+}
+
 const releaseDir = path.join(distDir, 'ValorantScoreAlert-Release');
 const appVersion = normalizeVersion(require(path.join(rootDir, 'package.json')).version);
 
