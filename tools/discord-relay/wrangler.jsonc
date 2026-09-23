@@ -1,0 +1,31 @@
+{
+  // The .mjs extension is load-bearing: it declares ES-module format without a
+  // "type" field in the repo package.json, which is CommonJS. Cloudflare only
+  // accepts module workers, and Node reparses a typeless .js as ESM with a warning.
+  // Deploy with `npx wrangler deploy` from this directory. wrangler is NOT a
+  // dependency of the app — it is fetched on demand, so nothing here lands in
+  // package.json or in the shipped binary. (`tools` is already in caxa's
+  // --exclude list, see scripts/build.js.)
+  "name": "valorant-alert-discord-relay",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-09-04",
+
+  "vars": {
+    // The channel this relay owns. A channel id is NOT a credential — it is
+    // meaningless without the bot token — so it lives here as a plain var where
+    // it is visible and auditable, rather than as a secret nobody can read back.
+    //
+    // Left empty on purpose: the Worker answers 503 `relay_not_configured` until
+    // it is filled in, which is a clearer first-deploy failure than posting into
+    // the wrong channel. Put the id of #valorant-alert here, then redeploy.
+    "DISCORD_CHANNEL_ID": ""
+  },
+
+  // Secrets (never in this file — `npx wrangler secret put <NAME>`):
+  //   DISCORD_BOT_TOKEN  the bot that posts. Needs View Channel + Send Messages
+  //                      on #valorant-alert and nothing else.
+  //   RELAY_AUTH_TOKEN   the shared token CI presents as X-Auth-Token. Generate
+  //                      it randomly; it is not reused from anywhere.
+
+  "observability": { "enabled": true }
+}
