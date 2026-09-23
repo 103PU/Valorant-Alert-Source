@@ -97,8 +97,10 @@ const wsServer = new ScoreWSServer(server, {
 // Create Cloud Relay Client (Syncs match scores to Cloudflare Worker)
 const cloudRelay = new CloudRelay({
   baseUrl: config.keylicense?.baseUrl || 'https://keylicensedashboard.dungbd2005.workers.dev',
-  webBaseUrl: config.cloudRelayWebUrl || 'https://valorant-alert.pages.dev',
-  getSession: () => licensing.gate.snapshot(),
+  getSession: () => ({
+    jwt: licensing.store ? licensing.store.getJwt() : null,
+    user: licensing.store?.state?.user || licensing.gate?.snapshot()?.user
+  }),
   isEntitled: () => licensing.entitled
 });
 

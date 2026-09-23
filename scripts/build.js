@@ -112,7 +112,7 @@ try {
   // exe, so shipping it inside the exe would nest a copy of the installer in
   // every install.
   execSync(
-    `npx caxa --input . --output "${exeOutputPath}" --exclude "dist" ".git" ".github" "test" "logs" "relay" ".worker-dist" ".wrangler" ".data" "docs" ".claude" "tools" -- "{{caxa}}/node_modules/.bin/node" "{{caxa}}/server/index.js"`,
+    `npx caxa --input . --output "${exeOutputPath}" --exclude "dist" ".git" ".github" "test" "logs" "relay" ".worker-dist" ".wrangler" ".data" "docs" ".claude" "tools" "wrangler.jsonc" -- "{{caxa}}/node_modules/.bin/node" "{{caxa}}/server/index.js"`,
     { cwd: rootDir, stdio: 'inherit' }
   );
   console.log(`✅ Standalone binary created: ${exeOutputPath}`);

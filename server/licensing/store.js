@@ -124,7 +124,7 @@ class LicenseStore {
     const lic = this.state.license;
     return {
       user: this.state.user
-        ? { email: this.state.user.email, name: this.state.user.name, picture: this.state.user.picture }
+        ? { id: this.state.user.id, email: this.state.user.email, name: this.state.user.name, picture: this.state.user.picture }
         : null,
       license: lic
         ? {
