@@ -149,6 +149,35 @@ jobs:
 
           Write-Host "Release $env:TAG is public with $($release.assets.Count) verified asset(s)."
 
+      # Automatically sync the newly published release version and notes to Central KLD Server
+      # (Keylicensedashboard) via the secure admin webhook endpoint.
+      - name: Publish Release Webhook to Central KLD Server
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          KLD_SERVER_URL: ${{ vars.KLD_SERVER_URL || 'https://keylicensedashboard.dungbd2005.workers.dev' }}
+          KLD_ADMIN_TOKEN: ${{ secrets.KLD_ADMIN_TOKEN || secrets.ADMIN_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if (-not $env:KLD_ADMIN_TOKEN) {
+            Write-Host '::notice::KLD_ADMIN_TOKEN is not set — skipping the KLD version webhook.'
+            exit 0
+          }
+
+          $release = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$env:TAG" | ConvertFrom-Json
+          if ($release.body) {
+            [System.IO.File]::WriteAllText("$PWD/release-notes.txt", $release.body, [System.Text.Encoding]::UTF8)
+          }
+
+          node scripts/publish-kld-release.js `
+            --tag $env:TAG `
+            --url $env:KLD_SERVER_URL `
+            --token $env:KLD_ADMIN_TOKEN `
+            --notes-file release-notes.txt
+
+          if (Test-Path release-notes.txt) { Remove-Item release-notes.txt -Force }
+
       # Announcing the release only after the step above proved it resolvable: a notice
       # whose buttons 404 is worse than no notice. Deliberately the last step, so a
       # Discord outage cannot fail a release that is already published and correct.

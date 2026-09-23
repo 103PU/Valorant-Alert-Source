@@ -190,3 +190,20 @@ assert route **không đăng ký cả listener `data`**.
 
 Chưa verify được ở đây: chưa ai chạy `.exe` v1.0.0 đã publish trên máy sạch, và bộ cài
 thật cố tình chưa bao giờ được updater khởi động trên máy này.
+
+## 7. Webhook đồng bộ version lên KLD Server (POST /api/admin/app-version/publish-release)
+
+Sau khi GitHub Release được tạo và verify asset thành công trên GitHub, `.github/workflows/release.yml`
+tự động gửi webhook sang Server KLD:
+
+- **Module thực thi:** `scripts/publish-kld-release.js` (được test bởi `test/kld-release.test.js`).
+- **Endpoint:** `POST https://keylicensedashboard.dungbd2005.workers.dev/api/admin/app-version/publish-release`
+- **Xác thực:** Header `X-Admin-Token` so khớp với secret `KLD_ADMIN_TOKEN` trên GitHub Actions.
+- **Payload:**
+  - `version`: số version chuẩn hoá x.y.z từ Git tag.
+  - `minimumVersion`: mặc định bằng version hiện tại.
+  - `forceUpdate`: `false` (mặc định không ép buộc).
+  - `releaseNotes`: toàn bộ markdown release notes trích xuất từ GitHub API.
+- **Tính an toàn:**
+  - Khi chưa cấu hình secret `KLD_ADMIN_TOKEN`: workflow ghi `::notice::` và bỏ qua, không làm gián đoạn release GitHub.
+  - Xử lý lỗi `non-blocking`: nếu KLD tạm thời gián đoạn mạng, GitHub Actions ghi cảnh báo `Write-Warning` mà không đánh fail toàn bộ build.
