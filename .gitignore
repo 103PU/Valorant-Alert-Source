@@ -11,6 +11,7 @@ dist/
 
 # Logs
 *.log
+logs/
 
 # OS / editor junk. `git add .` sweeps these in otherwise.
 .DS_Store

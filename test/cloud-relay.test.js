@@ -104,3 +104,14 @@ test('CloudRelay: getRelayWebUrl generates proper url with userId', () => {
   const url = relay.getRelayWebUrl();
   assert.ok(url.startsWith('https://my-alert.pages.dev?mode=relay&userId=uuid-456'));
 });
+
+test('CloudRelay: getRelayWebUrl appends server parameter if custom baseUrl configured', () => {
+  const relay = new CloudRelay({
+    baseUrl: 'https://custom-relay.example.com',
+    webBaseUrl: 'https://my-alert.pages.dev',
+    getSession: () => ({ user: { id: 'uuid-456', name: 'Gamer' } })
+  });
+
+  const url = relay.getRelayWebUrl();
+  assert.ok(url.includes('server=https%3A%2F%2Fcustom-relay.example.com'));
+});

@@ -2129,9 +2129,10 @@
     }
 
     btnCopy.addEventListener('click', () => {
-      if (fullLanUrl) {
-        navigator.clipboard.writeText(fullLanUrl);
-        showToast(t('toastCopiedUrl'));
+      const urlToCopy = (typeof activeSyncMode !== 'undefined' && activeSyncMode === 'cloud' && cloudRelayUrl) ? cloudRelayUrl : fullLanUrl;
+      if (urlToCopy) {
+        navigator.clipboard.writeText(urlToCopy);
+        showToast((typeof activeSyncMode !== 'undefined' && activeSyncMode === 'cloud') ? (currentLang === 'vi' ? 'Đã sao chép link Cloud Relay (4G)!' : 'Copied Cloud Relay (4G) link!') : t('toastCopiedUrl'));
       }
     });
 
@@ -2345,9 +2346,10 @@
     });
 
     btnCopyLaptop.addEventListener('click', () => {
-      if (fullLanDashboardUrl) {
-        navigator.clipboard.writeText(fullLanDashboardUrl);
-        showToast(t('toastCopiedLaptop'));
+      const laptopUrlToCopy = (typeof activeSyncMode !== 'undefined' && activeSyncMode === 'cloud' && cloudRelayUrl) ? cloudRelayUrl : fullLanDashboardUrl;
+      if (laptopUrlToCopy) {
+        navigator.clipboard.writeText(laptopUrlToCopy);
+        showToast((typeof activeSyncMode !== 'undefined' && activeSyncMode === 'cloud') ? (currentLang === 'vi' ? 'Đã sao chép link Cloud Relay (4G)!' : 'Copied Cloud Relay (4G) link!') : t('toastCopiedLaptop'));
       }
     });
 
@@ -2454,6 +2456,7 @@
         if (syncStatusLabel) syncStatusLabel.innerText = 'CLOUD SYNC:';
         if (tokenDisplay) tokenDisplay.innerText = cloudRelayUrl ? 'SYNCED (4G)' : 'LOGIN TO SYNC';
         if (lanUrlInput) lanUrlInput.value = cloudRelayUrl || (currentLang === 'vi' ? 'Đăng nhập Google để bật Cloud Relay' : 'Sign in with Google to enable Cloud Relay');
+        if (lanDashboardInput) lanDashboardInput.value = cloudRelayUrl || (currentLang === 'vi' ? 'Đăng nhập Google để bật Cloud Relay' : 'Sign in with Google to enable Cloud Relay');
         if (qrImg) qrImg.src = '/api/qr?type=cloud&t=' + Date.now();
         if (btnCopy) btnCopy.innerText = '☁️ 4G LINK';
       } else {
@@ -2466,6 +2469,7 @@
         if (syncStatusLabel) syncStatusLabel.innerText = t('pinLabel');
         if (tokenDisplay) tokenDisplay.innerText = currentAuthToken;
         if (lanUrlInput) lanUrlInput.value = fullLanUrl;
+        if (lanDashboardInput) lanDashboardInput.value = fullLanDashboardUrl;
         if (qrImg) qrImg.src = '/api/qr?t=' + Date.now();
         if (btnCopy) btnCopy.innerText = t('btnCopyMobile');
       }
@@ -2806,6 +2810,17 @@
       modalLicExpires.innerText = expText;
       modalLicDevice.innerText = snap.device ? snap.device.name : t('pcLocal');
       modalLicKey.innerText = maskKey(rawCurrentKey);
+
+      if (snap.user && snap.user.id) {
+        fetch('/api/info').then(r => r.json()).then(info => {
+          if (info.cloudRelay && info.cloudRelay.relayWebUrl) {
+            cloudRelayUrl = info.cloudRelay.relayWebUrl;
+            if (typeof activeSyncMode !== 'undefined' && activeSyncMode === 'cloud') {
+              switchSyncMode('cloud');
+            }
+          }
+        }).catch(() => {});
+      }
 
       if (licEntitled && !wasEntitled && currentAuthToken) {
         initDashboardWS(currentAuthToken);

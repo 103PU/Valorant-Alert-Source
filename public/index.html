@@ -853,11 +853,20 @@
     let ws = null;
     const urlParams = new URLSearchParams(window.location.search);
     let token = urlParams.get('token') || localStorage.getItem('val_alert_token');
-    let relayUserId = urlParams.get('userId') || localStorage.getItem('val_relay_user_id');
-    let relayMode = urlParams.get('mode') === 'relay' || !!urlParams.get('userId');
+    let relayUserId = urlParams.get('userId') || (urlParams.get('mode') !== 'lan' ? localStorage.getItem('val_relay_user_id') : null);
+    let relayMode = urlParams.get('mode') === 'relay' || !!urlParams.get('userId') || (urlParams.get('mode') !== 'lan' && !!relayUserId);
     let relayPollTimer = null;
-    if (urlParams.get('userId')) {
+    let relayBaseUrl = urlParams.get('server') || localStorage.getItem('val_relay_server') || 'https://keylicensedashboard.dungbd2005.workers.dev';
+
+    if (urlParams.get('mode') === 'lan') {
+      localStorage.removeItem('val_relay_user_id');
+      relayUserId = null;
+      relayMode = false;
+    } else if (urlParams.get('userId')) {
       localStorage.setItem('val_relay_user_id', urlParams.get('userId'));
+    }
+    if (urlParams.get('server')) {
+      localStorage.setItem('val_relay_server', urlParams.get('server'));
     }
     let audioCtx = null;
     let masterGainNode = null;
@@ -967,11 +976,10 @@
     const btnOpenAuth = document.getElementById('btnOpenAuth');
     const tokenModalNotice = document.getElementById('tokenModalNotice');
 
-    const RELAY_BASE_URL = 'https://keylicensedashboard.dungbd2005.workers.dev';
-
     async function pollCloudRelay(userId) {
       try {
-        const res = await fetch(`${RELAY_BASE_URL}/api/relay/score?userId=${encodeURIComponent(userId)}`, {
+        const targetServer = (relayBaseUrl || 'https://keylicensedashboard.dungbd2005.workers.dev').replace(/\/+$/, '');
+        const res = await fetch(`${targetServer}/api/relay/score?userId=${encodeURIComponent(userId)}`, {
           headers: { 'Accept': 'application/json' }
         });
         if (res.ok) {
@@ -1165,17 +1173,36 @@
       stopQrScanner();
       try {
         let extractedToken = null;
-        if (qrData.includes('token=')) {
+        let extractedUserId = null;
+        let extractedServer = null;
+
+        if (qrData.includes('http://') || qrData.includes('https://')) {
           const urlObj = new URL(qrData);
           extractedToken = urlObj.searchParams.get('token');
+          extractedUserId = urlObj.searchParams.get('userId');
+          extractedServer = urlObj.searchParams.get('server');
         } else if (/^[A-Za-z0-9]{4,10}$/.test(qrData.trim())) {
           extractedToken = qrData.trim();
+        }
+
+        if (extractedUserId) {
+          relayUserId = extractedUserId;
+          relayMode = true;
+          localStorage.setItem('val_relay_user_id', extractedUserId);
+          if (extractedServer) {
+            relayBaseUrl = extractedServer;
+            localStorage.setItem('val_relay_server', extractedServer);
+          }
+          tokenModal.style.display = 'none';
+          showToast('☁️ ĐÃ KẾT NỐI CLOUD RELAY (4G)');
+          startCloudRelay(extractedUserId);
+          return;
         }
 
         if (extractedToken) {
           applyTokenAndConnect(extractedToken.toUpperCase());
         } else {
-          showToast('MÃ QR KHÔNG CHỨA TOKEN HỢP LỆ');
+          showToast('MÃ QR KHÔNG CHỨA TOKEN HOẶC USER ID HỢP LỆ');
         }
       } catch (err) {
         showToast('LỖI ĐỌC MÃ QR: ' + err.message);

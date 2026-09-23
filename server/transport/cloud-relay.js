@@ -50,7 +50,11 @@ class CloudRelay {
     const session = this.getSession() || {};
     const user = session.user;
     if (!user || !user.id) return null;
-    return `${this.webBaseUrl}?mode=relay&userId=${encodeURIComponent(user.id)}&name=${encodeURIComponent(user.name || user.email || '')}`;
+    let url = `${this.webBaseUrl}?mode=relay&userId=${encodeURIComponent(user.id)}&name=${encodeURIComponent(user.name || user.email || '')}`;
+    if (this.baseUrl && !this.baseUrl.includes('keylicensedashboard.dungbd2005.workers.dev')) {
+      url += `&server=${encodeURIComponent(this.baseUrl)}`;
+    }
+    return url;
   }
 
   async broadcastScore(scoreData) {
