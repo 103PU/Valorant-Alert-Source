@@ -83,13 +83,6 @@ if (process.env.GITHUB_OUTPUT) {
   );
 }
 
-if (process.env.GITHUB_OUTPUT) {
-  fs.appendFileSync(
-    process.env.GITHUB_OUTPUT,
-    `portable=${zipPath}\nchecksums=${sumPath}\nversion=${version}\n`
-  );
-}
-
 if (failures.length > 0) {
   console.error(`\n${failures.length} release artifact check(s) failed. Not publishing.`);
   process.exit(1);

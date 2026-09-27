@@ -148,6 +148,55 @@ class KldClient {
     });
   }
 
+  // --- Public Unauthenticated License Contracts (Spec Section 1) ---
+
+  /**
+   * Public Periodic / Boot License Verification: POST /api/licenses/verify-public
+   */
+  verifyPublic({ licenseKey, deviceId, deviceName, productId, appVersion }) {
+    return this.request(this.cfg.endpoints.verifyPublic, {
+      method: 'POST',
+      json: {
+        licenseKey,
+        deviceId,
+        productId: productId || this.cfg.productId,
+        appVersion: appVersion || this.cfg.appVersion,
+        deviceName: deviceName || 'DESKTOP-GAMING'
+      }
+    });
+  }
+
+  /**
+   * Step 1: Challenge Nonce for atomic activation: GET /api/licenses/challenge?productId=...
+   */
+  getChallengePublic(productId) {
+    const q = `productId=${encodeURIComponent(productId || this.cfg.productId)}`;
+    return this.request(`${this.cfg.endpoints.challenge}?${q}`);
+  }
+
+  /**
+   * Step 2: Atomic Activation against Server KLD: POST /api/licenses/activate
+   */
+  activatePublic({ licenseKey, deviceId, deviceName, nonce, productId }) {
+    return this.request(this.cfg.endpoints.activate, {
+      method: 'POST',
+      json: {
+        licenseKey,
+        deviceId,
+        deviceName: deviceName || 'DESKTOP-GAMING',
+        nonce,
+        productId: productId || this.cfg.productId
+      }
+    });
+  }
+
+  /**
+   * Auto-Updater Download Resolver: GET /api/applications/:productId/download
+   */
+  getDownloadInfo(productId) {
+    return this.request(this.cfg.endpoints.download(productId || this.cfg.productId));
+  }
+
   // --- trials ---------------------------------------------------------------
 
   startTrial(jwt, { deviceId, deviceName }) {

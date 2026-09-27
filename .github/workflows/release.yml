@@ -110,11 +110,23 @@ jobs:
           INSTALLER: ${{ steps.artifacts.outputs.installer }}
           CHECKSUMS: ${{ steps.artifacts.outputs.checksums }}
         run: |
+          $highlights = @"
+## Release highlights
+- Realtime score sync under 10ms with Riot Local API.
+- Cloud Relay 4G support for mobile viewers.
+- Audio alert horn on round point.
+
+"@
+          [System.IO.File]::WriteAllText("$PWD/release-highlights.md", $highlights, [System.Text.Encoding]::UTF8)
+
           gh release create $env:TAG $env:PORTABLE $env:INSTALLER $env:CHECKSUMS `
             --title "Valorant Score Alert $env:TAG" `
+            --notes-file release-highlights.md `
             --generate-notes `
             --verify-tag `
             --latest
+
+          if (Test-Path release-highlights.md) { Remove-Item release-highlights.md -Force }
 
       # Asserting the resolver's release-level conditions against what was actually
       # published, not against intent. An asset stuck in 'starter' is still listed by

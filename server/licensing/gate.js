@@ -168,16 +168,82 @@ class LicenseGate {
    * A network failure falls back to the offline grace window instead of denying.
    */
   async check() {
-    if (!this.store.isLoggedIn()) {
-      this.set(STATE.NOT_LOGGED_IN);
-      return this.snapshot();
-    }
-
     this.checking = true;
     try {
-      const result = await this.checkOnline();
-      this.lastCheckedAt = new Date().toISOString();
-      return result;
+      // 1. Direct License Key check (Spec Section 1.2: POST /api/licenses/verify-public)
+      const storedKey = typeof this.store.getLicenseKey === 'function' ? this.store.getLicenseKey() : null;
+      if (storedKey && typeof this.kld.verifyPublic === 'function') {
+        try {
+          const res = await this.kld.verifyPublic({
+            licenseKey: storedKey,
+            deviceId: this.deviceId,
+            deviceName: this.deviceName,
+            productId: this.cfg.productId,
+            appVersion: this.cfg.appVersion
+          });
+
+          if (res) {
+            if (res.status === 'outdated') {
+              this.set(STATE.BLOCKED, {
+                reason: 'app_outdated',
+                message: 'Phiên bản ứng dụng đã quá cũ. Vui lòng cập nhật bản mới để tiếp tục sử dụng.'
+              });
+              this.lastCheckedAt = new Date().toISOString();
+              return this.snapshot();
+            }
+
+            if (res.status === 'banned') {
+              this.set(STATE.BLOCKED, {
+                reason: 'device_banned',
+                message: 'Thiết bị hoặc License Key này đã bị khóa. Vui lòng liên hệ hỗ trợ.'
+              });
+              this.lastCheckedAt = new Date().toISOString();
+              return this.snapshot();
+            }
+
+            if (res.status === 'revoked' || res.valid === false) {
+              this.set(STATE.BLOCKED, {
+                reason: 'license_revoked',
+                message: 'Bản quyền không hợp lệ hoặc đã bị thu hồi. Vui lòng nhập key mới.'
+              });
+              this.lastCheckedAt = new Date().toISOString();
+              return this.snapshot();
+            }
+
+            if (res.valid === true || res.status === 'active') {
+              const plan = res.plan || 'valorant-alert';
+              if (isPlanAllowed(plan)) {
+                this.store.recordEntitlement({
+                  key: storedKey,
+                  plan,
+                  status: res.status || 'active',
+                  expiresAt: res.expiresAt || null,
+                  maxDevices: res.maxDevices || 1,
+                  deviceCount: res.deviceCount || 1
+                });
+                this.set(STATE.LICENSED);
+                this.lastCheckedAt = new Date().toISOString();
+                return this.snapshot();
+              }
+            }
+          }
+        } catch (err) {
+          if (err instanceof KldNetworkError) {
+            return this.applyOfflineGrace(err);
+          }
+          logger.warn('[license] verify-public returned error, falling back to session check:', err.message);
+        }
+      }
+
+      // 2. OAuth Session check (Account licenses & trials)
+      if (this.store.isLoggedIn()) {
+        const result = await this.checkOnline();
+        this.lastCheckedAt = new Date().toISOString();
+        return result;
+      }
+
+      this.set(STATE.NOT_LOGGED_IN);
+      return this.snapshot();
     } catch (e) {
       if (e instanceof KldNetworkError) {
         return this.applyOfflineGrace(e);

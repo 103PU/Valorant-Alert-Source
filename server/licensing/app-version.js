@@ -133,6 +133,36 @@ async function checkKld(cfg, client) {
   };
 }
 
+async function checkDownloadResolver(cfg, client) {
+  if (!client) throw tagged('no_client');
+  const path = cfg.endpoints && typeof cfg.endpoints.download === 'function'
+    ? cfg.endpoints.download(cfg.productId)
+    : `/api/applications/${encodeURIComponent(cfg.productId)}/download`;
+  const data = typeof client.getDownloadInfo === 'function'
+    ? await client.getDownloadInfo(cfg.productId)
+    : await client.request(path);
+
+  if (!data || typeof data !== 'object') throw tagged('download_resolver_no_payload');
+  const rawVer = typeof data.version === 'string' ? data.version.trim() : null;
+  if (!rawVer) throw tagged('download_resolver_no_version');
+
+  const latestVersion = normalizeVersion(rawVer);
+  const releasePage = data.releasePageUrl || releasePageUrl(cfg.releaseRepo);
+  const recommended = data.recommended || null;
+  const portable = data.portable || null;
+
+  return {
+    source: 'kld_download',
+    latestVersion,
+    minimumVersion: latestVersion,
+    forceUpdate: false,
+    releaseNotes: '',
+    releasePageUrl: releasePage,
+    recommended,
+    portable
+  };
+}
+
 async function checkGitHub(cfg) {
   const data = await fetchJson(
     `https://api.github.com/repos/${cfg.releaseRepo}/releases/latest`,
@@ -142,6 +172,30 @@ async function checkGitHub(cfg) {
   if (!tag) throw tagged('github_release_has_no_tag');
 
   const latestVersion = normalizeVersion(tag);
+  let recommended = null;
+  let portable = null;
+
+  if (Array.isArray(data.assets)) {
+    for (const a of data.assets) {
+      const name = String(a.name || '').toLowerCase();
+      if ((name.includes('setup') || name.includes('installer')) && (name.endsWith('.exe') || name.endsWith('.zip'))) {
+        recommended = {
+          kind: 'installer',
+          fileName: a.name,
+          url: a.browser_download_url,
+          sizeBytes: a.size
+        };
+      } else if (name.includes('win-x64') && name.endsWith('.zip') && !name.includes('installer')) {
+        portable = {
+          kind: 'portable',
+          fileName: a.name,
+          url: a.browser_download_url,
+          sizeBytes: a.size
+        };
+      }
+    }
+  }
+
   return {
     source: 'github',
     latestVersion,
@@ -152,7 +206,9 @@ async function checkGitHub(cfg) {
     forceUpdate: false,
     releaseNotes: String(data.body || ''),
     releasePageUrl: (typeof data.html_url === 'string' && data.html_url)
-      || releasePageUrl(cfg.releaseRepo)
+      || releasePageUrl(cfg.releaseRepo),
+    recommended,
+    portable
   };
 }
 
@@ -175,9 +231,19 @@ async function checkForUpdate(cfg, client) {
   const appVersion = normalizeVersion(cfg.appVersion);
   const warnings = [];
 
-  for (const attempt of [() => checkKld(cfg, client), () => checkGitHub(cfg)]) {
+  for (const attempt of [
+    () => checkKld(cfg, client),
+    () => checkGitHub(cfg)
+  ]) {
     try {
       const found = await attempt();
+      if (!found.recommended && !found.portable && typeof client?.request === 'function') {
+        try {
+          const dl = await checkDownloadResolver(cfg, client);
+          if (dl && dl.recommended) found.recommended = dl.recommended;
+          if (dl && dl.portable) found.portable = dl.portable;
+        } catch (_) {}
+      }
       return { ok: true, appVersion, ...found, ...decide(appVersion, found), warnings };
     } catch (e) {
       warnings.push(e && e.code ? e.code : `check_failed:${e && e.message}`);
@@ -195,6 +261,8 @@ async function checkForUpdate(cfg, client) {
     softUpdateAvailable: false,
     releaseNotes: '',
     releasePageUrl: releasePageUrl(cfg.releaseRepo),
+    recommended: null,
+    portable: null,
     warnings
   };
 }
@@ -206,6 +274,7 @@ module.exports = {
   compareVersions,
   releasePageUrl,
   checkKld,
+  checkDownloadResolver,
   checkGitHub,
   decide,
   checkForUpdate,

@@ -43,7 +43,7 @@ test('CloudRelay: sends POST with JWT header and payload when entitled', async (
   await relay.broadcastScore(scoreData);
 
   assert.ok(callArgs);
-  assert.strictEqual(callArgs.url, 'https://kld.test/api/relay/score');
+  assert.ok(callArgs.url === 'https://kld.test/api/relays/live' || callArgs.url === 'https://kld.test/api/relay/score');
   assert.strictEqual(callArgs.opts.method, 'POST');
   assert.strictEqual(callArgs.opts.headers['Authorization'], 'Bearer my-secret-jwt');
   assert.strictEqual(callArgs.opts.headers['Content-Type'], 'application/json');
@@ -51,8 +51,36 @@ test('CloudRelay: sends POST with JWT header and payload when entitled', async (
   const parsedBody = JSON.parse(callArgs.opts.body);
   assert.strictEqual(parsedBody.alliedScore, 5);
   assert.strictEqual(parsedBody.enemyScore, 3);
+  assert.strictEqual(parsedBody.inGame, true);
+  assert.ok(parsedBody.matchId);
+  assert.ok(parsedBody.scorePayload);
   assert.strictEqual(relay.connected, true);
   assert.ok(relay.lastSyncAt > 0);
+});
+
+test('CloudRelay: falls back to /api/relay/score when /api/relays/live returns 404', async () => {
+  const calledUrls = [];
+  const fakeSession = { jwt: 'my-secret-jwt', user: { id: 'user-123', email: 'test@example.com' } };
+  const relay = new CloudRelay({
+    baseUrl: 'https://kld.test',
+    isEntitled: () => true,
+    getSession: () => fakeSession,
+    fetchFn: async (url, opts) => {
+      calledUrls.push(url);
+      if (url.includes('/api/relays/live')) {
+        return { ok: false, status: 404, statusText: 'Not Found' };
+      }
+      return { ok: true, status: 200 };
+    }
+  });
+
+  const scoreData = { inGame: true, alliedScore: 8, enemyScore: 7, round: 15 };
+  await relay.broadcastScore(scoreData);
+
+  assert.strictEqual(calledUrls.length, 2);
+  assert.strictEqual(calledUrls[0], 'https://kld.test/api/relays/live');
+  assert.strictEqual(calledUrls[1], 'https://kld.test/api/relay/score');
+  assert.strictEqual(relay.connected, true);
 });
 
 test('CloudRelay: throttles duplicate payloads within minIntervalMs', async () => {

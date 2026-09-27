@@ -143,27 +143,64 @@ class Licensing {
   }
 
   /**
-   * Apply a key the user pasted. Claim first so a key that is not yet on the
-   * account becomes theirs; an already-claimed key is not an error here, so that
-   * reason is swallowed and the flow continues to apply.
+   * Apply a key the user entered.
+   * Follows Spec Section 1.3: Challenge-Response activation against Server KLD,
+   * stores key locally, and optionally links to Google account if logged in.
    */
   async applyKey(licenseKey) {
-    const jwt = this.store.getJwt();
-    if (!jwt) throw new KldError(401, 'not_logged_in', 'Cần đăng nhập trước khi nhập key.');
+    if (!licenseKey || typeof licenseKey !== 'string' || !licenseKey.trim()) {
+      throw new KldError(400, 'license_key_required', 'Vui lòng nhập License Key.');
+    }
+    const cleanKey = licenseKey.trim();
 
+    // 1. Challenge-Response Activation against Server KLD (Spec Section 1.3)
+    let activated = false;
     try {
-      await this.kld.claimLicense(jwt, licenseKey);
-      logger.info('[license] key claimed');
+      const challenge = await this.kld.getChallengePublic(this.cfg.productId);
+      const nonce = challenge && challenge.nonce;
+      if (nonce) {
+        await this.kld.activatePublic({
+          licenseKey: cleanKey,
+          deviceId: this.deviceId,
+          deviceName: this.deviceName,
+          nonce,
+          productId: this.cfg.productId
+        });
+        activated = true;
+      }
     } catch (e) {
       if (e instanceof KldNetworkError) throw e;
-      // Already owned / already claimed by this user: keep going.
-      const benign = ['already_claimed', 'already_owned', 'license_already_claimed'];
-      if (!benign.includes(e.code)) {
-        logger.warn(`[license] claim returned ${e.code}, continuing to apply`);
+      // If 404 endpoint not implemented on older worker, allow fallback to claim+apply if jwt is present
+      if (e.status !== 404) {
+        throw e;
       }
     }
 
-    await this.kld.applyLicense(jwt, licenseKey);
+    // Persist license key
+    this.store.setLicenseKey(cleanKey);
+
+    // 2. Account linking if logged into Google OAuth
+    const jwt = this.store.getJwt();
+    if (jwt) {
+      try {
+        await this.kld.claimLicense(jwt, cleanKey);
+      } catch (e) {
+        if (e instanceof KldNetworkError) throw e;
+        const benign = ['already_claimed', 'already_owned', 'license_already_claimed'];
+        if (!benign.includes(e.code)) {
+          logger.warn(`[license] claim returned ${e.code}, continuing to apply`);
+        }
+      }
+      try {
+        await this.kld.applyLicense(jwt, cleanKey);
+      } catch (e) {
+        if (e instanceof KldNetworkError) throw e;
+        if (!activated) throw e;
+      }
+    } else if (!activated) {
+      throw new KldError(401, 'not_logged_in', 'Cần đăng nhập Google hoặc kích hoạt key hợp lệ.');
+    }
+
     logger.info('[license] key applied, re-checking entitlement');
     return this.gate.check();
   }

@@ -87,21 +87,56 @@ class CloudRelay {
     this.lastPushTime = now;
     this.lastPayloadHash = payloadHash;
 
+    const matchId = scoreData.matchId || scoreData.id || `match-${session.user.id}`;
+    const scoreObj = {
+      teamA: scoreData.alliedScore ?? 0,
+      teamB: scoreData.enemyScore ?? 0,
+      currentRound: scoreData.round ?? 0,
+      phase: scoreData.status || (scoreData.inGame ? 'in_progress' : 'idle'),
+      bombPlanted: Boolean(scoreData.bombPlanted),
+      mapName: scoreData.mapName || ''
+    };
+
+    const payload = {
+      matchId,
+      inGame: Boolean(scoreData.inGame),
+      scorePayload: JSON.stringify(scoreObj),
+      // Preserve flat score properties for backwards compatibility
+      ...scoreData
+    };
+
     try {
-      const url = `${this.baseUrl}/api/relay/score`;
-      const res = await this.fetchFn(url, {
+      let targetEndpoint = this.activeEndpoint || this.endpoint || '/api/relays/live';
+      let url = `${this.baseUrl}${targetEndpoint}`;
+      let res = await this.fetchFn(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.jwt}`
         },
-        body: JSON.stringify(scoreData),
+        body: JSON.stringify(payload),
         signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined
       });
 
+      // If /api/relays/live returns 404, gracefully fallback to legacy /api/relay/score
+      if (res.status === 404 && targetEndpoint === '/api/relays/live') {
+        targetEndpoint = '/api/relay/score';
+        this.activeEndpoint = '/api/relay/score';
+        url = `${this.baseUrl}${targetEndpoint}`;
+        res = await this.fetchFn(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.jwt}`
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined
+        });
+      }
+
       if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        this.lastError = `HTTP ${res.status}: ${text || res.statusText}`;
+        const text = await (res.text ? res.text().catch(() => '') : Promise.resolve(''));
+        this.lastError = `HTTP ${res.status}: ${text || res.statusText || 'Error'}`;
         this.connected = false;
         logger.debug(`[CloudRelay] Push returned status ${res.status}`);
       } else {

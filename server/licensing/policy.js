@@ -10,9 +10,17 @@
 // sit in config.json:11 and was never read by anything under server/, so it was
 // simultaneously a dead field and an invitation to believe editing it worked.
 
-// Plans this product is sold under. A signed entitlement naming any other plan
-// is a genuine KLD record that simply does not cover Valorant Alert.
-const ALLOWED_PLANS = Object.freeze(['plus', 'pro', 'ultra']);
+// Plans this product is sold under.
+// Policy: Single Purchase plan "valorant-alert" (also supporting legacy/compatible tiers).
+// When license is valid/active, 100% of all features are unlocked.
+const ALLOWED_PLANS = Object.freeze([
+  'valorant-alert',
+  'single',
+  'lifetime',
+  'plus',
+  'pro',
+  'ultra'
+]);
 
 // Ceiling on the offline grace window, independent of config.json's
 // maxOfflineDays. The config value stays a tunable so an operator can shorten
@@ -23,14 +31,12 @@ const MAX_OFFLINE_DAYS_HARD_CAP = 7;
 /**
  * True when `plan` is covered by this build.
  *
- * An absent plan is *not* treated as a violation. KLD does not guarantee a plan
- * on every license shape, and a signed entitlement with plan:null is a data
- * question rather than a bypass — the signature already proves the record is
- * KLD's. Blocking on null would brick real customers to close nothing.
+ * Single Purchase policy: any active license for valorant-alert unlocks 100% features.
  */
 function isPlanAllowed(plan) {
   if (plan === null || plan === undefined || String(plan).trim() === '') return true;
-  return ALLOWED_PLANS.includes(String(plan).trim().toLowerCase());
+  const p = String(plan).trim().toLowerCase();
+  return ALLOWED_PLANS.includes(p) || p.includes('valorant') || p.includes('alert');
 }
 
 /** Clamp a configured grace window to the hard cap. */

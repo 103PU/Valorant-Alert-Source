@@ -16,15 +16,18 @@ const ENDPOINTS = {
   applyLicense: (key) => `/api/me/licenses/${encodeURIComponent(key)}/apply`,
   activateLicense: (key) => `/api/me/licenses/${encodeURIComponent(key)}/activate`,
   verifyLicense: '/api/licenses/verify',
+  verifyPublic: '/api/licenses/verify-public',
   // Activation is nonce-protected: KLD stores the nonce per user with a 5-minute
   // TTL and deletes it on use, so a challenge must be fetched immediately before
   // each activate call. Reusing one yields reason "nonce_invalid".
   challenge: '/api/licenses/challenge',
+  activate: '/api/licenses/activate',
   startTrial: '/api/trials/start',
   verifyTrial: '/api/trials/verify',
   // Update check. Scoped with ?productId= and only trusted when KLD echoes the
   // product back — see ./app-version.js for why an unscoped answer is refused.
-  appVersion: '/api/app/version'
+  appVersion: '/api/app/version',
+  download: (productId = 'valorant-alert') => `/api/applications/${encodeURIComponent(productId)}/download`
 };
 
 // Where releases are published, and therefore where the update check looks when

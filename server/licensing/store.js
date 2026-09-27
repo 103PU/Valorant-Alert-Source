@@ -12,6 +12,7 @@ const CREDENTIALS_FILE = 'credentials.json';
 const EMPTY = {
   jwt: null,
   user: null,           // { id, email, name, picture }
+  licenseKey: null,     // stored key for public verify/activate contracts
   license: null,        // last successful LicenseInfo from KLD
   lastVerifiedAt: null, // ISO string — unsigned fallback for the offline window
   trial: null,
@@ -84,9 +85,21 @@ class LicenseStore {
 
   recordEntitlement(license, trial, envelope) {
     this.state.license = license || null;
+    if (license && license.key) {
+      this.state.licenseKey = license.key;
+    }
     this.state.trial = trial || null;
     this.state.entitlement = envelope || null;
     this.state.lastVerifiedAt = new Date().toISOString();
+    this.save();
+  }
+
+  getLicenseKey() {
+    return this.state.licenseKey || (this.state.license && this.state.license.key) || null;
+  }
+
+  setLicenseKey(key) {
+    this.state.licenseKey = key ? String(key).trim() : null;
     this.save();
   }
 
