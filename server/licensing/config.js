@@ -56,12 +56,26 @@ const DEFAULTS = {
 };
 
 function resolveAppVersion(rootDir) {
-  try {
-    const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8'));
-    return pkg.version || '0.0.0';
-  } catch (e) {
-    return '0.0.0';
+  const candidates = [
+    rootDir && path.join(rootDir, 'package.json'),
+    path.join(__dirname, '..', '..', 'package.json'),
+    path.join(__dirname, '..', 'package.json'),
+    path.join(process.cwd(), 'package.json'),
+    process.execPath && path.join(path.dirname(process.execPath), 'package.json')
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) {
+        const pkg = JSON.parse(fs.readFileSync(candidate, 'utf8'));
+        if (pkg && pkg.version) {
+          return pkg.version;
+        }
+      }
+    } catch (e) {}
   }
+
+  return '1.0.0';
 }
 
 // %APPDATA%\ValorantAlert on Windows, ~/.config/ValorantAlert elsewhere.

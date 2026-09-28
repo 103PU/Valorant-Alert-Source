@@ -7,7 +7,7 @@ const logger = require('../utils/logger');
 class CloudRelay {
   constructor(options = {}) {
     this.baseUrl = (options.baseUrl || 'https://keylicensedashboard.dungbd2005.workers.dev').replace(/\/+$/, '');
-    this.webBaseUrl = (options.webBaseUrl || 'https://valorant-alert.pages.dev').replace(/\/+$/, '');
+    this.webBaseUrl = (options.webBaseUrl || 'https://valorant-alert-source.dungbd2005.workers.dev').replace(/\/+$/, '');
     this.getSession = typeof options.getSession === 'function' ? options.getSession : () => null;
     this.isEntitled = typeof options.isEntitled === 'function' ? options.isEntitled : () => false;
     this.fetchFn = options.fetchFn || globalThis.fetch;
@@ -46,11 +46,13 @@ class CloudRelay {
     };
   }
 
-  getRelayWebUrl() {
+  getRelayWebUrl(requireUser = false) {
     const session = this.getSession() || {};
     const user = session.user;
-    if (!user || !user.id) return null;
-    let url = `${this.webBaseUrl}?mode=relay&userId=${encodeURIComponent(user.id)}&name=${encodeURIComponent(user.name || user.email || '')}`;
+    if (requireUser && (!user || !user.id)) return null;
+    let url = (!user || !user.id)
+      ? `${this.webBaseUrl}?mode=relay`
+      : `${this.webBaseUrl}?mode=relay&userId=${encodeURIComponent(user.id)}&name=${encodeURIComponent(user.name || user.email || '')}`;
     if (this.baseUrl && !this.baseUrl.includes('keylicensedashboard.dungbd2005.workers.dev')) {
       url += `&server=${encodeURIComponent(this.baseUrl)}`;
     }

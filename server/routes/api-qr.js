@@ -5,9 +5,14 @@ async function handleApiQr(req, res, { wsServer, cloudRelay, lanIp, port, public
   const qrType = parsed.searchParams.get('type');
   const token = wsServer.getToken();
 
-  let appUrl = `${publicUrl || `http://${lanIp}:${port}`}?token=${token}`;
-  if (qrType === 'cloud' && cloudRelay && cloudRelay.getRelayWebUrl()) {
-    appUrl = cloudRelay.getRelayWebUrl();
+  const cloudUrl = cloudRelay && cloudRelay.getRelayWebUrl ? cloudRelay.getRelayWebUrl() : null;
+  const localUrl = `${publicUrl || `http://${lanIp}:${port}`}?token=${token}`;
+
+  let appUrl = cloudUrl || localUrl;
+  if (qrType === 'lan') {
+    appUrl = localUrl;
+  } else if (qrType === 'cloud' && cloudUrl) {
+    appUrl = cloudUrl;
   }
   try {
     const pngBuffer = await QRCode.toBuffer(appUrl, { type: 'png', margin: 1, width: 280 });

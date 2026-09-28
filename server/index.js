@@ -222,19 +222,17 @@ server.listen(PORT, '0.0.0.0', async () => {
   logger.info('===========================================================');
   logger.info(`🔑 AUTH TOKEN:    ${authToken}`);
   logger.info(`🖥️ PC DASHBOARD: ${dashboardUrl}`);
-  logger.info(`📱 LAN IPHONE:   ${fullAppUrl}`);
-  if (cloudRelay.getRelayWebUrl()) {
-    logger.info(`☁️ CLOUD RELAY:  ${cloudRelay.getRelayWebUrl()}`);
-  }
+  const primaryMobileUrl = cloudRelay.getRelayWebUrl() || fullAppUrl;
+  logger.info(`☁️ CLOUD RELAY (4G/5G): ${primaryMobileUrl}`);
   logger.info(`📝 LOG FILE:      ${logger.getLogFilePath()}`);
   logger.info('===========================================================');
-  logger.info('📱 SCAN THE QR CODE BELOW WITH YOUR MOBILE CAMERA:\n');
+  logger.info('📱 SCAN THE CLOUD RELAY QR CODE BELOW WITH YOUR MOBILE CAMERA:\n');
 
   try {
-    const qrString = await QRCode.toString(fullAppUrl, { type: 'terminal', small: true });
+    const qrString = await QRCode.toString(primaryMobileUrl, { type: 'terminal', small: true });
     console.log(qrString);
   } catch (err) {
-    logger.info(`(Open URL directly on Mobile Browser: ${fullAppUrl})`);
+    logger.info(`(Open URL directly on Mobile Browser: ${primaryMobileUrl})`);
   }
 
   logger.info('===========================================================');

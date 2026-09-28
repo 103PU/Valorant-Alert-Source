@@ -201,15 +201,6 @@ class LicenseGate {
               return this.snapshot();
             }
 
-            if (res.status === 'revoked' || res.valid === false) {
-              this.set(STATE.BLOCKED, {
-                reason: 'license_revoked',
-                message: 'Bản quyền không hợp lệ hoặc đã bị thu hồi. Vui lòng nhập key mới.'
-              });
-              this.lastCheckedAt = new Date().toISOString();
-              return this.snapshot();
-            }
-
             if (res.valid === true || res.status === 'active') {
               const plan = res.plan || 'valorant-alert';
               if (isPlanAllowed(plan)) {
@@ -226,6 +217,23 @@ class LicenseGate {
                 return this.snapshot();
               }
             }
+
+            // Key is invalid or revoked
+            logger.warn(`[license] verify-public indicated stored key is invalid or revoked (${res.reason || res.status || 'invalid'}). Clearing stored key.`);
+            if (typeof this.store.setLicenseKey === 'function') {
+              this.store.setLicenseKey(null);
+            }
+
+            // If user is not logged in, block and inform them to enter key or sign in
+            if (!this.store.isLoggedIn()) {
+              this.set(STATE.BLOCKED, {
+                reason: 'license_revoked',
+                message: 'Bản quyền không hợp lệ hoặc đã bị thu hồi. Vui lòng đăng nhập hoặc nhập key mới.'
+              });
+              this.lastCheckedAt = new Date().toISOString();
+              return this.snapshot();
+            }
+            // If logged in, fall through to step 2 (OAuth session check) to check account licenses!
           }
         } catch (err) {
           if (err instanceof KldNetworkError) {
@@ -272,8 +280,32 @@ class LicenseGate {
 
   async checkOnline() {
     const jwt = this.store.getJwt();
-    const applied = await this.kld.getAppliedLicense(jwt);
-    const appliedKey = applied && (applied.appliedLicenseKey || (applied.license && applied.license.license_key));
+    let applied = await this.kld.getAppliedLicense(jwt);
+    let appliedKey = applied && (applied.appliedLicenseKey || (applied.license && applied.license.license_key));
+
+    if (!appliedKey && typeof this.kld.listMyLicenses === 'function') {
+      try {
+        const myLicRes = await this.kld.listMyLicenses(jwt);
+        const licenses = Array.isArray(myLicRes) ? myLicRes : (myLicRes && myLicRes.licenses ? myLicRes.licenses : []);
+        const candidate = licenses.find(l => {
+          const status = l.status || 'active';
+          if (status !== 'active') return false;
+          if (l.product_id && l.product_id !== this.cfg.productId) return false;
+          return isPlanAllowed(l.plan);
+        });
+        if (candidate) {
+          appliedKey = candidate.license_key || candidate.key;
+          try {
+            await this.kld.applyLicense(jwt, appliedKey);
+            logger.info(`[license] auto-applied license ${appliedKey} for ${this.cfg.productId}`);
+          } catch (e) {
+            logger.warn(`[license] auto-apply license returned error: ${e.message}`);
+          }
+        }
+      } catch (e) {
+        logger.warn(`[license] listMyLicenses fallback check error: ${e.message}`);
+      }
+    }
 
     if (!appliedKey) {
       return this.tryTrial(applied && applied.reason ? applied.reason : 'no_applied_license');
@@ -315,6 +347,9 @@ class LicenseGate {
 
       this.offlineDaysSigned = null;
       this.store.recordEntitlement(license, null, activation.envelope);
+      if (typeof this.store.setLicenseKey === 'function' && appliedKey) {
+        this.store.setLicenseKey(appliedKey);
+      }
       this.set(STATE.LICENSED);
       return this.snapshot();
     }

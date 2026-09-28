@@ -178,24 +178,31 @@ test('licensing: applyKey performs challenge-response activation and unlocks app
     })
   };
 
+  const testFolderName = 'ValAlertTest_' + Date.now();
   const licensing = new Licensing({
-    rawConfig: { keylicense: { productId: 'valorant-alert' } },
+    rawConfig: { keylicense: { productId: 'valorant-alert', appDataFolderName: testFolderName } },
     rootDir
   });
 
-  // Inject fake KldClient
-  licensing.kld = fakeKld;
-  licensing.gate.kld = fakeKld;
+  try {
+    // Inject fake KldClient
+    licensing.kld = fakeKld;
+    licensing.gate.kld = fakeKld;
 
-  const result = await licensing.applyKey('VA-NEW-1234-5678');
-  assert.strictEqual(challengeCalled, true);
-  assert.ok(activateArgs);
-  assert.strictEqual(activateArgs.licenseKey, 'VA-NEW-1234-5678');
-  assert.strictEqual(activateArgs.nonce, 'nonce-uuid-1234');
-  assert.strictEqual(activateArgs.productId, 'valorant-alert');
-  assert.strictEqual(licensing.store.getLicenseKey(), 'VA-NEW-1234-5678');
-  assert.strictEqual(result.state, STATE.LICENSED);
-  assert.strictEqual(result.entitled, true);
+    const result = await licensing.applyKey('VA-NEW-1234-5678');
+    assert.strictEqual(challengeCalled, true);
+    assert.ok(activateArgs);
+    assert.strictEqual(activateArgs.licenseKey, 'VA-NEW-1234-5678');
+    assert.strictEqual(activateArgs.nonce, 'nonce-uuid-1234');
+    assert.strictEqual(activateArgs.productId, 'valorant-alert');
+    assert.strictEqual(licensing.store.getLicenseKey(), 'VA-NEW-1234-5678');
+    assert.strictEqual(result.state, STATE.LICENSED);
+    assert.strictEqual(result.entitled, true);
+  } finally {
+    try {
+      fs.rmSync(licensing.cfg.appDataDir, { recursive: true, force: true });
+    } catch (e) {}
+  }
 });
 
 test('app-version: checkDownloadResolver parses recommended and portable downloads', async () => {

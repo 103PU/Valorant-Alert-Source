@@ -87,6 +87,7 @@ copyDirSync(path.join(rootDir, 'scripts'), path.join(releaseDir, 'scripts'));
 // 4. Copy configuration and batch files
 console.log('[4/8] Copying launcher batch files & configuration...');
 fs.copyFileSync(path.join(rootDir, 'config.json'), path.join(releaseDir, 'config.json'));
+fs.copyFileSync(path.join(rootDir, 'package.json'), path.join(releaseDir, 'package.json'));
 fs.copyFileSync(path.join(rootDir, 'Start-ValorantAlert.bat'), path.join(releaseDir, 'Start-ValorantAlert.bat'));
 fs.copyFileSync(path.join(rootDir, 'Create-Desktop-Shortcut.vbs'), path.join(releaseDir, 'Create-Desktop-Shortcut.vbs'));
 
