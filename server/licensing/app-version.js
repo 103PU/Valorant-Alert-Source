@@ -105,6 +105,13 @@ function tagged(code) {
 // Throws — never returns a half-trusted answer — so the caller's catch is the
 // single place a rejected source turns into a warning.
 async function checkKld(cfg, client) {
+  // 1. Try per-product download resolver first (Spec Section 3)
+  try {
+    const dl = await checkDownloadResolver(cfg, client);
+    if (dl && dl.latestVersion) return dl;
+  } catch (_) {}
+
+  // 2. Query /api/app/version?productId=...
   const q = `productId=${encodeURIComponent(cfg.productId)}`;
   const data = await client.request(`${cfg.endpoints.appVersion}?${q}`);
   const version = data && typeof data === 'object' ? data.version : null;
@@ -114,10 +121,18 @@ async function checkKld(cfg, client) {
   if (!echoed) throw tagged('kld_not_product_scoped');
   if (echoed !== String(cfg.productId).toLowerCase()) throw tagged('kld_product_mismatch');
 
-  const latestVersion = normalizeVersion(version.currentVersion ?? version.current_version);
-  // An empty minimum means "no floor", not "floor at 0.0.0 so force away": fall
-  // back to latest, which is what KLD's own appVersionConfigResponse does
-  // (worker/index.ts:3822-3824).
+  const rawCurrent = version.currentVersion ?? version.current_version;
+  const latestVersion = normalizeVersion(rawCurrent);
+  const releaseNotes = String(version.releaseNotes ?? version.release_notes ?? '');
+
+  // Guard against Valorant Tweaks 3.x bleed if server returns the global VT row:
+  if (
+    String(cfg.productId).toLowerCase() === 'valorant-alert' &&
+    (latestVersion.startsWith('3.') || releaseNotes.includes('Extract-ReleaseHighlights') || releaseNotes.includes('ValorantTweaks'))
+  ) {
+    throw tagged('kld_product_mismatch');
+  }
+
   const rawMinimum = version.minimumVersion ?? version.minimum_version;
   const minimumVersion = normalizeVersion(
     (typeof rawMinimum === 'string' && rawMinimum.trim()) ? rawMinimum : latestVersion
@@ -128,7 +143,7 @@ async function checkKld(cfg, client) {
     latestVersion,
     minimumVersion,
     forceUpdate: !!(version.forceUpdate ?? version.force_update),
-    releaseNotes: String(version.releaseNotes ?? version.release_notes ?? ''),
+    releaseNotes,
     releasePageUrl: releasePageUrl(cfg.releaseRepo)
   };
 }
@@ -143,23 +158,29 @@ async function checkDownloadResolver(cfg, client) {
     : await client.request(path);
 
   if (!data || typeof data !== 'object') throw tagged('download_resolver_no_payload');
-  const rawVer = typeof data.version === 'string' ? data.version.trim() : null;
+  const rawVer = (data.release && typeof data.release.version === 'string' && data.release.version.trim())
+    || (typeof data.version === 'string' && data.version.trim())
+    || null;
   if (!rawVer) throw tagged('download_resolver_no_version');
 
   const latestVersion = normalizeVersion(rawVer);
-  const releasePage = data.releasePageUrl || releasePageUrl(cfg.releaseRepo);
+  const releasePage = (data.release && data.release.releasePageUrl)
+    || data.releasePageUrl
+    || releasePageUrl(cfg.releaseRepo);
   const recommended = data.recommended || null;
   const portable = data.portable || null;
+  const checksumUrl = data.checksumUrl || null;
 
   return {
     source: 'kld_download',
     latestVersion,
     minimumVersion: latestVersion,
     forceUpdate: false,
-    releaseNotes: '',
+    releaseNotes: (data.release && data.release.name) || '',
     releasePageUrl: releasePage,
     recommended,
-    portable
+    portable,
+    checksumUrl
   };
 }
 

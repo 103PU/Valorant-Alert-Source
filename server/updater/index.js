@@ -136,7 +136,7 @@ class UpdateInstaller {
    * client-supplied version (or worse, a URL) would make this an arbitrary-download
    * primitive reachable from the LAN.
    */
-  async start(version) {
+  async start(version, { downloadUrl = null, checksumUrl = null } = {}) {
     if (!SETTLED.has(this.state.stage)) {
       throw fail(this.state.stage, 'update_already_running', 'Đang cập nhật, vui lòng chờ.');
     }
@@ -161,21 +161,23 @@ class UpdateInstaller {
     };
     // Fire and forget: run() records its own failure in state, and an unhandled
     // rejection here would take the whole server down with it.
-    this.run(v).catch(() => {});
+    this.run(v, { downloadUrl, checksumUrl }).catch(() => {});
     return this.snapshot();
   }
 
-  async run(version) {
+  async run(version, { downloadUrl = null, checksumUrl = null } = {}) {
     const asset = installerZipName(version);
     try {
       const dir = this.prepareWorkDir();
       const zipPath = path.join(dir, asset);
       const base = `https://github.com/${this.cfg.releaseRepo}/releases/download/v${version}`;
+      const fileUrl = downloadUrl || `${base}/${asset}`;
+      const sumUrl = checksumUrl || `${base}/${checksumFileName()}`;
 
-      const digest = await this.download(`${base}/${asset}`, zipPath);
+      const digest = await this.download(fileUrl, zipPath);
 
       this.mark(STAGE.VERIFYING);
-      await this.verify(`${base}/${checksumFileName()}`, zipPath, digest, asset);
+      await this.verify(sumUrl, zipPath, digest, asset);
 
       this.mark(STAGE.EXTRACTING);
       const payloadDir = path.join(dir, 'payload');

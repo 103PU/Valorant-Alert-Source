@@ -134,7 +134,9 @@ class Licensing {
       err.code = 'no_update_available';
       throw err;
     }
-    const started = await this.updater.start(info.latestVersion);
+    const downloadUrl = (info.recommended && info.recommended.url) || null;
+    const checksumUrl = info.checksumUrl || null;
+    const started = await this.updater.start(info.latestVersion, { downloadUrl, checksumUrl });
     return { ...started, releasePageUrl: info.releasePageUrl };
   }
 
