@@ -1723,6 +1723,19 @@
     <input id="licKeyInput" type="text">
     <button id="btnLicApply"></button>
     <button id="btnLicLogout"></button>
+    <button id="btnLicRecheck"></button>
+    <button id="btnLicRecheckModal"></button>
+    <button id="btnLicApplyModal"></button>
+    <button id="btnCopyModalKey"></button>
+    <button id="btnCloseLicModalFooter"></button>
+    <button id="btnModalLogout"></button>
+    <button id="btnModalLogoutFooter"></button>
+    <button id="btnModalSwitchToLogin"></button>
+    <div id="modalLicPlan"></div>
+    <div id="modalLicState"></div>
+    <div id="modalLicExpires"></div>
+    <div id="modalLicDevice"></div>
+    <div id="modalLicKey"></div>
     <div id="licStateTag"></div>
     <div id="licUser"></div>
     <div id="licKey"></div>
@@ -1830,6 +1843,10 @@
     const modalKeyFeedback = document.getElementById('modalKeyFeedback');
 
     let fullLanUrl = '';
+    let fullLanDashboardUrl = '';
+    let currentAuthToken = '';
+    let activeSyncMode = 'cloud';
+    let cloudRelayUrl = '';
     let audioCtx = null;
     let masterGainNode = null;
     let isPcAudioEnabled = false;
@@ -2518,14 +2535,14 @@
     btnModalLogoutFooter?.addEventListener('click', () =>
       licAct('logout', 'POST', null, t('toastLoggedOut')));
 
-    licenseModal.addEventListener('click', (e) => {
+    licenseModal?.addEventListener('click', (e) => {
       if (e.target === licenseModal) closeLicenseModal();
     });
-    loginModal.addEventListener('click', (e) => {
+    loginModal?.addEventListener('click', (e) => {
       if (e.target === loginModal) closeLoginModal();
     });
 
-    btnCopyModalKey.addEventListener('click', () => {
+    btnCopyModalKey?.addEventListener('click', () => {
       if (rawCurrentKey) {
         navigator.clipboard.writeText(rawCurrentKey);
         showToast(t('toastCopiedKey'));
@@ -2536,31 +2553,39 @@
 
     // Fetch System Info & Setup WS
     fetch('/api/info').then(res => res.json()).then(info => {
-      fullLanUrl = info.lanMobileUrl || info.lanUrl;
-      fullLanDashboardUrl = info.lanDashboardUrl || info.dashboardUrl;
-      currentAuthToken = info.token || '';
+      try {
+        fullLanUrl = info.lanMobileUrl || info.lanUrl || '';
+        fullLanDashboardUrl = info.lanDashboardUrl || info.dashboardUrl || '';
+        currentAuthToken = info.token || '';
 
-      lanUrlInput.value = fullLanUrl;
-      lanDashboardInput.value = fullLanDashboardUrl;
-      tokenDisplay.innerText = currentAuthToken;
-      qrImg.src = '/api/qr?t=' + Date.now();
+        if (lanUrlInput) lanUrlInput.value = fullLanUrl;
+        if (lanDashboardInput) lanDashboardInput.value = fullLanDashboardUrl;
+        if (tokenDisplay) tokenDisplay.innerText = currentAuthToken;
+        if (qrImg) qrImg.src = '/api/qr?t=' + Date.now();
 
-      if (info.riotConnected) {
-        riotStatusVal.innerHTML = `<span style="color:var(--val-cyan)">●</span> ${info.region.toUpperCase()} (${info.shard})`;
-      } else {
-        riotStatusVal.innerHTML = `<span style="color:var(--val-red)">●</span> OFFLINE`;
+        if (riotStatusVal) {
+          if (info.riotConnected) {
+            riotStatusVal.innerHTML = `<span style="color:var(--val-cyan)">●</span> ${(info.region || 'RIOT').toUpperCase()} (${info.shard || 'live'})`;
+          } else {
+            riotStatusVal.innerHTML = `<span style="color:var(--val-red)">●</span> OFFLINE`;
+          }
+        }
+
+        if (info.cloudRelay && info.cloudRelay.relayWebUrl) {
+          cloudRelayUrl = info.cloudRelay.relayWebUrl;
+        }
+
+        switchSyncMode('cloud');
+        initDashboardWS(info.token);
+      } catch (err) {
+        console.error('Error parsing info:', err);
       }
-
-      if (info.cloudRelay && info.cloudRelay.relayWebUrl) {
-        cloudRelayUrl = info.cloudRelay.relayWebUrl;
-      }
-
-      switchSyncMode('cloud');
-      initDashboardWS(info.token);
       initLicense();
       initUpdateCheck();
     }).catch(err => {
       console.log('Error fetching info:', err);
+      initLicense();
+      initUpdateCheck();
     });
 
     // Connection Mode Switcher (Cloud Relay Primary vs LAN Alternative)
@@ -2568,8 +2593,6 @@
     const btnModeCloud = document.getElementById('btnModeCloud');
     const syncModeTag = document.getElementById('syncModeTag');
     const syncStatusLabel = document.getElementById('syncStatusLabel');
-    let activeSyncMode = 'cloud';
-    let cloudRelayUrl = '';
 
     function switchSyncMode(mode) {
       activeSyncMode = mode;
@@ -3040,13 +3063,13 @@
     });
 
     // Recheck & Logout Triggers
-    btnLicRecheck.addEventListener('click', () =>
+    btnLicRecheck?.addEventListener('click', () =>
       licAct('recheck', 'POST', null, t('toastCheckingLic')));
-    btnLicRecheckModal.addEventListener('click', () =>
+    btnLicRecheckModal?.addEventListener('click', () =>
       licAct('recheck', 'POST', null, t('toastCheckingLicServer')));
-    btnLicLogout.addEventListener('click', () =>
+    btnLicLogout?.addEventListener('click', () =>
       licAct('logout', 'POST', null, t('toastLoggedOut')));
-    btnUserLogout.addEventListener('click', () =>
+    btnUserLogout?.addEventListener('click', () =>
       licAct('logout', 'POST', null, t('toastLoggedOut')));
 
     // Apply Key Triggers
@@ -3064,8 +3087,8 @@
       licAct('apply-key', 'POST', { licenseKey: key }, t('toastActivatingKey'));
     }
 
-    btnLicApply.addEventListener('click', () => applyLicenseKey(licKeyInput.value));
-    btnLicApplyModal?.addEventListener('click', () => applyLicenseKey(licKeyInputModal.value));
+    btnLicApply?.addEventListener('click', () => applyLicenseKey(licKeyInput ? licKeyInput.value : ''));
+    btnLicApplyModal?.addEventListener('click', () => applyLicenseKey(licKeyInputModal ? licKeyInputModal.value : ''));
     licKeyInputModal?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         if (btnCheckAccess) btnCheckAccess.click();
