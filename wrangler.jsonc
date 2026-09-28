@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "valorant-alert-source",
+  "account_id": "4321e023cd6616f23130d36409e889e0",
   "compatibility_date": "2026-09-21",
   "assets": {
     "directory": "./public",
