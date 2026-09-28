@@ -75,7 +75,7 @@ function resolveAppVersion(rootDir) {
     } catch (e) {}
   }
 
-  return '1.0.0';
+  return '1.0.1';
 }
 
 // %APPDATA%\ValorantAlert on Windows, ~/.config/ValorantAlert elsewhere.
