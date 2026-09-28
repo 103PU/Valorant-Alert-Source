@@ -2478,8 +2478,8 @@
     const tokenDisplay = document.getElementById('tokenDisplay');
     const btnCopyToken = document.getElementById('btnCopyToken');
     const urlParams = new URLSearchParams(window.location.search);
-    let fullLanDashboardUrl = '';
-    let currentAuthToken = urlParams.get('token') || '';
+    fullLanDashboardUrl = '';
+    currentAuthToken = urlParams.get('token') || '';
 
     btnCopyToken.addEventListener('click', () => {
       if (currentAuthToken) {
