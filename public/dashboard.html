@@ -1594,6 +1594,9 @@
         <button id="btnModalUpdClose" class="lic-hidden" style="width: 100%; height: 40px; border-radius: 999px; background: transparent; color: #8a90a2; font-size: 13px; font-weight: 600; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; margin-top: 10px;">
           Remind Me Later
         </button>
+        <button id="btnModalUpdCancel" class="lic-hidden" style="width: 100%; height: 40px; border-radius: 999px; background: transparent; color: #ff9ab8; font-size: 13px; font-weight: 600; border: 1px solid rgba(255,45,117,0.35); cursor: pointer; margin-top: 10px;">
+          Cancel Update
+        </button>
       </div>
     </div>
   </div>
@@ -3117,6 +3120,7 @@
     const modalUpdProgressLabel = document.getElementById('modalUpdProgressLabel');
     const btnModalUpdDownload = document.getElementById('btnModalUpdDownload');
     const btnModalUpdClose = document.getElementById('btnModalUpdClose');
+    const btnModalUpdCancel = document.getElementById('btnModalUpdCancel');
 
     btnCheckAccess?.addEventListener('click', () => {
       const val = (licKeyInputModal ? licKeyInputModal.value : '').trim();
@@ -3264,6 +3268,10 @@
       btnUpdInstall.classList.toggle('lic-hidden', busy);
       btnUpdLater.classList.toggle('lic-hidden', busy || forced);
       updProgress.classList.toggle('lic-hidden', !busy);
+      if (btnModalUpdCancel) {
+        btnModalUpdCancel.classList.toggle('lic-hidden', !busy || st.canCancel === false);
+        btnModalUpdCancel.disabled = !busy || st.canCancel === false;
+      }
 
       if (st.stage === 'downloading') {
         const pct = typeof st.percent === 'number' ? st.percent : null;
@@ -3276,7 +3284,7 @@
         if (modalUpdProgressWrap) modalUpdProgressWrap.classList.remove('lic-hidden');
         if (modalUpdProgressBar && pct !== null) modalUpdProgressBar.style.width = pct + '%';
         if (modalUpdProgressPct && pct !== null) modalUpdProgressPct.innerText = pct + '%';
-        if (modalUpdProgressLabel) modalUpdProgressLabel.innerText = `${currentLang === 'vi' ? 'Đang tải bộ cài' : 'Downloading installer'} (${updMb(st.bytesReceived)} MB)`;
+        if (modalUpdProgressLabel) modalUpdProgressLabel.innerText = `${currentLang === 'vi' ? 'Đang tải bộ cài' : 'Downloading installer'} (${updMb(st.bytesReceived)} MB, ${updMb(st.speedBps)}/s)`;
         if (btnModalUpdDownload) btnModalUpdDownload.disabled = true;
         return;
       }
@@ -3305,6 +3313,16 @@
         return;
       }
 
+      if (st.stage === 'cancelled') {
+        updBanner.className = 'lic-banner';
+        updBannerTitle.innerText = currentLang === 'vi' ? 'ĐÃ HUỶ CẬP NHẬT' : 'UPDATE CANCELLED';
+        updBannerMsg.innerText = currentLang === 'vi' ? 'Bộ cài tạm đã được xoá.' : 'The partial installer was removed.';
+        btnUpdInstall.classList.remove('lic-hidden');
+        btnUpdInstall.disabled = false;
+        if (btnModalUpdCancel) btnModalUpdCancel.classList.add('lic-hidden');
+        return;
+      }
+
       if (st.stage === 'error' && st.error) {
         updBanner.className = 'lic-banner is-bad';
         updBannerTitle.innerText = t('stageErrorTitle');
@@ -3322,6 +3340,16 @@
     btnUpdLater.addEventListener('click', () => {
       updBanner.classList.add('lic-hidden');
       modalUpdate?.classList.add('lic-hidden');
+    });
+
+    btnModalUpdCancel?.addEventListener('click', () => {
+      btnModalUpdCancel.disabled = true;
+      licApi('update/cancel', 'POST')
+        .then((st) => renderUpdateRun(st))
+        .catch((e) => {
+          btnModalUpdCancel.disabled = false;
+          updBannerMsg.innerText = e.message;
+        });
     });
 
     function pollUpdateState() {

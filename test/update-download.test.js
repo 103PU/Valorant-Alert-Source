@@ -8,7 +8,7 @@ const { EventEmitter } = require('events');
 const { Readable } = require('stream');
 
 const { UpdateInstaller, findChecksum } = require('../server/updater');
-const { installerZipName, checksumFileName, checksumLine } = require('../scripts/release-naming');
+const { installerZipName, setupExeName, checksumFileName, checksumLine } = require('../scripts/release-naming');
 
 // The updater is the one module in this app that downloads a file and then executes
 // a program, so the tests hold two lines that matter more than the happy path:
@@ -219,6 +219,52 @@ test('progress reports real bytes, and percent stays under 100 until the install
   assert.ok(downloads.every((s) => s.percent <= 99), 'percent hit 100 mid-download');
   assert.ok(downloads.some((s) => s.bytesReceived > 0 && s.bytesReceived < ZIP.length));
   assert.equal(inst.snapshot().stage, 'launched');
+});
+
+test('a verified Setup EXE bypasses legacy extraction and owns the relaunch handoff', async () => {
+  const setup = setupExeName(VERSION);
+  const setupBytes = Buffer.concat([Buffer.from('MZ'), crypto.randomBytes(4096)]);
+  const setupSha = crypto.createHash('sha256').update(setupBytes).digest('hex');
+  const fetchImpl = stubFetch([
+    [setup, () => okStream(setupBytes)],
+    [checksumFileName(), () => okText(`${checksumLine(setupSha, setup)}\n`)]
+  ]);
+  const spawnImpl = stubSpawn();
+  const { inst } = makeInstaller(fetchImpl, spawnImpl);
+  await inst.start(VERSION, {
+    downloadUrl: `https://github.com/${REPO}/releases/download/v${VERSION}/${setup}`
+  });
+  const final = await settle(inst);
+  assert.equal(final.stage, 'launched', JSON.stringify(final.error));
+  assert.equal(final.handoffKind, 'setup-exe');
+  assert.equal(spawnImpl.calls.filter((call) => call.file === 'powershell.exe').length, 0);
+  const launch = spawnImpl.calls.find((call) => call.file === 'cmd.exe');
+  assert.match(launch.args[1], /start \/wait .*\/SILENT \/SP- \/CLOSEAPPLICATIONS \/SUPPRESSMSGBOXES/);
+});
+
+test('progress exposes speed and cancellation removes the partial payload', async () => {
+  const paced = () => ({
+    ok: true,
+    status: 200,
+    headers: { get: (k) => (k.toLowerCase() === 'content-length' ? String(ZIP.length) : null) },
+    body: Readable.from((async function* stream() {
+      yield ZIP.subarray(0, 1024);
+      await new Promise((r) => setTimeout(r, 80));
+      yield ZIP.subarray(1024);
+    })())
+  });
+  const fetchImpl = stubFetch([[ASSET, paced]]);
+  const spawnImpl = stubSpawn();
+  const { inst, workDir } = makeInstaller(fetchImpl, spawnImpl);
+  await inst.start(VERSION);
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(typeof inst.snapshot().speedBps, 'number');
+  assert.equal(inst.snapshot().canCancel, true);
+  const cancelled = inst.cancel();
+  assert.equal(cancelled.stage, 'cancelled');
+  await new Promise((r) => setTimeout(r, 20));
+  assert.equal(spawnImpl.calls.length, 0);
+  assert.equal(fs.existsSync(path.join(workDir, ASSET)), false);
 });
 
 // --- nothing runs unless sha256 matched --------------------------------------

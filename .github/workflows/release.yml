@@ -72,8 +72,7 @@ jobs:
           }
           Write-Host "Tag $env:TAG matches package.json $pkg."
 
-      # Emits dist/ValorantScoreAlert-v<version>-win-x64.zip, the matching
-      # ...-installer.zip and SHA256SUMS.txt covering both.
+      # Emits portable ZIP, installer ZIP, primary Setup.exe and SHA256SUMS.txt.
       - name: Build Standalone Executable Release Package
         run: node scripts/build.js
 
@@ -94,6 +93,7 @@ jobs:
           name: portable-dry-run
           path: |
             dist/*.zip
+            dist/*-setup.exe
             dist/SHA256SUMS.txt
           if-no-files-found: error
 
@@ -108,6 +108,7 @@ jobs:
           TAG: ${{ github.ref_name }}
           PORTABLE: ${{ steps.artifacts.outputs.portable }}
           INSTALLER: ${{ steps.artifacts.outputs.installer }}
+          SETUP: ${{ steps.artifacts.outputs.setup }}
           CHECKSUMS: ${{ steps.artifacts.outputs.checksums }}
         run: |
           $highlights = @(
@@ -118,7 +119,7 @@ jobs:
           ) -join "`n"
           [System.IO.File]::WriteAllText("$PWD/release-highlights.md", $highlights, [System.Text.Encoding]::UTF8)
 
-          gh release create $env:TAG $env:PORTABLE $env:INSTALLER $env:CHECKSUMS `
+          gh release create $env:TAG $env:PORTABLE $env:INSTALLER $env:SETUP $env:CHECKSUMS `
             --title "Valorant Score Alert $env:TAG" `
             --notes-file release-highlights.md `
             --generate-notes `

@@ -33,8 +33,9 @@ lặp bốn lần:
    chỉ hiện ra dưới dạng nút download chết trên production).
 2. `scripts/build.js` — guard `resolver.matchesPortable(zipName)` trước khi zip;
    `process.exit(1)` nếu không khớp.
-3. `scripts/verify-release-artifacts.js` — chạy **sau** build: hai file có thật trên
-   đĩa, digest trong `SHA256SUMS.txt` tính lại từ bytes của zip có khớp, zip lớn hơn
+3. `scripts/verify-release-artifacts.js` — chạy **sau** build: portable ZIP, installer
+   ZIP, Setup EXE có thật trên đĩa; digest trong `SHA256SUMS.txt` tính lại từ bytes có khớp,
+   artifact lớn hơn
    5 MB. Bắt được `dist/` cũ còn sót và checksum lệch sau khi rebuild — hai thứ
    `build.js` không thể tự thấy từ trong lần chạy của nó.
 4. `.github/workflows/release.yml` — assert tag khớp `package.json`, rồi assert
@@ -49,9 +50,9 @@ trỏ `launcher.vbs` chứ không phải .exe, và test uninstaller giữ `%APPD
 ## 3. Cắt một release
 
 ```bash
-npm test                     # 166/166 phải xanh; naming contract nằm trong đây
-npm run build                # → dist/ValorantScoreAlert-v<ver>-win-x64.zip
-                             #   + ...-win-x64-installer.zip + SHA256SUMS.txt
+npm test                     # 194/194 phải xanh; naming contract nằm trong đây
+npm run build                # → portable ZIP + installer ZIP + ...-win-x64-setup.exe
+                             #   + SHA256SUMS.txt
 node scripts/verify-release-artifacts.js
 ```
 
@@ -129,17 +130,17 @@ thì đặt biến đó là xong, không phải sửa code.
 
 ## 6. Cài và cập nhật — cái người dùng thật sự thấy
 
-Không có `setup.exe` biên dịch, và ValorantTweaks cũng không có: bộ cài của cả hai app
-là **script PowerShell nằm trong một file zip**. Ở đây là `tools/installer/` gồm 4 file
-(`Install-ValorantAlert.ps1`, `.cmd` bọc ngoài, `Uninstall-ValorantAlert.ps1`,
-`README-FIRST.txt`), `build.js` đóng vào `...-win-x64-installer.zip` cùng `app/`.
+Artifact chính là `...-win-x64-setup.exe`, biên dịch bằng Inno Setup từ đúng cây
+`dist/ValorantScoreAlert-Release`. `...-win-x64-installer.zip` vẫn giữ làm fallback
+cho bản cũ. Setup cài per-user, tạo shortcut qua `launcher.vbs`, chạy `skipifsilent`
+để updater detached handoff giữ quyền relaunch đúng một lần.
 
 | Thuộc tính | Giá trị |
 |---|---|
 | Cài vào | `%LOCALAPPDATA%\Programs\ValorantAlert` — per-user, **không UAC** |
 | Shortcut | `wscript.exe //nologo <dir>\scripts\launcher.vbs`, **không** trỏ vào .exe |
 | Dữ liệu user | `%APPDATA%\ValorantAlert` — gỡ cài **giữ nguyên**, xoá phải `-PurgeUserData` |
-| Nâng cấp | chạy lại bộ cài: nó tự dừng bản đang chạy, thay cả thư mục |
+| Nâng cấp | Setup đóng app qua Restart Manager; ZIP fallback dùng script có backup/rollback |
 
 Hai lỗi chỉ hiện ra khi chạy thật, đã sửa và đã có test giữ:
 
@@ -179,8 +180,10 @@ việc: tải → verify → giải nén → spawn bộ cài.
 | sha256 | Verify với `SHA256SUMS.txt` **trước** khi chạy bất cứ thứ gì; lệch thì xoá zip luôn. ValorantTweaks không ship checksum. Giới hạn thật thà: chặn hỏng file và MITM, **không** chặn repo bị chiếm — ai thay được zip thì thay được cả file sums |
 | Đường dẫn | Work dir `%APPDATA%\ValorantAlert\update`, install `%LOCALAPPDATA%\Programs` — hai cây khác nhau, nên giải nén lỗi không thể để lại app thay nửa vời |
 | PowerShell | Path đi bằng env var (`$env:VA_UPDATE_ZIP`), không nội suy vào `-Command` — đúng luật đã có, vì `Valorant-Alert [1]` là dạng path từng làm gãy `Copy-Item` |
-| Spawn | `cmd.exe /c <path> -Launch`, `detached`, `stdio:'ignore'` — `spawn()` trực tiếp vào `.cmd` bị Node ≥18.20 từ chối (CVE-2024-27980), và bộ cài sắp giết chính process này nên con không được nằm cùng process group |
+| Spawn | Setup: `cmd.exe /c start /wait ... /SILENT /SP- /CLOSEAPPLICATIONS /SUPPRESSMSGBOXES`, rồi relaunch detached; ZIP fallback dùng `cmd.exe /c <path> -Launch` |
 | Route | `POST /api/license/update/start` yêu cầu **loopback**: một cái điện thoại trong LAN có share pin không được phép chạy bộ cài trên máy chủ. `GET update/state` thì pin-only, vì nó chỉ đọc stage + byte count |
+| Cancel | `POST /api/license/update/cancel` loopback-only; xoá `.part`/sandbox trước khi launch |
+| Trust | SHA-256 bắt buộc; secure release ký Setup + EXE bằng Authenticode; `REQUIRE_UPDATE_SIGNATURE=1` fail-closed nếu thiếu verifier |
 
 Test giữ 2 lớp đó riêng: `test/update-download.test.js` (16) chứng minh engine an toàn —
 inject cả `fetch` và `spawn` nên suite không hề chạm mạng hay chạy bộ cài thật;
@@ -188,8 +191,9 @@ inject cả `fetch` và `spawn` nên suite không hề chạm mạng hay chạy 
 `update/start` bằng GET (405), từ LAN (403), và body có `version: '9.9.9'` — test đó
 assert route **không đăng ký cả listener `data`**.
 
-Chưa verify được ở đây: chưa ai chạy `.exe` v1.0.0 đã publish trên máy sạch, và bộ cài
-thật cố tình chưa bao giờ được updater khởi động trên máy này.
+Đã verify local: `npm test` 194/194, `npm run build`, artifact gate. Chưa chạy Setup
+trên máy sạch hoặc updater thật vì thao tác đó sẽ thay bản đang chạy; cần một máy/VM
+test riêng cho runtime proof.
 
 ## 7. Webhook đồng bộ version lên KLD Server (POST /api/admin/app-version/publish-release)
 

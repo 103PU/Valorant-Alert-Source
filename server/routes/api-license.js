@@ -114,6 +114,10 @@ async function handleApiLicense(req, res, { licensing, wsServer }) {
       case 'update/state':
         return sendJson(res, 200, { ok: true, ...licensing.updateState() });
 
+      case 'update/cancel':
+        if (!requirePost() || !requireLocal()) return;
+        return sendJson(res, 200, { ok: true, ...licensing.cancelUpdate() });
+
       case 'login': {
         if (!requirePost() || !requireLocal()) return;
         const snap = await licensing.login();

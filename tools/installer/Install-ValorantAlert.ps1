@@ -38,6 +38,7 @@ try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
 
 $AppDisplayName = 'Valorant Score Alert'
 $ShortcutFileName = 'Valorant Score Alert.lnk'
+$installLock = $null
 
 function Write-Step {
     param([string] $Message)
@@ -297,8 +298,17 @@ if (-not (Test-Path -LiteralPath $installParent -PathType Container)) {
 }
 
 $stagingDir = Join-Path $installParent (".ValorantAlert.installing-" + [Guid]::NewGuid().ToString('N'))
+$backupDir = Join-Path $installParent (".ValorantAlert.backup-" + [Guid]::NewGuid().ToString('N'))
+$lockPath = Join-Path $installParent '.ValorantAlert.install.lock'
 
 try {
+    try {
+        $installLock = [System.IO.File]::Open($lockPath, [System.IO.FileMode]::OpenOrCreate,
+            [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+    } catch {
+        throw 'Một tiến trình cài đặt Valorant Alert khác đang chạy.'
+    }
+
     Write-Step 'Sao chép file...'
     New-Item -ItemType Directory -Path $stagingDir -Force | Out-Null
 
@@ -327,14 +337,14 @@ try {
     }
 
     if (Test-Path -LiteralPath $installDirFullPath) {
-        Write-Step 'Xoá bản cũ...'
+        Write-Step 'Lưu bản cũ để rollback...'
         $removeSuccess = $false
         $removeAttempts = 0
         $maxRemoveAttempts = 5
         while (-not $removeSuccess) {
             $removeAttempts++
             try {
-                Remove-Item -LiteralPath $installDirFullPath -Recurse -Force
+                Move-Item -LiteralPath $installDirFullPath -Destination $backupDir -Force
                 $removeSuccess = $true
             } catch {
                 if ($removeAttempts -ge $maxRemoveAttempts) {
@@ -360,9 +370,19 @@ try {
             Start-Sleep -Milliseconds (400 * $moveAttempts)
         }
     }
+
+    foreach ($required in $RequiredPayloadFiles) {
+        if (-not (Test-Path -LiteralPath (Join-Path $installDirFullPath $required) -PathType Leaf)) {
+            throw "Bản cài sau thay thế thiếu '$required'."
+        }
+    }
 } catch {
     if (Test-Path -LiteralPath $stagingDir) {
         Remove-Item -LiteralPath $stagingDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    # Rollback restores the previous install before returning the failure.
+    if ((Test-Path -LiteralPath $backupDir) -and -not (Test-Path -LiteralPath $installDirFullPath)) {
+        Move-Item -LiteralPath $backupDir -Destination $installDirFullPath -Force -ErrorAction SilentlyContinue
     }
     throw
 }
@@ -414,3 +434,9 @@ if ($Launch) {
         -ArgumentList @('//nologo', (Join-Path $installDirFullPath 'scripts\launcher.vbs')) `
         -WorkingDirectory $installDirFullPath
 }
+
+if (Test-Path -LiteralPath $backupDir) {
+    Remove-Item -LiteralPath $backupDir -Recurse -Force
+}
+if ($installLock) { $installLock.Dispose(); $installLock = $null }
+Remove-Item -LiteralPath $lockPath -Force -ErrorAction SilentlyContinue

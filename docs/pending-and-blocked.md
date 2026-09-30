@@ -322,14 +322,13 @@ Bump version từ giờ = sửa **một** dòng `package.json`, rồi `git tag` 
 Workflow assert tag khớp `package.json`; test assert `config.json` không mọc lại field
 version. Chi tiết ở `release-runbook.md` §4.
 
-### 2.3 Tự tải cập nhật trong app — LÀM, đã xong 2026-09-04
+### 2.3 Tự tải cập nhật trong app — hardening xong local 2026-09-30
 
 Quyết định của người dùng: **"làm luôn trong app"**. Đã làm, `server/updater/index.js`.
 
-Không có `Updater.exe` như ValorantTweaks, và đó là kết luận từ việc đọc bộ cài chứ
-không phải cắt bớt: `Install-ValorantAlert.ps1:80-104` đã tự dừng bản đang chạy,
-`:264-270` (`-Launch`) đã tự khởi động lại bản mới làm việc cuối cùng. Thêm một
-`Updater.exe` chỉ là thêm một binary làm đúng việc bộ cài đang làm.
+Không thêm `Updater.exe`. Setup Inno là handoff chính; ZIP/script cũ vẫn fallback.
+Setup chạy detached, silent, chờ xong rồi relaunch đúng một lần. ZIP fallback có
+backup/rollback + install lock.
 
 Khác ValorantTweaks theo hướng chặt hơn: verify sha256 với `SHA256SUMS.txt` **trước**
 khi chạy bất cứ gì (upstream không ship checksum), và route `update/start` không đọc
@@ -340,8 +339,9 @@ Giới hạn phải nói thẳng: sha256 chặn hỏng file và MITM, **không**
 ai thay được zip thì thay được `SHA256SUMS.txt` bên cạnh. Key Ed25519 `va-2026-09` ký
 envelope entitlement của KLD, không ký release, nên nó không đóng được khoảng đó.
 
-Chưa verify được: bộ cài thật **cố tình chưa bao giờ** được updater khởi động trên máy
-này (nó sẽ giết và thay chính bản đang chạy). Toàn bộ 29 test inject `fetch` và `spawn`.
+Đã thêm progress speed, cancel, Setup/ZIP classification, Authenticode gate, route
+`update/cancel`, dashboard UX. Local gate: `npm test` 194/194; build tạo đủ 3 artifact
+và checksum 3 dòng. Chưa verify runtime trên máy sạch/VM; chưa publish/tag/push.
 Bảng ràng buộc đầy đủ ở `release-runbook.md` §6.
 
 ---
@@ -356,11 +356,8 @@ Ghi ra để không ai tưởng đây là việc còn dở. Chi tiết ở
   ValorantTweaks cũng có đúng giới hạn này.
 - **Patch JS trong archive caxa.** Xoá dòng verify là xong. Đây là trần của mọi app
   Node plaintext; code signing chỉ làm nó ồn ào hơn, không chặn được.
-- **Installer artifact — XONG 2026-09-04.** Không còn là việc dở. `build.js` phát cả
-  `...-win-x64.zip` và `...-win-x64-installer.zip` + `SHA256SUMS.txt`; bộ cài
-  (`tools/installer/`) đã chạy thật trên máy này qua harness 24 mục, 24/24 OK: cài,
-  nâng cấp, 4 trường hợp từ chối, gỡ cài giữ `%APPDATA%\ValorantAlert`. Giữ bullet này
-  để không ai đọc bản cũ rồi tưởng vẫn thiếu.
+- **Installer artifact — hardening local xong 2026-09-30.** `build.js` phát portable ZIP,
+  installer ZIP, Setup EXE + `SHA256SUMS.txt`; runtime clean-machine proof vẫn pending.
 
 Nói gọn: signing đưa bypass từ *"sửa file text, 0 công cụ"* lên *"phải patch code
 trong archive"*. Đúng bằng mức ValorantTweaks đang có, và đó là toàn bộ mục tiêu.

@@ -252,7 +252,7 @@ test('update/state passes a live run through unflattened, error object included'
     // Mid-download, then failed. The dashboard renders "[stage/code]" from the nested
     // error and a byte count from the two number fields, so the route flattening or
     // dropping either would leave the banner with nothing to say.
-    licensing.updater.state = {
+      licensing.updater.state = {
       ...licensing.updater.state,
       stage: 'downloading', version: '1.4.0', percent: 42, bytesReceived: 4096, bytesTotal: 9728
     };
@@ -271,6 +271,22 @@ test('update/state passes a live run through unflattened, error object included'
     assert.equal(res.body.busy, false, 'error is a settled stage — the UI must offer retry');
     assert.deepEqual(res.body.error,
       { stage: 'verify', code: 'checksum_mismatch', message: 'sha256 không khớp.', retryable: true });
+  });
+});
+
+test('update/cancel requires loopback and delegates to the updater', async () => {
+  await withLicensing(AVAILABLE, async (licensing) => {
+    let calls = 0;
+    licensing.updater.cancel = () => {
+      calls++;
+      return { stage: 'cancelled', busy: false, canCancel: false };
+    };
+    let res = await call(licensing, q('update/cancel'), { method: 'POST', remote: '192.168.1.50' });
+    assert.equal(res.status, 403);
+    res = await call(licensing, q('update/cancel'), { method: 'POST' });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.stage, 'cancelled');
+    assert.equal(calls, 1);
   });
 });
 

@@ -30,6 +30,11 @@ function installerZipName(version) {
   return `ValorantScoreAlert-v${normalizeVersion(version)}-${PLATFORM_TAG}-installer.zip`;
 }
 
+/** ValorantScoreAlert-v1.0.0-win-x64-setup.exe */
+function setupExeName(version) {
+  return `ValorantScoreAlert-v${normalizeVersion(version)}-${PLATFORM_TAG}-setup.exe`;
+}
+
 function checksumFileName() {
   return CHECKSUM_FILE;
 }
@@ -62,6 +67,7 @@ module.exports = {
   PLATFORM_TAG,
   portableZipName,
   installerZipName,
+  setupExeName,
   checksumFileName,
   normalizeVersion,
   checksumLine,

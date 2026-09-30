@@ -6,6 +6,7 @@ const { execSync } = require('child_process');
 const {
   portableZipName,
   installerZipName,
+  setupExeName,
   checksumFileName,
   checksumLine,
   normalizeVersion,
@@ -36,6 +37,19 @@ if (isCloudflareCI) {
 
 const releaseDir = path.join(distDir, 'ValorantScoreAlert-Release');
 const appVersion = normalizeVersion(require(path.join(rootDir, 'package.json')).version);
+const secureRelease = process.env.SECURE_RELEASE === '1';
+
+function signSecureArtifact(filePath) {
+  if (!secureRelease) return;
+  if (process.platform !== 'win32') throw new Error('SECURE_RELEASE=1 requires Windows signtool.');
+  const signtool = process.env.SIGNTOOL_PATH || 'signtool.exe';
+  const thumbprint = String(process.env.SIGNING_CERT_THUMBPRINT || '').trim();
+  if (!thumbprint) throw new Error('SECURE_RELEASE=1 requires SIGNING_CERT_THUMBPRINT.');
+  execSync(`"${signtool}" sign /sha1 ${thumbprint} /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "${filePath}"`, {
+    cwd: rootDir,
+    stdio: 'inherit'
+  });
+}
 
 if (!fs.existsSync(releaseDir)) {
   fs.mkdirSync(releaseDir, { recursive: true });
@@ -133,6 +147,7 @@ try {
     { cwd: rootDir, stdio: 'inherit' }
   );
   console.log(`✅ Standalone binary created: ${exeOutputPath}`);
+  signSecureArtifact(exeOutputPath);
 } catch (err) {
   console.error('⚠️ Standalone compilation error:', err.message);
   process.exit(1);
@@ -242,7 +257,32 @@ try {
 // directory and make a later "stale dist" diagnosis harder.
 fs.rmSync(installerStageDir, { recursive: true, force: true });
 
-// 8. SHA256SUMS.txt — the resolver reads this name case-insensitively and hands
+// 8. Primary single-file Setup.exe. The ZIP remains the compatibility fallback
+// for releases built before Inno Setup was introduced.
+const setupName = setupExeName(appVersion);
+const setupPath = path.join(distDir, setupName);
+const innoScript = path.join(rootDir, 'tools', 'installer', 'ValorantAlert.iss');
+console.log(`[8/10] Compiling Setup ${setupName}...`);
+if (process.env.SKIP_SETUP === '1') {
+  console.warn('⚠️ SKIP_SETUP=1: Setup.exe omitted; ZIP fallback remains available.');
+} else {
+  const iscc = process.env.INNO_SETUP_COMPILER || 'ISCC.exe';
+  if (!fs.existsSync(innoScript)) throw new Error(`Missing Inno Setup script: ${innoScript}`);
+  try {
+    execSync(
+      `"${iscc}" /Qp /DMyAppVersion=${appVersion} /DSourceDir="${releaseDir}" /DOutputDir="${distDir}" "${innoScript}"`,
+      { cwd: rootDir, stdio: 'inherit' }
+    );
+    if (!fs.existsSync(setupPath)) throw new Error(`Inno Setup produced no ${setupName}`);
+    signSecureArtifact(setupPath);
+    console.log(`✅ Setup created: ${setupPath}`);
+  } catch (err) {
+    console.error('⚠️ Setup compilation error:', err.message);
+    process.exit(1);
+  }
+}
+
+// 9. SHA256SUMS.txt — the resolver reads this name case-insensitively and hands
 //    it to the client as checksumUrl, so a release without it downloads fine but
 //    cannot be verified. One line per published archive, in sha256sum format, so
 //    `sha256sum -c` works on the file as-is.
@@ -254,6 +294,7 @@ const checksums = [
   [sha256Of(zipPath), zipName],
   [sha256Of(installerZipPath), installerZip]
 ];
+if (fs.existsSync(setupPath)) checksums.push([sha256Of(setupPath), setupName]);
 
 fs.writeFileSync(
   checksumPath,
@@ -264,12 +305,12 @@ for (const [hex, name] of checksums) {
   console.log(`✅ ${name}: ${hex}`);
 }
 
-// 9. Copy public PWA frontend assets into dist root so Cloudflare Pages can host the dashboard directly
-console.log('[9/9] Copying public PWA web assets to dist root for Cloudflare Pages / Web Hosting...');
+// 10. Copy public PWA frontend assets into dist root so Cloudflare Pages can host the dashboard directly
+console.log('[10/10] Copying public PWA web assets to dist root for Cloudflare Pages / Web Hosting...');
 copyDirSync(path.join(rootDir, 'public'), distDir);
 
 console.log('\n===========================================================');
 console.log('🎉 PORTABLE RELEASE PACKAGE CREATED SUCCESSFULLY!');
 console.log(`📁 RELEASE FOLDER: ${releaseDir}`);
-console.log(`📦 UPLOAD TO THE GITHUB RELEASE: ${zipName} + ${installerZip} + ${checksumFileName()}`);
+console.log(`📦 UPLOAD TO THE GITHUB RELEASE: ${zipName} + ${installerZip} + ${setupName} + ${checksumFileName()}`);
 console.log('===========================================================');

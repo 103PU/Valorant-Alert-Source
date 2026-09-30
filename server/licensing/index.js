@@ -144,6 +144,10 @@ class Licensing {
     return this.updater.snapshot();
   }
 
+  cancelUpdate() {
+    return this.updater.cancel();
+  }
+
   /**
    * Apply a key the user entered.
    * Follows Spec Section 1.3: Challenge-Response activation against Server KLD,

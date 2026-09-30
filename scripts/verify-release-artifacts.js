@@ -13,10 +13,12 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { execFileSync } = require('child_process');
 
 const {
   portableZipName,
   installerZipName,
+  setupExeName,
   checksumFileName,
   checksumLine,
   normalizeVersion,
@@ -25,16 +27,36 @@ const {
 
 const rootDir = path.join(__dirname, '..');
 const distDir = path.join(rootDir, 'dist');
+const releaseDir = path.join(distDir, 'ValorantScoreAlert-Release');
 const version = normalizeVersion(require(path.join(rootDir, 'package.json')).version);
 
 const zipName = portableZipName(version);
 const installerName = installerZipName(version);
+const setupName = setupExeName(version);
 const sumName = checksumFileName();
 const zipPath = path.join(distDir, zipName);
 const installerPath = path.join(distDir, installerName);
+const setupPath = path.join(distDir, setupName);
 const sumPath = path.join(distDir, sumName);
 
 const failures = [];
+const signatureRequired = process.env.SECURE_RELEASE === '1' || process.env.VERIFY_SIGNATURES === '1';
+
+function verifySignature(filePath) {
+  if (!signatureRequired) return null;
+  if (process.platform !== 'win32') return false;
+  try {
+    const args = [
+      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File',
+      path.join(rootDir, 'scripts', 'verify-authenticode.ps1'), '-Path', filePath, '-RequireValid'
+    ];
+    if (process.env.SIGNING_CERT_SUBJECT) args.push('-ExpectedSubject', process.env.SIGNING_CERT_SUBJECT);
+    execFileSync('powershell.exe', args, { stdio: 'inherit' });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function check(ok, message) {
   if (ok) {
@@ -55,14 +77,23 @@ check(!resolver.matchesPortable(installerName), `${installerName} does not shado
 check(resolver.isChecksums(sumName), `${sumName} is the checksums name the resolver looks for`);
 check(fs.existsSync(zipPath), `dist/${zipName} exists`);
 check(fs.existsSync(installerPath), `dist/${installerName} exists`);
+check(fs.existsSync(setupPath), `dist/${setupName} exists`);
+const mainExePath = path.join(releaseDir, 'ValorantScoreAlert.exe');
+check(fs.existsSync(mainExePath), 'release tree contains ValorantScoreAlert.exe');
+if (signatureRequired) {
+  if (fs.existsSync(setupPath)) check(verifySignature(setupPath), `${setupName} has a valid Authenticode signature`);
+  if (fs.existsSync(mainExePath)) check(verifySignature(mainExePath), 'ValorantScoreAlert.exe has a valid Authenticode signature');
+} else {
+  console.log('ℹ️ Authenticode verification skipped; set SECURE_RELEASE=1 for the signing gate.');
+}
 check(fs.existsSync(sumPath), `dist/${sumName} exists`);
 
 // Only meaningful once the files are there; skip rather than throw ENOENT.
 if (fs.existsSync(zipPath) && fs.existsSync(installerPath) && fs.existsSync(sumPath)) {
   const lines = fs.readFileSync(sumPath, 'utf8').split(/\r?\n/).filter(Boolean);
-  check(lines.length === 2, `${sumName} holds exactly one line per archive (found ${lines.length})`);
+  check(lines.length === 3, `${sumName} holds exactly one line per archive (found ${lines.length})`);
 
-  for (const [archivePath, archiveName] of [[zipPath, zipName], [installerPath, installerName]]) {
+  for (const [archivePath, archiveName] of [[zipPath, zipName], [installerPath, installerName], [setupPath, setupName]]) {
     const digest = crypto.createHash('sha256').update(fs.readFileSync(archivePath)).digest('hex');
     check(
       lines.includes(checksumLine(digest, archiveName)),
@@ -79,7 +110,7 @@ if (fs.existsSync(zipPath) && fs.existsSync(installerPath) && fs.existsSync(sumP
 if (process.env.GITHUB_OUTPUT) {
   fs.appendFileSync(
     process.env.GITHUB_OUTPUT,
-    `portable=${zipPath}\ninstaller=${installerPath}\nchecksums=${sumPath}\nversion=${version}\n`
+    `portable=${zipPath}\ninstaller=${installerPath}\nsetup=${setupPath}\nchecksums=${sumPath}\nversion=${version}\n`
   );
 }
 

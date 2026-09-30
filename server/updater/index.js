@@ -7,6 +7,7 @@ const { Readable } = require('stream');
 const logger = require('../utils/logger');
 const {
   installerZipName,
+  setupExeName,
   checksumFileName,
   normalizeVersion
 } = require('../../scripts/release-naming');
@@ -41,11 +42,12 @@ const STAGE = Object.freeze({
   EXTRACTING: 'extracting',
   LAUNCHING: 'launching',
   LAUNCHED: 'launched',
-  ERROR: 'error'
+  ERROR: 'error',
+  CANCELLED: 'cancelled'
 });
 
 // A run may only be started from a settled stage; anything else means one is live.
-const SETTLED = new Set([STAGE.IDLE, STAGE.ERROR, STAGE.LAUNCHED]);
+const SETTLED = new Set([STAGE.IDLE, STAGE.ERROR, STAGE.LAUNCHED, STAGE.CANCELLED]);
 
 // Which failures are worth a second attempt. A dropped socket and a truncated file
 // are the same class of accident, so download and verify are retryable. Extract and
@@ -103,10 +105,11 @@ class UpdateInstaller {
    * Every side effect is injected, so the suite can drive the whole state machine
    * with no network call, no PowerShell, and no installer run on this machine.
    */
-  constructor({ cfg, fetchImpl, spawnImpl, workDir } = {}) {
+  constructor({ cfg, fetchImpl, spawnImpl, workDir, verifyArtifact } = {}) {
     this.cfg = cfg || {};
     this.fetchImpl = fetchImpl || ((...args) => globalThis.fetch(...args));
     this.spawnImpl = spawnImpl || spawn;
+    this.verifyArtifact = verifyArtifact || null;
     this.workDir = workDir
       || path.join(this.cfg.appDataDir || process.cwd(), WORK_DIR_NAME);
     this.reset();
@@ -123,10 +126,30 @@ class UpdateInstaller {
       startedAt: null,
       finishedAt: null
     };
+    this.controller = null;
+    this.cancelRequested = false;
   }
 
   snapshot() {
-    return { ...this.state, busy: !SETTLED.has(this.state.stage) };
+    const busy = !SETTLED.has(this.state.stage);
+    return {
+      ...this.state,
+      busy,
+      speedBps: this.state.speedBps || 0,
+      canCancel: busy && this.state.stage !== STAGE.LAUNCHING,
+      handoffKind: this.state.handoffKind || null
+    };
+  }
+
+  cancel() {
+    if (!this.snapshot().canCancel) return this.snapshot();
+    this.cancelRequested = true;
+    if (this.controller) this.controller.abort();
+    this.state = { ...this.state, stage: STAGE.CANCELLED, finishedAt: Date.now(), error: null };
+    if (this.workDir && path.basename(this.workDir) === WORK_DIR_NAME) {
+      fs.rmSync(this.workDir, { recursive: true, force: true });
+    }
+    return this.snapshot();
   }
 
   /**
@@ -159,6 +182,8 @@ class UpdateInstaller {
       startedAt: Date.now(),
       finishedAt: null
     };
+    this.cancelRequested = false;
+    this.controller = new AbortController();
     // Fire and forget: run() records its own failure in state, and an unhandled
     // rejection here would take the whole server down with it.
     this.run(v, { downloadUrl, checksumUrl }).catch(() => {});
@@ -166,7 +191,8 @@ class UpdateInstaller {
   }
 
   async run(version, { downloadUrl = null, checksumUrl = null } = {}) {
-    const asset = installerZipName(version);
+    const setupAsset = downloadUrl && path.basename(new URL(downloadUrl).pathname).toLowerCase().endsWith('.exe');
+    const asset = setupAsset ? setupExeName(version) : installerZipName(version);
     try {
       const dir = this.prepareWorkDir();
       const zipPath = path.join(dir, asset);
@@ -179,18 +205,29 @@ class UpdateInstaller {
       this.mark(STAGE.VERIFYING);
       await this.verify(sumUrl, zipPath, digest, asset);
 
-      this.mark(STAGE.EXTRACTING);
-      const payloadDir = path.join(dir, 'payload');
-      await this.extract(zipPath, payloadDir);
+      let launchTarget;
+      let handoffKind;
+      if (setupAsset) {
+        launchTarget = zipPath;
+        handoffKind = 'setup-exe';
+      } else {
+        this.mark(STAGE.EXTRACTING);
+        const payloadDir = path.join(dir, 'payload');
+        await this.extract(zipPath, payloadDir);
+        launchTarget = payloadDir;
+        handoffKind = 'legacy-zip';
+      }
 
       this.mark(STAGE.LAUNCHING);
-      this.launch(payloadDir);
+      await this.verifyBeforeLaunch(launchTarget);
+      this.launch(launchTarget, handoffKind);
 
       this.state = {
-        ...this.state, stage: STAGE.LAUNCHED, percent: 100, finishedAt: Date.now()
+        ...this.state, stage: STAGE.LAUNCHED, percent: 100, finishedAt: Date.now(), handoffKind
       };
       logger.info(`[update] installer launched for v${version}`);
     } catch (e) {
+      if (this.cancelRequested) return;
       const err = e instanceof UpdateError
         ? e
         : fail('download', 'unexpected_failure', (e && e.message) || String(e));
@@ -243,7 +280,7 @@ class UpdateInstaller {
 
   /** Streams to disk and hashes in the same pass — the bytes are read once. */
   async download(url, dest) {
-    const controller = new AbortController();
+    const controller = this.controller || new AbortController();
     let timer = setTimeout(() => controller.abort(), STALL_TIMEOUT_MS);
     let res;
     try {
@@ -265,6 +302,7 @@ class UpdateInstaller {
     const hash = crypto.createHash('sha256');
     const out = fs.createWriteStream(dest);
     let received = 0;
+    const startedAt = Date.now();
     try {
       for await (const chunk of toNodeStream(res.body)) {
         clearTimeout(timer);
@@ -279,6 +317,7 @@ class UpdateInstaller {
         this.state = {
           ...this.state,
           bytesReceived: received,
+          speedBps: Math.round(received / Math.max((Date.now() - startedAt) / 1000, 0.001)),
           // Capped at 99: 100 belongs to a finished install, not a finished download.
           percent: total ? Math.min(99, Math.floor((received / total) * 100)) : null
         };
@@ -333,6 +372,16 @@ class UpdateInstaller {
     }
   }
 
+  async verifyBeforeLaunch(target) {
+    if (this.verifyArtifact) {
+      const ok = await this.verifyArtifact(target);
+      if (!ok) throw fail('launch', 'signature_invalid', 'Chữ ký Authenticode của bộ cài không hợp lệ.');
+      return;
+    }
+    if (process.env.REQUIRE_UPDATE_SIGNATURE !== '1') return;
+    throw fail('launch', 'signature_verifier_missing', 'Thiếu bộ kiểm tra chữ ký cập nhật.');
+  }
+
   runProcess(file, args, opts) {
     return new Promise((resolve, reject) => {
       let child;
@@ -348,8 +397,11 @@ class UpdateInstaller {
     });
   }
 
-  launch(payloadDir) {
-    const cmd = path.join(payloadDir, INSTALLER_CMD);
+  launch(target, handoffKind = 'legacy-zip') {
+    const cmd = handoffKind === 'setup-exe'
+      ? `start /wait "" "${target}" /SILENT /SP- /CLOSEAPPLICATIONS /SUPPRESSMSGBOXES && start "" "${path.join(process.env.LOCALAPPDATA || '', 'Programs', 'ValorantAlert', 'scripts', 'launcher.vbs')}"`
+      : path.join(target, INSTALLER_CMD);
+    const args = handoffKind === 'setup-exe' ? ['/c', cmd] : ['/c', cmd, '-Launch'];
     // spawn() on a .cmd is refused outright by Node ≥18.20 (the CVE-2024-27980 fix)
     // unless shell:true — and shell:true is precisely where quoting bugs live. Going
     // through cmd.exe /c passes the path as a real argv entry, so nothing re-parses it.
@@ -361,8 +413,8 @@ class UpdateInstaller {
     // stopping this server takes the installer down with it, mid-swap.
     let child;
     try {
-      child = this.spawnImpl('cmd.exe', ['/c', cmd, '-Launch'], {
-        cwd: payloadDir,
+      child = this.spawnImpl('cmd.exe', args, {
+        cwd: handoffKind === 'setup-exe' ? path.dirname(target) : target,
         detached: true,
         stdio: 'ignore',
         windowsHide: false

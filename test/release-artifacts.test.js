@@ -6,6 +6,7 @@ const path = require('path');
 const {
   portableZipName,
   installerZipName,
+  setupExeName,
   checksumFileName,
   normalizeVersion,
   checksumLine,
@@ -33,6 +34,13 @@ test('the installer archive name selects the installer, never the portable slot'
 
   assert.ok(resolver.matchesInstaller(name));
   assert.ok(!resolver.matchesPortable(name), 'the installer must not shadow the portable download');
+});
+
+test('the Setup EXE name is explicit and release-safe', () => {
+  const name = setupExeName(pkg.version);
+  assert.equal(name, `ValorantScoreAlert-v${normalizeVersion(pkg.version)}-win-x64-setup.exe`);
+  assert.ok(!resolver.matchesPortable(name));
+  assert.ok(!resolver.matchesInstaller(name));
 });
 
 test('the checksum file name is matched case-insensitively by the resolver', () => {
@@ -69,6 +77,7 @@ test('build.js derives the artifact names from release-naming, not by hand', () 
   assert.match(build, /require\('\.\/release-naming'\)/);
   assert.match(build, /portableZipName\(/);
   assert.match(build, /installerZipName\(/);
+  assert.match(build, /setupExeName\(/);
   assert.match(build, /checksumFileName\(/);
   assert.ok(
     !/ValorantScoreAlert-v\$\{|['"]ValorantScoreAlert-v/.test(build),
@@ -262,10 +271,10 @@ test('the installer verifies the staged copy before deleting the old install', (
   const ps1 = fs.readFileSync(path.join(rootDir, 'tools', 'installer', 'Install-ValorantAlert.ps1'), 'utf8');
 
   const stagedCheck = ps1.indexOf('Bản sao tạm thiếu');
-  const oldDelete = ps1.indexOf('Remove-Item -LiteralPath $installDirFullPath');
+  const oldDelete = ps1.indexOf('Move-Item -LiteralPath $installDirFullPath -Destination $backupDir');
 
   assert.ok(stagedCheck !== -1, 'the staged tree must be re-checked after the copy');
-  assert.ok(oldDelete !== -1, 'the old install is still expected to be removed');
+  assert.ok(oldDelete !== -1, 'the old install must move to a rollback backup');
   assert.ok(stagedCheck < oldDelete, 'the check has to run BEFORE the irreversible delete');
 });
 
