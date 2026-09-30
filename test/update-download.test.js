@@ -262,7 +262,9 @@ test('progress exposes speed and cancellation removes the partial payload', asyn
   assert.equal(inst.snapshot().canCancel, true);
   const cancelled = inst.cancel();
   assert.equal(cancelled.stage, 'cancelled');
-  await new Promise((r) => setTimeout(r, 20));
+  for (let i = 0; i < 100 && fs.existsSync(path.join(workDir, ASSET)); i += 1) {
+    await new Promise((r) => setTimeout(r, 10));
+  }
   assert.equal(spawnImpl.calls.length, 0);
   assert.equal(fs.existsSync(path.join(workDir, ASSET)), false);
 });

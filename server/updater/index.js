@@ -146,10 +146,13 @@ class UpdateInstaller {
     this.cancelRequested = true;
     if (this.controller) this.controller.abort();
     this.state = { ...this.state, stage: STAGE.CANCELLED, finishedAt: Date.now(), error: null };
+    return this.snapshot();
+  }
+
+  cleanupWorkDir() {
     if (this.workDir && path.basename(this.workDir) === WORK_DIR_NAME) {
       fs.rmSync(this.workDir, { recursive: true, force: true });
     }
-    return this.snapshot();
   }
 
   /**
@@ -227,7 +230,10 @@ class UpdateInstaller {
       };
       logger.info(`[update] installer launched for v${version}`);
     } catch (e) {
-      if (this.cancelRequested) return;
+      if (this.cancelRequested) {
+        this.cleanupWorkDir();
+        return;
+      }
       const err = e instanceof UpdateError
         ? e
         : fail('download', 'unexpected_failure', (e && e.message) || String(e));
@@ -325,6 +331,7 @@ class UpdateInstaller {
       await new Promise((resolve, reject) => out.end((e) => (e ? reject(e) : resolve())));
     } catch (e) {
       out.destroy();
+      await new Promise((resolve) => out.once('close', resolve));
       fs.rmSync(dest, { force: true });
       throw e instanceof UpdateError
         ? e
