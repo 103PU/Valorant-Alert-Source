@@ -86,12 +86,12 @@ nó ở cuối, Discord chết cũng không làm đỏ một release đã publis
 (`scripts/discord-release-notice.js`, pin bởi `test/discord-notice.test.js`); tên asset
 trong 2 nút download lấy từ `release-naming.js` chứ không gõ lại.
 
-Webhook Discord **không** nằm trong repo này. CI gọi một Cloudflare Worker riêng
-(`tools/discord-relay/`, 8 bước deploy trong README của nó), Worker giữ webhook làm
-secret và post vào channel `#valorant-alert`. Lý do tách: một webhook URL trong
-workflow là một secret ai fork cũng đọc được — `ValorantTweaks.App` đang để plaintext
-đúng như vậy tại `notify-discord-manual.yml:14`. Hai secret còn lại phải do chủ repo
-thêm sau khi deploy Worker: `pending-and-blocked.md` §1.5.
+Discord release notices dùng chung Worker `discord-proxy.dungbd2005.workers.dev` và bot.
+Header `X-Discord-Route` chọn route cố định: `valorant-alert` vào channel riêng,
+`valorant-tweaks` giữ channel hiện tại. Mỗi repo giữ token route riêng trong GitHub
+Secrets; Worker giữ bot token. Hướng dẫn cấu hình và thêm app mới ở
+`tools/discord-relay/README.md`. Không gửi channel ID trong payload; Worker không xóa
+tin nhắn cũ.
 
 ## 4. Version chỉ có MỘT chỗ
 

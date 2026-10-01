@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const { buildReleaseNotice } = require('../scripts/discord-release-notice');
-const { portableZipName, installerZipName } = require('../scripts/release-naming');
+const { portableZipName, setupExeName } = require('../scripts/release-naming');
 
 const REPO = '103PU/Valorant-Alert-Source';
 const FIXED = new Date('2026-09-04T00:00:00.000Z');
@@ -14,12 +14,12 @@ const buttons = (n) => n.components[0].components;
 // is a 404 that nobody sees until someone clicks it. The names therefore come from
 // release-naming.js — the same module build.js names the artifacts with — rather than
 // being spelled out here or in the workflow.
-test('the download buttons point at the assets build.js actually produces', () => {
-  const [installer, portable] = buttons(notice());
+test('the download buttons point at the setup EXE and portable ZIP build.js produces', () => {
+  const [setup, portable] = buttons(notice());
 
   assert.strictEqual(
-    installer.url,
-    `https://github.com/${REPO}/releases/download/v1.2.3/${installerZipName('1.2.3')}`
+    setup.url,
+    `https://github.com/${REPO}/releases/download/v1.2.3/${setupExeName('1.2.3')}`
   );
   assert.strictEqual(
     portable.url,
@@ -27,14 +27,12 @@ test('the download buttons point at the assets build.js actually produces', () =
   );
 });
 
-// The installer is first and labelled as the recommended one because KLD serves
-// `recommended = installer ?? portable`: the dashboard's Download button and this message
-// must not steer users to two different files.
-test('the installer is the first, recommended button', () => {
+// The built Setup EXE is the direct installer users asked for.
+test('the setup EXE is the first, recommended button', () => {
   const [first] = buttons(notice());
 
-  assert.match(first.label, /bộ cài/);
-  assert.ok(first.url.includes('-installer.zip'), 'the first button must be the installer');
+  assert.match(first.label, /\.exe/);
+  assert.ok(first.url.includes('-setup.exe'), 'the first button must be the Setup EXE');
 });
 
 // style 5 (link) is what makes these buttons work with nothing running behind them. A
@@ -79,16 +77,16 @@ test('the payload carries no credential and no webhook endpoint', () => {
   assert.ok(!/token|secret/i.test(json), 'nothing token-shaped belongs in an announcement');
 });
 
-// The install instructions describe THIS app's installer, not ValorantTweaks'. The step
-// that gets skipped most is extracting the zip first — the installer refuses to run from
-// inside it, and that refusal is the single most likely support question.
-test('the instructions name the installer entry point and the extract-first rule', () => {
+// The first button downloads a standalone Setup EXE, so the instructions must not tell
+// users to extract a ZIP or run the fallback batch installer.
+test('the instructions match the direct Setup EXE download', () => {
   const [embed] = notice().embeds;
   const guide = embed.fields.find((f) => f.name.includes('HƯỚNG DẪN CÀI ĐẶT'));
 
   assert.ok(guide, 'the message must carry install instructions');
-  assert.match(guide.value, /Install-ValorantAlert\.cmd/);
-  assert.match(guide.value, /Giải nén \*\*TOÀN BỘ\*\*/);
+  assert.match(guide.value, /\.exe/);
+  assert.match(guide.value, /Bấm đúp/);
+  assert.doesNotMatch(guide.value, /Giải nén|Install-ValorantAlert\.cmd/);
   assert.match(guide.value, /khay hệ thống/, 'the tray icon is where the app actually lives');
 });
 

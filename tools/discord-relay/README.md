@@ -1,119 +1,78 @@
-# Discord relay — Worker riêng cho `#valorant-alert`
+# Shared Discord release proxy
 
-Worker này nhận thông báo release từ GitHub Actions rồi đăng vào Discord **bằng bot**.
+One Cloudflare Worker, `discord-proxy`, and one bot send release notices from multiple app repos to fixed, separate channels. This source owns the deployed Worker. It supports Discord link buttons, which webhooks do not render.
 
-Vì sao phải có nó: thông báo có **hàng button link** dưới embed (`components`), và
-Discord **webhook âm thầm bỏ** phần đó — chỉ bot render được. Bot token thì không được
-để trong một step của Actions.
+## Routes
 
-Vì sao là Worker **riêng**, không dùng lại URL của ValorantTweaks: payload **không**
-mang channel id, nên channel đích do Worker quyết định. Trỏ CI vào relay của
-ValorantTweaks thì thông báo của Valorant Alert sẽ vào channel của ValorantTweaks.
+The `DISCORD_ROUTES` registry in `wrangler.jsonc` maps a route key to its channel and token binding. Callers may choose only a route key through `X-Discord-Route`; a channel ID in the JSON payload is ignored.
 
-Hệ quả bảo mật của việc channel nằm trong Worker chứ không nằm trong request:
+| Route | Channel | Worker token binding | Crosspost |
+|---|---|---|---|
+| `valorant-tweaks` | Existing live `DISCORD_CHANNEL_ID` binding | Existing `AUTH_TOKEN` | Yes, preserves current behavior |
+| `valorant-alert` | `1555280650096087150` | `ALERT_AUTH_TOKEN` | No |
 
-- `RELAY_AUTH_TOKEN` bị lộ chỉ spam được **đúng một** channel, không biến bot thành
-  công cụ đăng vào mọi channel bot nhìn thấy.
-- `allowed_mentions` bị **ghi đè** trong Worker, không tin từ body — nên không payload
-  nào (kể cả CI bị chiếm) @everyone được.
+The bot token remains the existing `DISCORD_BOT_TOKEN` Worker secret. The Worker forces `allowed_mentions` off and never deletes messages. A failed crosspost does not make an already delivered message retryable.
 
-## Cài từ đầu — 8 bước
+## Deploy the shared Worker
 
-### 1. Tạo channel trong Discord
+Run from this directory after the release manifest authorizes deployment:
 
-Server → **Create Channel** → Text → tên `valorant-alert`.
+```powershell
+npx --yes wrangler@4 deploy --keep-vars
+```
 
-### 2. Lấy channel id
+`--keep-vars` is required: it preserves the live ValorantTweaks `DISCORD_CHANNEL_ID` dashboard variable while Wrangler updates `DISCORD_ROUTES`. Existing secrets are additive and are not removed by deploy. Do not deploy without this flag.
 
-**User Settings → Advanced → Developer Mode: ON**, rồi chuột phải channel
-`#valorant-alert` → **Copy Channel ID**. Là một dãy số ~19 chữ số.
+Keep these Cloudflare secrets set:
 
-### 3. Bot
+- `DISCORD_BOT_TOKEN` — existing bot token.
+- `AUTH_TOKEN` — existing ValorantTweaks route token.
+- `ALERT_AUTH_TOKEN` — a newly generated token used only by Valorant Alert.
 
-Dùng lại bot đang có hoặc tạo mới ở <https://discord.com/developers/applications>:
-**New Application → Bot → Reset Token** để lấy token.
+Create `ALERT_AUTH_TOKEN` using Wrangler's secure prompt:
 
-Mời bot vào server bằng **OAuth2 → URL Generator**, scope `bot`, quyền **đúng ba** cái:
+```powershell
+npx --yes wrangler@4 secret put ALERT_AUTH_TOKEN
+```
 
-| Quyền | Vì sao cần |
+Generate the value once with a password manager, keep it there, and enter the same value into the Cloudflare prompt and the Alert repo's GitHub secret `CLOUDFLARE_AUTH_TOKEN`. Cloudflare does not show secret values again. Do not put secret values in `wrangler.jsonc`, command arguments, logs, or chat. `/health` lists missing binding names and configured route keys only; it does not return secret values or channel IDs.
+
+## Configure GitHub Actions
+
+In **each app repository**, configure:
+
+| Secret | Value |
 |---|---|
-| View Channel | không thấy channel thì không đăng được |
-| Send Messages | gửi thông báo |
-| Embed Links | không có thì embed bị chặn, chỉ còn text |
+| `CLOUDFLARE_WORKER_URL` | `https://discord-proxy.dungbd2005.workers.dev` |
+| `CLOUDFLARE_AUTH_TOKEN` | That app's route token only |
 
-Không cần `Manage Messages`, không cần admin. Button link **không** cần quyền thêm và
-**không** cần bot online — chúng chỉ là URL.
+ValorantTweaks keeps its existing token. Valorant Alert uses the value configured as Worker secret `ALERT_AUTH_TOKEN`. Each workflow sends its fixed route header; release workflows send automatically, while `Notify Discord` supports manual resend.
 
-### 4. Điền channel id
+The Alert release notice's first button downloads the built Setup `.exe` from `103PU/Valorant-Alert-Release`. The Worker only delivers the message; it does not build or publish app releases.
 
-Sửa `DISCORD_CHANNEL_ID` trong `wrangler.jsonc`. Để trống thì Worker trả 503
-`relay_not_configured` — cố ý, vì im lặng đăng sai channel tệ hơn là lỗi rõ ràng.
+## Add a future app
 
-### 5. Hai secret của Worker
+1. Add a route to `DISCORD_ROUTES` with a fixed `channelId` and new `tokenBinding`.
+2. Add that token as a Worker secret and as `CLOUDFLARE_AUTH_TOKEN` in the new app repo.
+3. Set `CLOUDFLARE_WORKER_URL` there to the same Worker URL.
+4. Add `X-Discord-Route: <route-key>` to the release sender.
+5. Deploy this config through its approved release manifest.
 
-```bash
-cd tools/discord-relay
-npx wrangler secret put DISCORD_BOT_TOKEN    # dán token bot, wrangler KHÔNG echo lại
-npx wrangler secret put RELAY_AUTH_TOKEN     # token tự sinh, xem bên dưới
+Release announcements then send automatically. No new Worker, bot, or Worker code branch is needed. A shared GitHub Action or self-service route API is intentionally deferred until onboarding several apps makes these few config steps repetitive.
+
+## Safe smoke and errors
+
+```powershell
+Invoke-RestMethod https://discord-proxy.dungbd2005.workers.dev/health
 ```
 
-`RELAY_AUTH_TOKEN` là token **mới**, không lấy lại từ đâu cả. Sinh bằng:
+The health response must report `ok: true`, `configured: true`, and both initial route keys. This does not post to Discord. To verify actual delivery, dispatch `Notify Discord` with a real published tag only under an approved manifest.
 
-```bash
-node -e "process.stdout.write(require('crypto').randomBytes(32).toString('base64url'))"
-```
-
-Copy trực tiếp vào prompt của wrangler. Đừng lưu nó vào file trong repo, đừng echo nó
-ra terminal có log.
-
-### 6. Deploy
-
-```bash
-npx wrangler deploy
-```
-
-wrangler in ra URL dạng `https://valorant-alert-discord-relay.<subdomain>.workers.dev`.
-
-### 7. Smoke test — không đăng gì vào channel
-
-```bash
-curl https://valorant-alert-discord-relay.<subdomain>.workers.dev/health
-```
-
-`{"ok":true,"configured":true,"missing":[]}` là xong. `/health` chỉ nói **thiếu binding
-nào**, không bao giờ nói giá trị, nên gọi thoải mái.
-
-### 8. Hai secret bên GitHub
-
-Repo → Settings → Secrets and variables → Actions → New repository secret:
-
-| Secret | Giá trị |
+| Status / error | Meaning |
 |---|---|
-| `CLOUDFLARE_WORKER_URL` | URL wrangler vừa in ra (không có `/health`) |
-| `CLOUDFLARE_AUTH_TOKEN` | **đúng** giá trị `RELAY_AUTH_TOKEN` ở bước 5 |
-
-Hai tên secret này là do `release.yml` và `notify-discord.yml` đặt — giữ nguyên chính
-tả. Thiếu `CLOUDFLARE_WORKER_URL` thì `release.yml` **bỏ qua** step (`::notice`, exit 0)
-và release vẫn xanh; `notify-discord.yml` thì **fail** vì dispatch tay là "gửi ngay".
-
-## Thử end-to-end
-
-Actions → **Notify Discord** → *Run workflow* → nhập tag đã có release (`v1.0.0`).
-Nó đọc release, dựng payload bằng `scripts/discord-release-notice.js` rồi POST vào
-Worker. Thông báo phải hiện trong `#valorant-alert` **kèm 3 button**.
-
-## Mã lỗi
-
-| Trả về | Nghĩa | Sửa |
-|---|---|---|
-| 503 `relay_not_configured` | thiếu binding, `missing` liệt kê tên | bước 4 hoặc 5 |
-| 401 `invalid_auth_token` | `CLOUDFLARE_AUTH_TOKEN` ≠ `RELAY_AUTH_TOKEN` | đặt lại một trong hai |
-| 400 `embeds_required` | payload không có embed | lỗi ở phía script, không phải Worker |
-| 429 | Discord rate limit, `retry_after` giữ nguyên | chờ rồi dispatch lại |
-| 502 `discord_rejected` | Discord từ chối; `discord` là body của nó | thường là bot thiếu quyền ở bước 3 |
-
-## Đổi channel về sau
-
-Sửa `DISCORD_CHANNEL_ID` rồi `npx wrangler deploy`. Không cần chạm vào secret GitHub,
-không cần sửa code app. Nếu release chuyển sang repo khác thì đó là biến **`RELEASE_REPO`**
-bên Actions, không liên quan đến Worker này.
+| 400 `discord_route_required` | Missing `X-Discord-Route` |
+| 404 `unknown_route` | Route key is not in `DISCORD_ROUTES` |
+| 401 `invalid_auth_token` | Token does not match the selected route |
+| 503 `relay_not_configured` | A required Worker binding is missing |
+| 429 | Discord rate limit; `retry_after` is returned |
+| 502 `discord_rejected` | Discord rejected the message or bot permissions are missing |

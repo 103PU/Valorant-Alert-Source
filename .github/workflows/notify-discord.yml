@@ -87,6 +87,7 @@ jobs:
             -X POST "${WORKER_URL}" \
             -H 'Content-Type: application/json; charset=utf-8' \
             -H "X-Auth-Token: ${AUTH_TOKEN}" \
+            -H 'X-Discord-Route: valorant-alert' \
             --data-binary @notice.json
 
           rm -f notice.json

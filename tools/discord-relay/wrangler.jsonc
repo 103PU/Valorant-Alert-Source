@@ -6,26 +6,32 @@
   // dependency of the app — it is fetched on demand, so nothing here lands in
   // package.json or in the shipped binary. (`tools` is already in caxa's
   // --exclude list, see scripts/build.js.)
-  "name": "valorant-alert-discord-relay",
+  "name": "discord-proxy",
+  "account_id": "4321e023cd6616f23130d36409e889e0",
   "main": "worker.mjs",
   "compatibility_date": "2026-09-04",
 
   "vars": {
-    // The channel this relay owns. A channel id is NOT a credential — it is
-    // meaningless without the bot token — so it lives here as a plain var where
-    // it is visible and auditable, rather than as a secret nobody can read back.
-    //
-    // Left empty on purpose: the Worker answers 503 `relay_not_configured` until
-    // it is filled in, which is a clearer first-deploy failure than posting into
-    // the wrong channel. Put the id of #valorant-alert here, then redeploy.
-    "DISCORD_CHANNEL_ID": ""
+    // Route names are the only destination selector callers can choose. Keep this
+    // non-secret registry small and deploy with --keep-vars to retain the live
+    // ValorantTweaks DISCORD_CHANNEL_ID binding during the shared Worker update.
+    "DISCORD_ROUTES": {
+      "valorant-tweaks": {
+        "channelBinding": "DISCORD_CHANNEL_ID",
+        "tokenBinding": "AUTH_TOKEN",
+        "crosspost": true
+      },
+      "valorant-alert": {
+        "channelId": "1555280650096087150",
+        "tokenBinding": "ALERT_AUTH_TOKEN"
+      }
+    }
   },
 
   // Secrets (never in this file — `npx wrangler secret put <NAME>`):
-  //   DISCORD_BOT_TOKEN  the bot that posts. Needs View Channel + Send Messages
-  //                      on #valorant-alert and nothing else.
-  //   RELAY_AUTH_TOKEN   the shared token CI presents as X-Auth-Token. Generate
-  //                      it randomly; it is not reused from anywhere.
+  //   DISCORD_BOT_TOKEN  shared bot token; preserve the existing Worker secret.
+  //   AUTH_TOKEN         existing ValorantTweaks route token; preserve it.
+  //   ALERT_AUTH_TOKEN   new, separate route token for Valorant Alert.
 
   "observability": { "enabled": true }
 }

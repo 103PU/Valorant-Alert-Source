@@ -226,6 +226,7 @@ jobs:
           Invoke-RestMethod -Uri $env:WORKER_URL -Method Post -Body $body -Headers @{
             'Content-Type' = 'application/json; charset=utf-8'
             'X-Auth-Token' = $env:AUTH_TOKEN
+            'X-Discord-Route' = 'valorant-alert'
           } | Out-Null
 
           Remove-Item notice.json -Force

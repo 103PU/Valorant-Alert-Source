@@ -15,7 +15,7 @@
 // This module never sees the relay URL or its auth token. It prints JSON; the workflow
 // holds the secrets and does the POST.
 
-const { portableZipName, installerZipName, normalizeVersion } = require('./release-naming');
+const { portableZipName, setupExeName, normalizeVersion } = require('./release-naming');
 
 // Valorant red (#FF4655) as the decimal Discord expects.
 const EMBED_COLOR = 0xff4655;
@@ -51,7 +51,7 @@ function buildReleaseNotice({ tag, repo, now } = {}) {
 
   const releaseUrl = `https://github.com/${repo}/releases/tag/v${version}`;
   const downloadBase = `https://github.com/${repo}/releases/download/v${version}`;
-  const installerUrl = `${downloadBase}/${installerZipName(version)}`;
+  const setupUrl = `${downloadBase}/${setupExeName(version)}`;
   const portableUrl = `${downloadBase}/${portableZipName(version)}`;
 
   return {
@@ -67,18 +67,16 @@ function buildReleaseNotice({ tag, repo, now } = {}) {
           { name: '💻  Nền tảng', value: 'Windows x64', inline: true },
           {
             // The installer path, not the portable one: this is what the Download button
-            // on the dashboard serves (KLD resolves recommended = installer ?? portable),
-            // so the instructions have to match the file most people end up with.
+            // The first button downloads Setup.exe directly, so the instructions must
+            // describe the EXE flow rather than the ZIP fallback installer.
             name: '● HƯỚNG DẪN CÀI ĐẶT',
             value: [
-              '1️⃣  Tải **bộ cài** bằng button bên dưới.',
-              '2️⃣  Chuột phải vào file ZIP → **Properties** → tích **Unblock** → **OK**.',
-              '3️⃣  Giải nén **TOÀN BỘ** file ZIP ra một thư mục bình thường (ví dụ Desktop).',
-              '4️⃣  Bấm đúp `Install-ValorantAlert.cmd` rồi chờ dòng `[OK] Hoan tat`.',
-              '5️⃣  Mở **Valorant Score Alert** từ shortcut Desktop hoặc Start Menu.',
-              '6️⃣  Icon hình khiên xuất hiện ở khay hệ thống — chuột phải vào đó để mở Dashboard.',
-              '',
-              '⚠️  Không chạy trực tiếp bên trong file ZIP: bộ cài sẽ không thấy payload.'
+              '1️⃣  Tải file **Setup .exe** bằng button bên dưới.',
+              '2️⃣  Nếu SmartScreen hiện ra, chọn **More info** → **Run anyway**.',
+              '3️⃣  Bấm đúp file `.exe` và hoàn tất các bước cài đặt. App cài cho user hiện tại, không cần quyền admin.',
+              '4️⃣  Mở **Valorant Score Alert** từ shortcut Desktop hoặc Start Menu.',
+              '5️⃣  Icon hình khiên xuất hiện ở khay hệ thống — chuột phải vào đó để mở Dashboard.',
+              '6️⃣  Cập nhật phiên bản mới bằng cách chạy Setup .exe mới; dữ liệu đăng nhập và license được giữ lại.'
             ].join('\n\n'),
             inline: false
           },
@@ -105,7 +103,7 @@ function buildReleaseNotice({ tag, repo, now } = {}) {
       {
         type: 1,
         components: [
-          { type: 2, style: 5, label: '⬇️  Tải bộ cài (khuyên dùng)', url: installerUrl },
+          { type: 2, style: 5, label: '⬇️  Tải bộ cài .exe (khuyên dùng)', url: setupUrl },
           { type: 2, style: 5, label: '📁  Bản portable', url: portableUrl },
           { type: 2, style: 5, label: '📄  Release Notes', url: releaseUrl }
         ]

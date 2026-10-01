@@ -22,7 +22,7 @@ phía mình. Chi tiết và bằng chứng ở 1.2.
 | 1.2 | Publish release vào repo `-release` | mình | chờ approval |
 | 1.3 | Bật `REQUIRE_SIGNATURE` | mình | mở khoá, chờ ship 1 build |
 | 1.4 | Tách `app_version_config` theo product | **KLD** | **chờ KLD** |
-| 1.5 | Thêm 2 secret Discord | **người dùng** | channel đã chốt; chờ deploy Worker rồi thêm secret |
+| 1.5 | Shared Discord release proxy | mình | **local implementation verified; target account confirmation and release manifest pending** |
 
 ### 1.1 KLD sinh keypair Ed25519 và deploy signing — XONG 2026-09-04
 
@@ -252,36 +252,22 @@ là test đó đỏ. Ba test cuối giữ phía UI: dashboard phải **gọi** e
 đó endpoint không có ai gọi), phải render quyết định của server chứ không tự so
 version, và banner bắt buộc cập nhật không được có nút "để sau".
 
-### 1.5 Hai secret cho Discord — chỉ chủ repo thêm được
+### 1.5 Discord — dùng chung Worker, route riêng
 
-Việc của **người dùng**, không ai khác làm thay được: thêm 2 secret vào repo
-`103PU/Valorant-Alert-Source` (Settings → Secrets and variables → Actions).
+**Quyết định mới (2026-10-02):** chỉ dùng Worker hiện có
+`https://discord-proxy.dungbd2005.workers.dev` và bot hiện có. Route
+`valorant-alert` gửi vào channel `1555280650096087150`; route `valorant-tweaks` giữ
+nguyên channel và token hiện tại. Mỗi route có token riêng; payload không chọn channel.
 
-| Secret | Dùng ở đâu | Thiếu thì sao |
-|---|---|---|
-| `CLOUDFLARE_WORKER_URL` | `release.yml` step *Notify Discord*, `notify-discord.yml` | `release.yml` **bỏ qua** step (`::notice`, exit 0) — release vẫn xanh; `notify-discord.yml` fail có chủ ý vì đó là lệnh gửi tay |
-| `CLOUDFLARE_AUTH_TOKEN` | cùng hai chỗ | Worker trả 401 → `curl --fail` / `Invoke-RestMethod` làm đỏ step |
+Worker source được duy trì tại `tools/discord-relay/`. Wrangler deploy phải dùng
+`--keep-vars` để giữ `DISCORD_CHANNEL_ID` đang cấu hình cho Tweaks. Không tạo Worker,
+bot hoặc webhook mới. Worker đăng thông báo mà không xóa tin nhắn cũ.
 
-**Câu hỏi channel: ĐÃ TRẢ LỜI (2026-09-04).** Người dùng chọn phương án (a) —
-"sử dụng worker riêng và sử dụng channel khác tôi muốn tạo thêm channle trong disocrd
-là valorant-alert". Nên: Worker riêng cho app này, channel `#valorant-alert`. Source
-Worker đã viết, nằm ở `tools/discord-relay/` (không đi vào .exe — `tools` nằm trong
-`--exclude` của caxa, `scripts/build.js:115`), README trong đó có đúng 8 bước deploy.
-Thứ tự bắt buộc: tạo channel → tạo webhook của channel đó → deploy Worker với webhook
-làm secret → **rồi mới** thêm 2 secret ở trên. Thêm secret trước khi Worker sống thì
-step Discord sẽ đỏ trên một release vốn đã publish đúng.
-
-Lý do không dùng lại Worker của ValorantTweaks: payload không mang channel id
-(`scripts/discord-release-notice.js` chỉ có `embeds` + `components`), nên channel đích
-nằm trong Worker — dùng chung URL là thông báo của Valorant Alert vào channel của
-ValorantTweaks.
-
-Không liên quan repo này nhưng phải nói: `ValorantTweaks.App/.github/workflows/`
-`notify-discord-manual.yml:14` commit **thẳng** một webhook URL Discord dạng
-plaintext. Nếu repo đó public thì webhook đó cần **rotate**. Không copy sang đây,
-không in lại giá trị.
-
----
+**Trạng thái:** thay đổi local đang được kiểm tra; chưa deploy, chưa sửa GitHub Secrets,
+chưa gửi Discord. Sau kiểm tra sẽ trình một manifest release cho push, cập nhật secret
+`ALERT_AUTH_TOKEN`, thêm `CLOUDFLARE_WORKER_URL` và `CLOUDFLARE_AUTH_TOKEN` ở Alert repo,
+deploy Worker hiện có và smoke test. Wrangler thấy nhiều account có script cùng tên; xác nhận
+account sở hữu URL trước khi deploy. Không gửi token qua chat.
 
 ## 2. Đã quyết — không chờ ai nữa
 
