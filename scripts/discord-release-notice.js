@@ -79,17 +79,23 @@ function buildReleaseNotice({ tag, repo, now } = {}) {
           {
             name: '● HƯỚNG DẪN CÀI ĐẶT',
             value: [
-              '1️⃣  Tải file **Setup (.exe)** bằng button bên dưới.',
-              '2️⃣  Mở file `.exe` để cài đặt.',
-              '3️⃣  Mở **Valorant Score Alert** từ Desktop hoặc Start Menu.'
+              '1️⃣  Tải file **Setup .exe** bằng button bên dưới.',
+              '2️⃣  Nếu SmartScreen hiện ra, chọn **More info** → **Run anyway**.',
+              '3️⃣  Bấm đúp file `.exe` và hoàn tất các bước cài đặt. App cài cho user hiện tại, không cần quyền admin.',
+              '4️⃣  Mở **Valorant Score Alert** từ shortcut Desktop hoặc Start Menu.',
+              '5️⃣  Icon hình khiên xuất hiện ở khay hệ thống — chuột phải vào đó để mở Dashboard.',
+              '6️⃣  Cập nhật phiên bản mới bằng cách chạy Setup .exe mới; dữ liệu đăng nhập và license được giữ lại.'
             ].join('\n\n'),
             inline: false
           },
           {
             name: '● LƯU Ý',
-            value:
-              'Nếu Windows SmartScreen xuất hiện, chọn **Thông tin thêm** → **Vẫn chạy**.\n' +
-              'Điều này xảy ra do app chưa được ký số.',
+            value: [
+              'Nếu Windows SmartScreen xuất hiện, chọn **More info** → **Run anyway**. App chưa được ký số nên đây là chuyện bình thường.',
+              'Cài cho riêng user đang đăng nhập, vào `%LOCALAPPDATA%\\Programs\\ValorantAlert` — **không cần quyền admin, không có UAC**.',
+              'Nâng cấp thì chạy lại bộ cài: nó tự dừng bản đang chạy và thay toàn bộ thư mục.',
+              'Dữ liệu đăng nhập / license nằm ở `%APPDATA%\\ValorantAlert` và **không bị xoá** khi gỡ cài đặt.'
+            ].join('\n\n'),
             inline: false
           }
         ],
