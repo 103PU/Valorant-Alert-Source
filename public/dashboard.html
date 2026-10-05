@@ -1220,7 +1220,190 @@
       .header-actions { flex-wrap: wrap; }
       .auth-secondary-actions { flex-direction: column; }
     }
-  </style>
+  
+
+    /* App Layout: Sidebar Navigation (Valorant Tweaks Inspired) */
+    .app-layout {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      margin-top: 4px;
+    }
+
+    .app-sidebar {
+      width: 250px;
+      flex-shrink: 0;
+      background: var(--val-surface);
+      border: 1px solid var(--val-border);
+      clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+      padding: 18px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      position: sticky;
+      top: 20px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 6px 16px 6px;
+      border-bottom: 1px dashed var(--val-border);
+      margin-bottom: 10px;
+    }
+
+    .sidebar-brand h2 {
+      font-family: var(--val-font-display);
+      font-size: 1.25rem;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      line-height: 1;
+      color: var(--val-white);
+      text-transform: uppercase;
+    }
+    .sidebar-brand span {
+      font-family: var(--val-font-tactical);
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: var(--val-red);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .sidebar-nav-section {
+      font-family: var(--val-font-tactical);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 10px 10px 4px 10px;
+      margin-top: 6px;
+    }
+    .section-overview { color: #FF66B2; }
+    .section-features { color: var(--val-cyan); }
+    .section-system { color: var(--val-gold); }
+
+    .sidebar-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      font-family: var(--val-font-tactical);
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--val-gray);
+      background: transparent;
+      border: 1px solid transparent;
+      clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+      width: 100%;
+      letter-spacing: 1px;
+      text-decoration: none;
+    }
+    .sidebar-nav-item:hover {
+      color: var(--val-white);
+      background: rgba(236, 232, 225, 0.04);
+      border-color: rgba(35, 52, 68, 0.8);
+    }
+    .sidebar-nav-item.active {
+      color: var(--val-cyan);
+      background: rgba(0, 245, 212, 0.08);
+      border-color: var(--val-cyan);
+      box-shadow: 0 0 14px rgba(0, 245, 212, 0.15);
+      font-weight: 800;
+    }
+    .sidebar-nav-icon {
+      font-size: 1.05rem;
+      width: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sidebar-footer {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--val-border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .sidebar-version-badge {
+      font-family: var(--val-font-tactical);
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--val-gray);
+      padding: 4px 8px;
+      background: var(--val-surface-dark);
+      border: 1px solid var(--val-border);
+      text-align: center;
+    }
+    .sidebar-pulse-status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: var(--val-font-tactical);
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: var(--val-cyan);
+      letter-spacing: 1.5px;
+    }
+
+    /* Main Viewport */
+    .app-viewport {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Tab Panes */
+    .tab-pane {
+      display: none;
+    }
+    .tab-pane.active {
+      display: block;
+      animation: tabFadeIn 0.2s ease-out;
+    }
+    @keyframes tabFadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Live Diagnostic Console */
+    .diagnostic-console {
+      background: #060A0E;
+      border: 1px solid var(--val-border);
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.82rem;
+      color: #A0B2C6;
+      padding: 12px;
+      height: 180px;
+      overflow-y: auto;
+      border-radius: 2px;
+    }
+    .log-line {
+      margin-bottom: 4px;
+      line-height: 1.4;
+      word-break: break-all;
+    }
+    .log-line.info { color: #A0B2C6; }
+    .log-line.success { color: var(--val-cyan); font-weight: 700; }
+    .log-line.danger { color: var(--val-red); font-weight: 700; }
+    .log-line.warning { color: var(--val-gold); }
+    .log-time { color: var(--val-gray); margin-right: 6px; }
+
+    @media (max-width: 980px) {
+      .app-layout { flex-direction: column; }
+      .app-sidebar { width: 100%; position: static; }
+    }
+</style>
 </head>
 <body>
 
@@ -1230,7 +1413,7 @@
   <div class="container">
 
     <!-- 1. DEDICATED GOOGLE LOGIN MODAL (INSPIRED BY VALORANT TWEAKS GOOGLE LOGINDIALOG) -->
-    <div id="loginModal" class="val-modal-overlay lic-hidden">
+    <div id="loginModal" class="val-modal-overlay lic-hidden" style="z-index: 9050;">
       <div class="val-login-dialog">
         <!-- Left Column: Authentication Form -->
         <div class="val-login-form-pane">
@@ -1266,280 +1449,628 @@
 
     <!-- 2. MAIN APP WORKSPACE SCREEN (PHẦN APP HOẠT ĐỘNG CHÍNH) -->
     <div id="mainAppScreen" class="main-app-screen">
-      <header>
-        <div class="brand">
-          <div class="val-logo">
-            <svg width="22" height="22" viewBox="0 0 100 100" fill="none">
-              <path d="M99.2 0H63.9L50 35.8L36.1 0H0.8L50 100L99.2 0Z" fill="#FFFFFF"/>
-            </svg>
-          </div>
-          <div class="brand-text">
-            <h1>VALORANT SCORE ALERT</h1>
-            <span>TACTICAL REALTIME PROTOCOL // PC HUD</span>
-          </div>
-        </div>
+      <div class="app-layout">
 
-        <div class="header-actions">
-          <button id="btnLangToggle" class="val-btn val-btn-outline val-btn-lang" title="Switch Language (EN / VI)">
-            <span style="font-size: 1.05rem; line-height: 1;">🌐</span>
-            <span id="langText">ENGLISH</span>
-          </button>
-          <button id="btnMiniPip" class="val-btn val-btn-outline val-btn-pip" title="Open mini HUD overlay" data-i18n-title="miniHudTitle">
-            🗗 MINI HUD
-          </button>
-          <button id="btnHeaderLogout" class="val-btn val-btn-outline val-btn-sm" title="Logout session" data-i18n="btnUserLogout">
-            🚪 LOGOUT
-          </button>
-          <button id="btnHeaderLogin" class="val-btn val-btn-cyan val-btn-sm lic-hidden" title="Sign In" data-i18n="btnUserLogin">
-            🔐 SIGN IN
-          </button>
-          <div class="status-pill">
-            <span class="status-dot"></span>
-            <span id="sysStatusText" data-i18n="sysStatus">SYS_STATUS: ONLINE</span>
-          </div>
-        </div>
-      </header>
-
-      <!-- Update banner -->
-      <div id="updBanner" class="lic-banner lic-hidden">
-        <div class="lic-banner-text">
-          <div id="updBannerTitle" class="lic-banner-title" data-i18n="updBannerTitle">UPDATE AVAILABLE</div>
-          <div id="updBannerMsg" class="lic-banner-msg"></div>
-          <div id="updProgress" class="lic-hidden"
-               style="margin-top: 8px; height: 6px; border-radius: 3px; overflow: hidden; background: rgba(236, 232, 225, 0.12);">
-            <div id="updProgressBar"
-                 style="height: 100%; width: 0%; background: var(--val-cyan); transition: width 0.25s ease;"></div>
-          </div>
-        </div>
-        <div class="lic-actions">
-          <button id="btnUpdInstall" class="val-btn val-btn-sm" data-i18n="btnUpdInstall">⬇️ UPDATE NOW</button>
-          <a id="btnUpdOpen" class="val-btn val-btn-outline val-btn-sm" target="_blank" rel="noopener noreferrer" data-i18n="btnUpdOpen">🌐 DOWNLOAD PAGE</a>
-          <button id="btnUpdLater" class="val-btn val-btn-outline val-btn-sm lic-hidden" data-i18n="btnUpdLater">✕ LATER</button>
-        </div>
-      </div>
-
-      <!-- Keylicense Gate Banner -->
-      <div id="licBanner" class="lic-banner lic-hidden">
-        <div class="lic-banner-text">
-          <div id="licBannerTitle" class="lic-banner-title" data-i18n="licBannerChecking">CHECKING LICENSE...</div>
-          <div id="licBannerMsg" class="lic-banner-msg" data-i18n="licBannerWait">Please wait.</div>
-        </div>
-        <div class="lic-actions">
-          <button id="btnLicLogin" class="val-btn val-btn-sm lic-hidden" data-i18n="btnLicLogin">🔐 SIGN IN GOOGLE</button>
-          <button id="btnLicRecheck" class="val-btn val-btn-outline val-btn-sm lic-hidden" data-i18n="btnLicRecheck">♻️ RECHECK</button>
-        </div>
-      </div>
-
-      <!-- 2-COLUMN GRID (1 HÀNG CÓ 2 LAYOUT CHỨC NĂNG - TIẾT KIỆM DIỆN TÍCH) -->
-      <div class="dashboard-grid">
-
-        <!-- HÀNG 1 - CỘT 1: LIVE SCORE MONITOR // HERO HUD (ƯU TIÊN LAYOUT HOẠT ĐỘNG NHƯ CŨ) -->
-        <div class="val-card">
-          <div class="val-card-header">
-            <div class="val-card-title" data-i18n="liveScoreTitle">🎯 LIVE SCORE MONITOR // HERO HUD</div>
-            <div id="matchInfoTag" class="status-badge-btn status-badge-idle" data-i18n="matchIdle">IDLE // LOBBY</div>
-          </div>
-
-          <div class="score-arena">
-            <div class="team-box team-allied">
-              <div class="team-tag" data-i18n="teamAllied">// ALLIED TEAM</div>
-              <div id="pcAlliedScore" class="score-digit">0</div>
+        <!-- VALORANT TWEAKS STYLE SIDEBAR NAVIGATION -->
+        <aside class="app-sidebar">
+          <div class="sidebar-brand">
+            <div class="val-logo" style="width: 32px; height: 32px;">
+              <svg width="18" height="18" viewBox="0 0 100 100" fill="none">
+                <path d="M99.2 0H63.9L50 35.8L36.1 0H0.8L50 100L99.2 0Z" fill="#FFFFFF"/>
+              </svg>
             </div>
-
-            <div class="score-vs">- VS -</div>
-
-            <div class="team-box team-enemy">
-              <div class="team-tag" data-i18n="teamEnemy">// ENEMY TEAM</div>
-              <div id="pcEnemyScore" class="score-digit">0</div>
-            </div>
-          </div>
-
-          <!-- Round Timeline (13 Rounds Target) -->
-          <div class="round-timeline" id="roundTimeline">
-            <!-- 13 Rounds Dots generated via JS -->
-          </div>
-
-          <div style="display: flex; gap: 10px; margin-top: 10px;">
-            <button id="btnShortcut" class="val-btn val-btn-cyan" style="flex: 1;" data-i18n="btnShortcut">
-              📌 CREATE DESKTOP SHORTCUT
-            </button>
-            <button id="btnToggleSync" class="val-btn val-btn-outline" style="flex: 1;" data-i18n="btnToggleSyncOpen">
-              📱 QR CODE & SYNC
-            </button>
-          </div>
-        </div>
-
-        <!-- HÀNG 1 - CỘT 2: MULTI-DEVICE SYNC & QR -->
-        <div id="syncCard" class="val-card">
-          <div class="val-card-header" style="margin-bottom: 8px;">
-            <div class="val-card-title" data-i18n="syncTitle">📱 MULTI-DEVICE SYNC // CLOUD RELAY</div>
-            <div id="syncModeTag" class="val-tag" style="color: var(--val-cyan);">[ ☁️ CLOUD_RELAY // 4G/5G ]</div>
-          </div>
-
-          <!-- Connection Mode: Cloud Relay Default (4G/5G Internet Sync) -->
-          <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <button id="btnModeCloud" class="val-btn val-btn-sm val-btn-cyan" style="flex: 2; font-size: 0.75rem; padding: 6px 8px;" data-i18n="btnModeCloud">☁️ CLOUD RELAY (4G / 5G / INTERNET)</button>
-            <button id="btnModeLan" class="val-btn val-btn-outline val-btn-sm" style="flex: 1; font-size: 0.75rem; padding: 6px 8px;" data-i18n="btnModeLan">🏠 LOCAL WI-FI</button>
-          </div>
-
-          <div class="qr-box-wrapper" style="align-items: flex-start; margin-top: 0;">
-            <div class="qr-frame">
-              <img id="qrImg" src="/api/qr?type=cloud" alt="QR Code">
-            </div>
-
-            <div class="qr-details" style="gap: 8px;">
-              <!-- PIN / Relay Status Box -->
-              <div class="pin-box" style="padding: 6px 12px;">
-                <div class="pin-label">
-                  <span id="syncStatusLabel" data-i18n="pinLabel">CLOUD SYNC:</span> <strong id="tokenDisplay" class="pin-value" style="font-size: 1.15rem; color: var(--val-cyan);">READY (4G)</strong>
-                </div>
-                <button id="btnCopyToken" class="val-btn val-btn-outline val-btn-sm" data-i18n="btnCopyPin">📋 COPY PIN</button>
-              </div>
-
-              <!-- Links for Mobile & Laptop -->
-              <div class="url-action-bar">
-                <input type="text" id="lanUrlInput" class="val-input" readonly placeholder="Mobile Cloud Link..." data-i18n-placeholder="mobilePlaceholder">
-                <button id="btnCopy" class="val-btn val-btn-sm" style="white-space: nowrap;" data-i18n="btnCopyMobile">📱 MOBILE LINK</button>
-              </div>
-              <div class="url-action-bar">
-                <input type="text" id="lanDashboardInput" class="val-input" readonly placeholder="Laptop Dashboard Link..." data-i18n-placeholder="laptopPlaceholder">
-                <button id="btnCopyLaptop" class="val-btn val-btn-cyan val-btn-sm" style="white-space: nowrap;" data-i18n="btnCopyLaptop">💻 LAPTOP LINK</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- HÀNG 2 - CỘT 1: AUDIO ENGINE & SCENARIO CONTROL (ƯU TIÊN LAYOUT HOẠT ĐỘNG NHƯ CŨ) -->
-        <div class="val-card">
-          <div class="val-card-header">
-            <div class="val-card-title" data-i18n="audioTitle">🔊 AUDIO ENGINE & SCENARIO CONTROL</div>
-            <button id="btnTestChime" class="val-btn val-btn-outline val-btn-sm" data-i18n="btnTestAudio">
-              🔊 TEST AUDIO
-            </button>
-          </div>
-
-          <div class="audio-control-layout">
             <div>
-              <select id="soundPicker" class="val-select">
-                <option value="melodicChime" data-i18n="soundOpt1">🎼 1. Melodic Triad (Default)</option>
-                <option value="radarPulse" data-i18n="soundOpt2">📡 2. Radar Sci-Fi Pulse (Modern Alert)</option>
-                <option value="crystalBell" data-i18n="soundOpt3">🔔 3. Gentle Crystal Bell</option>
-                <option value="arcadeRetro" data-i18n="soundOpt4">👾 4. Arcade 8-Bit Ascending (Retro Game)</option>
-                <option value="tacticalDuty" data-i18n="soundOpt5">🛡️ 5. Tactical Dual-Tone (Tactical Alert)</option>
-              </select>
+              <h2>VALORANT</h2>
+              <span>SCORE ALERT</span>
+            </div>
+          </div>
 
-              <!-- Master Volume Slider -->
-              <div class="volume-box">
-                <div class="volume-header">
-                  <span data-i18n="volLabel">ALERT VOLUME</span>
-                  <span id="volValue">80%</span>
-                </div>
-                <input type="range" id="volSlider" class="vol-slider" min="0" max="100" value="80">
+          <!-- Section: OVERVIEW -->
+          <div class="sidebar-nav-section section-overview">/// OVERVIEW</div>
+          <button class="sidebar-nav-item active" data-tab="tabHud" id="navHud">
+            <span class="sidebar-nav-icon">🎯</span>
+            <span data-i18n="navHud">LIVE SCORE HUD</span>
+          </button>
+
+          <!-- Section: FEATURES -->
+          <div class="sidebar-nav-section section-features">/// FEATURES</div>
+          <button class="sidebar-nav-item" data-tab="tabAlerts" id="navAlerts">
+            <span class="sidebar-nav-icon">⚠️</span>
+            <span data-i18n="navAlerts">ALERT RULES</span>
+          </button>
+          <button class="sidebar-nav-item" data-tab="tabNotify" id="navNotify">
+            <span class="sidebar-nav-icon">🔊</span>
+            <span data-i18n="navNotify">AUDIO & NOTIFY</span>
+          </button>
+          <button class="sidebar-nav-item" data-tab="tabSync" id="navSync">
+            <span class="sidebar-nav-icon">📱</span>
+            <span data-i18n="navSync">4G CLOUD SYNC</span>
+          </button>
+
+          <!-- Section: SYSTEM -->
+          <div class="sidebar-nav-section section-system">/// SYSTEM</div>
+          <button class="sidebar-nav-item" data-tab="tabAccount" id="navAccount">
+            <span class="sidebar-nav-icon">👤</span>
+            <span data-i18n="navAccount">ACCOUNT & LICENSE</span>
+          </button>
+          <button class="sidebar-nav-item" data-tab="tabSystem" id="navSystem">
+            <span class="sidebar-nav-icon">⚡</span>
+            <span data-i18n="navSystem">DIAGNOSTICS</span>
+          </button>
+
+          <div class="sidebar-footer">
+            <div class="sidebar-version-badge">PROTOCOL v1.0.3</div>
+            <div class="sidebar-pulse-status">
+              <span class="status-dot"></span>
+              <span>ONLINE PROTOCOL</span>
+            </div>
+          </div>
+        </aside>
+
+        <!-- MAIN VIEWPORT -->
+        <main class="app-viewport">
+          <!-- Top Header Bar -->
+          <header>
+            <div class="brand">
+              <div class="brand-text">
+                <h1 id="activeTabBreadcrumb">/// OVERVIEW // LIVE SCORE HUD</h1>
+                <span>TACTICAL REALTIME PROTOCOL // PC HUD</span>
               </div>
+            </div>
 
-              <button id="btnPcAudio" class="val-btn val-btn-outline" style="width: 100%; margin-top: 8px;" data-i18n="btnPcAudioOn">
-                🔊 ENABLE PC SPEAKER AUDIO
+            <div class="header-actions">
+              <button id="btnLangToggle" class="val-btn val-btn-outline val-btn-lang" title="Switch Language (EN / VI)">
+                <span style="font-size: 1.05rem; line-height: 1;">🌐</span>
+                <span id="langText">ENGLISH</span>
               </button>
-            </div>
-
-            <div>
-              <div class="event-item">
-                <span data-i18n="evtMatchPoint">⚠️ MATCH POINT (12 RD)</span>
-                <label class="switch">
-                  <input type="checkbox" id="evtMatchPoint" checked>
-                  <span class="slider"></span>
-                </label>
-              </div>
-              <div class="event-item">
-                <span data-i18n="evtRoundChange">🔔 ROUND CHANGE / SCORE UPDATE</span>
-                <label class="switch">
-                  <input type="checkbox" id="evtRoundChange" checked>
-                  <span class="slider"></span>
-                </label>
-              </div>
-              <div class="event-item">
-                <span data-i18n="evtCustomRound">🎯 CUSTOM ROUND</span>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <input type="number" id="customRoundInput" min="2" max="19" value="10" style="width: 44px; height: 24px; padding: 2px 4px; text-align: center; font-family: var(--val-font-tactical); font-size: 0.95rem; font-weight: 800; color: var(--val-gold); background: var(--val-surface-dark); border: 1px solid var(--val-border); outline: none;">
-                  <label class="switch">
-                    <input type="checkbox" id="evtCustomRound" checked>
-                    <span class="slider"></span>
-                  </label>
+              <button id="btnMiniPip" class="val-btn val-btn-outline val-btn-pip" title="Open mini HUD overlay" data-i18n-title="miniHudTitle">
+                🗗 MINI HUD
+              </button>
+              <div id="headerUserChip" class="header-user-chip" title="Manage License & Account">
+                <div class="user-avatar-mini" id="headerUserAvatarWrap">👤</div>
+                <div class="user-meta-mini">
+                  <span class="user-name-mini" id="headerUserName">Guest</span>
+                  <span class="user-plan-badge" id="headerUserBadge">PRO</span>
                 </div>
               </div>
-              <div class="event-item">
-                <span data-i18n="evtMatchEnded">🏆 MATCH FINISHED</span>
-                <label class="switch">
-                  <input type="checkbox" id="evtMatchEnded" checked>
-                  <span class="slider"></span>
-                </label>
+              <button id="btnHeaderLogout" class="val-btn val-btn-outline val-btn-sm" title="Logout session" data-i18n="btnUserLogout">
+                🚪 LOGOUT
+              </button>
+              <button id="btnHeaderLogin" class="val-btn val-btn-cyan val-btn-sm lic-hidden" title="Sign In" data-i18n="btnUserLogin">
+                🔐 SIGN IN
+              </button>
+              <div class="status-pill">
+                <span class="status-dot"></span>
+                <span id="sysStatusText" data-i18n="sysStatus">SYS_STATUS: ONLINE</span>
+              </div>
+            </div>
+          </header>
+
+          <!-- Update banner -->
+          <div id="updBanner" class="lic-banner lic-hidden">
+            <div class="lic-banner-text">
+              <div id="updBannerTitle" class="lic-banner-title" data-i18n="updBannerTitle">UPDATE AVAILABLE</div>
+              <div id="updBannerMsg" class="lic-banner-msg"></div>
+              <div id="updProgress" class="lic-hidden"
+                   style="margin-top: 8px; height: 6px; border-radius: 3px; overflow: hidden; background: rgba(236, 232, 225, 0.12);">
+                <div id="updProgressBar"
+                     style="height: 100%; width: 0%; background: var(--val-cyan); transition: width 0.25s ease;"></div>
+              </div>
+            </div>
+            <div class="lic-actions">
+              <button id="btnUpdInstall" class="val-btn val-btn-sm" data-i18n="btnUpdInstall">⬇️ UPDATE NOW</button>
+              <a id="btnUpdOpen" class="val-btn val-btn-outline val-btn-sm" target="_blank" rel="noopener noreferrer" data-i18n="btnUpdOpen">🌐 DOWNLOAD PAGE</a>
+              <button id="btnUpdLater" class="val-btn val-btn-outline val-btn-sm lic-hidden" data-i18n="btnUpdLater">✕ LATER</button>
+            </div>
+          </div>
+
+          <!-- Keylicense Gate Banner -->
+          <div id="licBanner" class="lic-banner lic-hidden">
+            <div class="lic-banner-text">
+              <div id="licBannerTitle" class="lic-banner-title" data-i18n="licBannerChecking">CHECKING LICENSE...</div>
+              <div id="licBannerMsg" class="lic-banner-msg" data-i18n="licBannerWait">Please wait.</div>
+            </div>
+            <div class="lic-actions">
+              <button id="btnLicLogin" class="val-btn val-btn-sm lic-hidden" data-i18n="btnLicLogin">🔐 SIGN IN GOOGLE</button>
+              <button id="btnLicRecheck" class="val-btn val-btn-outline val-btn-sm lic-hidden" data-i18n="btnLicRecheck">♻️ RECHECK</button>
+            </div>
+          </div>
+
+          <!-- ==================== TAB 1: OVERVIEW // LIVE SCORE HUD ==================== -->
+          <div id="tabHud" class="tab-pane active">
+            <div class="dashboard-grid">
+              <!-- Live Score Arena -->
+              <div class="val-card">
+                <div class="val-card-header">
+                  <div class="val-card-title" data-i18n="liveScoreTitle">🎯 LIVE SCORE MONITOR // HERO HUD</div>
+                  <div id="matchInfoTag" class="status-badge-btn status-badge-idle" data-i18n="matchIdle">IDLE // LOBBY</div>
+                </div>
+
+                <div class="score-arena">
+                  <div class="team-box team-allied">
+                    <div class="team-tag" data-i18n="teamAllied">// ALLIED TEAM</div>
+                    <div id="pcAlliedScore" class="score-digit">0</div>
+                  </div>
+
+                  <div class="score-vs">- VS -</div>
+
+                  <div class="team-box team-enemy">
+                    <div class="team-tag" data-i18n="teamEnemy">// ENEMY TEAM</div>
+                    <div id="pcEnemyScore" class="score-digit">0</div>
+                  </div>
+                </div>
+
+                <!-- Round Timeline (13 Rounds Target) -->
+                <div class="round-timeline" id="roundTimeline"></div>
+
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                  <button id="btnShortcut" class="val-btn val-btn-cyan" style="flex: 1;" data-i18n="btnShortcut">
+                    📌 CREATE DESKTOP SHORTCUT
+                  </button>
+                  <button id="btnToggleSync" class="val-btn val-btn-outline" style="flex: 1;" data-i18n="btnToggleSyncOpen">
+                    📱 QR CODE & SYNC
+                  </button>
+                </div>
+              </div>
+
+              <!-- Match Telemetry & Quick Overlay -->
+              <div class="val-card">
+                <div class="val-card-header">
+                  <div class="val-card-title">⚡ MATCH INTELLIGENCE & TELEMETRY</div>
+                  <div class="val-tag" style="color: var(--val-cyan);">[ LIVE ENGINE ]</div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 12px;">
+                  <div style="background: var(--val-surface-dark); border: 1px solid var(--val-border); padding: 14px 16px;">
+                    <div style="font-family: var(--val-font-tactical); font-size: 0.8rem; color: var(--val-gray); letter-spacing: 1.5px; text-transform: uppercase;">
+                      // LIVE MATCH STATUS
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                      <div style="font-family: var(--val-font-display); font-size: 1.4rem; font-weight: 900; color: var(--val-white);" id="hudMatchStatus">
+                        READY FOR MATCH
+                      </div>
+                      <span class="user-plan-badge">REALTIME</span>
+                    </div>
+                  </div>
+
+                  <div class="mini-status-grid">
+                    <div class="mini-chip">
+                      <div class="mini-chip-label">// ALLIED STATUS</div>
+                      <div class="mini-chip-val" id="hudAlliedStatus"><span style="color: var(--val-cyan);">●</span> DEFENDING</div>
+                    </div>
+                    <div class="mini-chip">
+                      <div class="mini-chip-label">// ENEMY THREAT</div>
+                      <div class="mini-chip-val" id="hudEnemyThreat"><span style="color: var(--val-gold);">●</span> NORMAL</div>
+                    </div>
+                  </div>
+
+                  <div style="font-family: var(--val-font-tactical); font-size: 0.85rem; color: var(--val-gray); line-height: 1.5;">
+                    💡 Khi vào trận Valorant, tỉ số sẽ tự động đồng bộ theo từng round. Bạn có thể bấm <strong style="color:var(--val-cyan);">MINI HUD</strong> ở góc trên để ghim tỉ số nổi lên trên game hoặc quét mã QR sang điện thoại.
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- HÀNG 2 - CỘT 2: TÀI KHOẢN NGƯỜI DÙNG & TRẠNG THÁI HỆ THỐNG (TÁCH BIỆT PHẦN USER) -->
-        <div id="userProfileCard" class="val-card">
-          <div class="val-card-header">
-            <div class="val-card-title" data-i18n="userCardTitle">👤 ACCOUNT & SYSTEM</div>
-            <div id="userCardBadge" class="val-tag">[ PRO ]</div>
-          </div>
+          <!-- ==================== TAB 2: ALERTS & RULES ==================== -->
+          <div id="tabAlerts" class="tab-pane">
+            <div class="dashboard-grid">
+              <!-- Scenario Trigger Controls -->
+              <div class="val-card">
+                <div class="val-card-header">
+                  <div class="val-card-title">⚠️ SCENARIO TRIGGERS & RULES</div>
+                  <div class="val-tag">[ ACTIVE RULES ]</div>
+                </div>
 
-          <!-- User Info Details (Logout / Login button on the right inside user box) -->
-          <div class="user-profile-box">
-            <div class="user-avatar-wrap" id="userAvatarWrap">
-              <img id="userAvatarImg" class="user-avatar-img lic-hidden" alt="Avatar" onerror="this.classList.add('lic-hidden'); var b = document.getElementById('userAvatarBig'); if (b) b.classList.remove('lic-hidden');">
-              <div id="userAvatarBig" class="user-avatar-big">👤</div>
-            </div>
-            <div class="user-info-text">
-              <div class="user-display-name" id="userDisplayName" data-i18n="userChecking">Checking...</div>
-              <div class="user-display-email" id="userDisplayEmail">—</div>
-              <div class="user-status-line">
-                <span id="userStatusDot" class="status-dot-mini"></span>
-                <span id="userStatusText" data-i18n="userStatus">Secure session active</span>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                  <div class="event-item">
+                    <div>
+                      <span data-i18n="evtMatchPoint" style="font-weight: 800;">⚠️ MATCH POINT (12 RD)</span>
+                      <div style="font-size: 0.78rem; color: var(--val-gray); font-family: var(--val-font-tactical);">Báo động khi đối thủ hoặc đồng minh chạm mốc 12 round</div>
+                    </div>
+                    <label class="switch">
+                      <input type="checkbox" id="evtMatchPoint" checked>
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="event-item">
+                    <div>
+                      <span data-i18n="evtRoundChange" style="font-weight: 800;">🔔 ROUND CHANGE / SCORE UPDATE</span>
+                      <div style="font-size: 0.78rem; color: var(--val-gray); font-family: var(--val-font-tactical);">Âm báo nhẹ mỗi khi kết thúc 1 round và đổi điểm</div>
+                    </div>
+                    <label class="switch">
+                      <input type="checkbox" id="evtRoundChange" checked>
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="event-item">
+                    <div>
+                      <span data-i18n="evtCustomRound" style="font-weight: 800;">🎯 CUSTOM ROUND TARGET</span>
+                      <div style="font-size: 0.78rem; color: var(--val-gray); font-family: var(--val-font-tactical);">Báo động khi chạm mốc round tuỳ chọn chỉ định</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <input type="number" id="customRoundInput" min="2" max="19" value="10" style="width: 44px; height: 26px; padding: 2px 4px; text-align: center; font-family: var(--val-font-tactical); font-size: 0.95rem; font-weight: 800; color: var(--val-gold); background: var(--val-surface-dark); border: 1px solid var(--val-border); outline: none;">
+                      <label class="switch">
+                        <input type="checkbox" id="evtCustomRound" checked>
+                        <span class="slider"></span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="event-item">
+                    <div>
+                      <span data-i18n="evtMatchEnded" style="font-weight: 800;">🏆 MATCH FINISHED</span>
+                      <div style="font-size: 0.78rem; color: var(--val-gray); font-family: var(--val-font-tactical);">Báo hiệu khi trận đấu kết thúc (Chiến thắng / Thất bại)</div>
+                    </div>
+                    <label class="switch">
+                      <input type="checkbox" id="evtMatchEnded" checked>
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="event-item">
+                    <div>
+                      <span data-i18n="evtSpikePlanted" style="font-weight: 800;">💣 SPIKE PLANTED ALERT</span>
+                      <div style="font-size: 0.78rem; color: var(--val-gray); font-family: var(--val-font-tactical);">Báo động âm thanh khi Spike vừa được đặt xuống</div>
+                    </div>
+                    <label class="switch">
+                      <input type="checkbox" id="evtSpikePlanted" checked>
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="event-item">
+                    <div>
+                      <span data-i18n="evtOvertime" style="font-weight: 800;">🔥 OVERTIME (12-12 SUDDEN DEATH)</span>
+                      <div style="font-size: 0.78rem; color: var(--val-gray); font-family: var(--val-font-tactical);">Cảnh báo khi hai đội hoà 12-12 bước vào round Overtime</div>
+                    </div>
+                    <label class="switch">
+                      <input type="checkbox" id="evtOvertime" checked>
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="event-item">
+                    <div>
+                      <span data-i18n="evtDangerVignette" style="font-weight: 800;">🚨 FULLSCREEN DANGER VIGNETTE</span>
+                      <div style="font-size: 0.78rem; color: var(--val-gray); font-family: var(--val-font-tactical);">Hiệu ứng viền đỏ nhấp nháy toàn màn hình ở Match Point</div>
+                    </div>
+                    <label class="switch">
+                      <input type="checkbox" id="evtDangerVignette" checked>
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Interactive Simulators -->
+              <div class="val-card">
+                <div class="val-card-header">
+                  <div class="val-card-title">🎮 SCENARIO SIMULATOR</div>
+                  <div class="val-tag" style="color: var(--val-cyan);">[ TEST HARNESS ]</div>
+                </div>
+
+                <div style="font-family: var(--val-font-tactical); font-size: 0.88rem; color: var(--val-gray); margin-bottom: 16px; line-height: 1.5;">
+                  Thử nghiệm âm báo và kịch bản cảnh báo ngay lập tức mà không cần phải chờ vào một trận đấu thật trên Valorant:
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                  <button id="btnSimRound" class="val-btn val-btn-outline" style="padding: 14px 10px; font-size: 0.85rem;">
+                    🔔 TEST ROUND WIN (1.0x)
+                  </button>
+                  <button id="btnSimCustom" class="val-btn val-btn-outline" style="padding: 14px 10px; font-size: 0.85rem;">
+                    🎯 TEST CUSTOM (1.15x)
+                  </button>
+                  <button id="btnSimMatchPoint" class="val-btn" style="padding: 14px 10px; font-size: 0.85rem;">
+                    ⚠️ TEST MATCH POINT (1.35x)
+                  </button>
+                  <button id="btnSimEnd" class="val-btn val-btn-cyan" style="padding: 14px 10px; font-size: 0.85rem;">
+                    🏆 TEST VICTORY (0.82x)
+                  </button>
+                </div>
               </div>
             </div>
-            <button id="btnUserLogout" class="val-btn val-btn-outline val-btn-sm" style="flex-shrink: 0;" data-i18n="btnUserLogout">🚪 LOGOUT</button>
-            <button id="btnUserLogin" class="val-btn val-btn-cyan val-btn-sm lic-hidden" style="flex-shrink: 0;" data-i18n="btnUserLogin">🔐 SIGN IN</button>
           </div>
 
-          <!-- Mini Status Grid -->
-          <div class="mini-status-grid">
-            <div class="mini-chip">
-              <div class="mini-chip-label" data-i18n="chipLocalServer">// LOCAL SERVER</div>
-              <div class="mini-chip-val"><span style="color: var(--val-cyan);">●</span> PORT 3000</div>
-            </div>
-            <div class="mini-chip">
-              <div class="mini-chip-label" data-i18n="chipValClient">// VALORANT CLIENT</div>
-              <div id="riotStatusVal" class="mini-chip-val"><span style="color: var(--val-red);">●</span> CHECKING...</div>
-            </div>
-            <div class="mini-chip">
-              <div class="mini-chip-label" data-i18n="chipMobileClient">// MOBILE CLIENT</div>
-              <div id="clientStatusVal" class="mini-chip-val"><span style="color: var(--val-gold);">●</span> WAITING...</div>
-            </div>
-            <div class="mini-chip">
-              <div class="mini-chip-label" data-i18n="chipPcDevice">// PC DEVICE</div>
-              <div id="userDeviceName" class="mini-chip-val">—</div>
-            </div>
-          </div>
+          <!-- ==================== TAB 3: AUDIO & NOTIFY ==================== -->
+          <div id="tabNotify" class="tab-pane">
+            <div class="dashboard-grid">
+              <!-- Audio Engine Settings -->
+              <div class="val-card">
+                <div class="val-card-header">
+                  <div class="val-card-title" data-i18n="audioTitle">🔊 AUDIO ENGINE SETTINGS</div>
+                  <button id="btnTestChime" class="val-btn val-btn-outline val-btn-sm" data-i18n="btnTestAudio">
+                    🔊 TEST AUDIO
+                  </button>
+                </div>
 
-          <!-- License Summary Box & Modal Opener (Removed // GÓI BẢN QUYỀN and // HẠN DÙNG) -->
-          <div class="lic-summary-box">
-            <div class="lic-summary-row">
-              <div>
-                <div id="userLicPlan" class="lic-plan-text">TRIAL</div>
+                <div>
+                  <div style="font-family: var(--val-font-tactical); font-size: 0.8rem; color: var(--val-gray); margin-bottom: 6px; text-transform: uppercase;">
+                    // SOUND PACK PROFILE
+                  </div>
+                  <select id="soundPicker" class="val-select">
+                    <option value="melodicChime" data-i18n="soundOpt1">🎼 1. Melodic Triad (Default)</option>
+                    <option value="radarPulse" data-i18n="soundOpt2">📡 2. Radar Sci-Fi Pulse (Modern Alert)</option>
+                    <option value="crystalBell" data-i18n="soundOpt3">🔔 3. Gentle Crystal Bell</option>
+                    <option value="arcadeRetro" data-i18n="soundOpt4">👾 4. Arcade 8-Bit Ascending (Retro Game)</option>
+                    <option value="tacticalDuty" data-i18n="soundOpt5">🛡️ 5. Tactical Dual-Tone (Tactical Alert)</option>
+                  </select>
+
+                  <!-- Master Volume Slider -->
+                  <div class="volume-box">
+                    <div class="volume-header">
+                      <span data-i18n="volLabel">ALERT VOLUME</span>
+                      <span id="volValue">80%</span>
+                    </div>
+                    <input type="range" id="volSlider" class="vol-slider" min="0" max="100" value="80">
+                  </div>
+
+                  <button id="btnPcAudio" class="val-btn val-btn-outline" style="width: 100%; margin-top: 14px;" data-i18n="btnPcAudioOn">
+                    🔊 ENABLE PC SPEAKER AUDIO
+                  </button>
+                </div>
               </div>
-              <div style="text-align: right;">
-                <div id="userLicExpires" class="lic-exp-text">—</div>
+
+              <!-- Discord Webhook & External Notifications -->
+              <div class="val-card">
+                <div class="val-card-header">
+                  <div class="val-card-title" data-i18n="discordTitle">🌐 DISCORD WEBHOOK & NOTIFICATIONS</div>
+                  <button id="btnTestDiscord" class="val-btn val-btn-outline val-btn-sm" data-i18n="btnTestDiscord">
+                    TEST WEBHOOK
+                  </button>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                  <div>
+                    <div style="font-family: var(--val-font-tactical); font-size: 0.8rem; color: var(--val-gray); margin-bottom: 6px; text-transform: uppercase;">
+                      // DISCORD WEBHOOK URL
+                    </div>
+                    <input type="text" id="discordWebhookUrl" class="val-input" placeholder="https://discord.com/api/webhooks/..." data-i18n-placeholder="discordWebhookPlaceholder">
+                  </div>
+
+                  <div class="event-item">
+                    <span style="font-size: 0.9rem; font-weight: 700;">Gửi Webhook khi Match Point (12 RD)</span>
+                    <label class="switch">
+                      <input type="checkbox" id="evtDiscordMatchPoint" checked>
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="event-item">
+                    <span style="font-size: 0.9rem; font-weight: 700;">Gửi Webhook khi kết thúc trận đấu</span>
+                    <label class="switch">
+                      <input type="checkbox" id="evtDiscordMatchEnd" checked>
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="event-item">
+                    <span data-i18n="evtDesktopNotify" style="font-size: 0.9rem; font-weight: 700;">THÔNG BÁO DESKTOP WINDOWS</span>
+                    <label class="switch">
+                      <input type="checkbox" id="evtDesktopNotify">
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
-
-            <button id="btnOpenLicPopup" class="val-btn val-btn-cyan" style="width: 100%; margin-top: 10px;" data-i18n="btnOpenLicPopup">
-              🔑 MANAGE & ACTIVATE LICENSE
-            </button>
           </div>
-        </div>
 
+          <!-- ==================== TAB 4: 4G CLOUD SYNC ==================== -->
+          <div id="tabSync" class="tab-pane">
+            <div class="dashboard-grid">
+              <!-- Multi-Device Sync Card -->
+              <div id="syncCard" class="val-card">
+                <div class="val-card-header" style="margin-bottom: 8px;">
+                  <div class="val-card-title" data-i18n="syncTitle">📱 MULTI-DEVICE SYNC // CLOUD RELAY</div>
+                  <div id="syncModeTag" class="val-tag" style="color: var(--val-cyan);">[ ☁️ CLOUD_RELAY // 4G/5G ]</div>
+                </div>
+
+                <!-- Connection Mode: Cloud Relay Default (4G/5G Internet Sync) -->
+                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                  <button id="btnModeCloud" class="val-btn val-btn-sm val-btn-cyan" style="flex: 2; font-size: 0.75rem; padding: 6px 8px;" data-i18n="btnModeCloud">☁️ CLOUD RELAY (4G / 5G / INTERNET)</button>
+                  <button id="btnModeLan" class="val-btn val-btn-outline val-btn-sm" style="flex: 1; font-size: 0.75rem; padding: 6px 8px;" data-i18n="btnModeLan">🏠 LOCAL WI-FI</button>
+                </div>
+
+                <div class="qr-box-wrapper" style="align-items: flex-start; margin-top: 0;">
+                  <div class="qr-frame">
+                    <img id="qrImg" src="/api/qr?type=cloud" alt="QR Code">
+                  </div>
+
+                  <div class="qr-details" style="gap: 8px;">
+                    <!-- PIN / Relay Status Box -->
+                    <div class="pin-box" style="padding: 6px 12px;">
+                      <div class="pin-label">
+                        <span id="syncStatusLabel" data-i18n="pinLabel">CLOUD SYNC:</span> <strong id="tokenDisplay" class="pin-value" style="font-size: 1.15rem; color: var(--val-cyan);">READY (4G)</strong>
+                      </div>
+                      <button id="btnCopyToken" class="val-btn val-btn-outline val-btn-sm" data-i18n="btnCopyPin">📋 COPY PIN</button>
+                    </div>
+
+                    <!-- Links for Mobile & Laptop -->
+                    <div class="url-action-bar">
+                      <input type="text" id="lanUrlInput" class="val-input" readonly placeholder="Mobile Cloud Link..." data-i18n-placeholder="mobilePlaceholder">
+                      <button id="btnCopy" class="val-btn val-btn-sm" style="white-space: nowrap;" data-i18n="btnCopyMobile">📱 MOBILE LINK</button>
+                    </div>
+                    <div class="url-action-bar">
+                      <input type="text" id="lanDashboardInput" class="val-input" readonly placeholder="Laptop Dashboard Link..." data-i18n-placeholder="laptopPlaceholder">
+                      <button id="btnCopyLaptop" class="val-btn val-btn-cyan val-btn-sm" style="white-space: nowrap;" data-i18n="btnCopyLaptop">💻 LAPTOP LINK</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Remote Guidance Card -->
+              <div class="val-card">
+                <div class="val-card-header">
+                  <div class="val-card-title">📖 HƯỚNG DẪN KẾT NỐI TỪ XA QUA 4G</div>
+                  <div class="val-tag" style="color: var(--val-cyan);">[ HƯỚNG DẪN ]</div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 12px; font-family: var(--val-font-tactical); font-size: 0.95rem; color: var(--val-white); line-height: 1.6;">
+                  <div style="background: var(--val-surface-dark); border: 1px solid var(--val-border); padding: 12px 14px;">
+                    <strong style="color: var(--val-cyan);">Bước 1:</strong> Đăng nhập tài khoản Google trên PC App để kích hoạt Cloud Relay.
+                  </div>
+                  <div style="background: var(--val-surface-dark); border: 1px solid var(--val-border); padding: 12px 14px;">
+                    <strong style="color: var(--val-cyan);">Bước 2:</strong> Quét mã QR bằng Camera điện thoại hoặc bấm nút <strong style="color: var(--val-gold);">📱 MOBILE LINK</strong> để copy link gửi sang Zalo / Messenger.
+                  </div>
+                  <div style="background: var(--val-surface-dark); border: 1px solid var(--val-border); padding: 12px 14px;">
+                    <strong style="color: var(--val-cyan);">Bước 3:</strong> Mở link trên điện thoại ngoài đường (sử dụng 4G/5G). Tỉ số trận đấu sẽ cập nhật tức thời theo từng giây!
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ==================== TAB 5: ACCOUNT & LICENSE ==================== -->
+          <div id="tabAccount" class="tab-pane">
+            <div class="dashboard-grid">
+              <!-- Google Account Profile -->
+              <div id="userProfileCard" class="val-card">
+                <div class="val-card-header">
+                  <div class="val-card-title" data-i18n="userCardTitle">👤 ACCOUNT & SYSTEM</div>
+                  <div id="userCardBadge" class="val-tag">[ PRO ]</div>
+                </div>
+
+                <!-- User Info Details -->
+                <div class="user-profile-box">
+                  <div class="user-avatar-wrap" id="userAvatarWrap">
+                    <img id="userAvatarImg" class="user-avatar-img lic-hidden" alt="Avatar" onerror="this.classList.add('lic-hidden'); var b = document.getElementById('userAvatarBig'); if (b) b.classList.remove('lic-hidden');">
+                    <div id="userAvatarBig" class="user-avatar-big">👤</div>
+                  </div>
+                  <div class="user-info-text">
+                    <div class="user-display-name" id="userDisplayName" data-i18n="userChecking">Checking...</div>
+                    <div class="user-display-email" id="userDisplayEmail">—</div>
+                    <div class="user-status-line">
+                      <span id="userStatusDot" class="status-dot-mini"></span>
+                      <span id="userStatusText" data-i18n="userStatus">Secure session active</span>
+                    </div>
+                  </div>
+                  <button id="btnUserLogout" class="val-btn val-btn-outline val-btn-sm" style="flex-shrink: 0;" data-i18n="btnUserLogout">🚪 LOGOUT</button>
+                  <button id="btnUserLogin" class="val-btn val-btn-cyan val-btn-sm lic-hidden" style="flex-shrink: 0;" data-i18n="btnUserLogin">🔐 SIGN IN</button>
+                </div>
+
+                <!-- Mini Status Grid -->
+                <div class="mini-status-grid">
+                  <div class="mini-chip">
+                    <div class="mini-chip-label" data-i18n="chipLocalServer">// LOCAL SERVER</div>
+                    <div class="mini-chip-val"><span style="color: var(--val-cyan);">●</span> PORT 3000</div>
+                  </div>
+                  <div class="mini-chip">
+                    <div class="mini-chip-label" data-i18n="chipValClient">// VALORANT CLIENT</div>
+                    <div id="riotStatusVal" class="mini-chip-val"><span style="color: var(--val-red);">●</span> CHECKING...</div>
+                  </div>
+                  <div class="mini-chip">
+                    <div class="mini-chip-label" data-i18n="chipMobileClient">// MOBILE CLIENT</div>
+                    <div id="clientStatusVal" class="mini-chip-val"><span style="color: var(--val-gold);">●</span> WAITING...</div>
+                  </div>
+                  <div class="mini-chip">
+                    <div class="mini-chip-label" data-i18n="chipPcDevice">// PC DEVICE</div>
+                    <div id="userDeviceName" class="mini-chip-val">—</div>
+                  </div>
+                </div>
+
+                <!-- License Summary Box & Modal Opener -->
+                <div class="lic-summary-box">
+                  <div class="lic-summary-row">
+                    <div>
+                      <div id="userLicPlan" class="lic-plan-text">TRIAL</div>
+                    </div>
+                    <div style="text-align: right;">
+                      <div id="userLicExpires" class="lic-exp-text">—</div>
+                    </div>
+                  </div>
+
+                  <button id="btnOpenLicPopup" class="val-btn val-btn-cyan" style="width: 100%; margin-top: 10px;" data-i18n="btnOpenLicPopup">
+                    🔑 MANAGE & ACTIVATE LICENSE
+                  </button>
+                </div>
+              </div>
+
+              <!-- Quick License Activation Form -->
+              <div class="val-card">
+                <div class="val-card-header">
+                  <div class="val-card-title">🔑 KÍCH HOẠT BẢN QUYỀN NHANH</div>
+                  <div class="val-tag" style="color: var(--val-cyan);">[ INSTANT KEY ]</div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+                  <div style="font-family: var(--val-font-tactical); font-size: 0.9rem; color: var(--val-gray); line-height: 1.5;">
+                    Nhập License Key đã mua hoặc nhận từ KeyLicense Dashboard để kích hoạt vĩnh viễn trên thiết bị này:
+                  </div>
+
+                  <div style="display: flex; gap: 10px;">
+                    <input type="text" id="licKeyInputMain" class="val-input" placeholder="VAL-XXXX-XXXX-XXXX" style="font-family: monospace; letter-spacing: 1.5px; text-transform: uppercase;">
+                    <button id="btnLicApplyMain" class="val-btn val-btn-cyan" style="white-space: nowrap;">
+                      KÍCH HOẠT
+                    </button>
+                  </div>
+
+                  <div style="display: flex; gap: 10px; margin-top: 6px;">
+                    <button id="btnLicRecheckMain" class="val-btn val-btn-outline val-btn-sm" style="flex: 1;">
+                      ♻️ KIỂM TRA LẠI
+                    </button>
+                    <a href="https://keylicensedashboard.dungbd2005.workers.dev" target="_blank" rel="noopener noreferrer" class="val-btn val-btn-outline val-btn-sm" style="flex: 1;">
+                      🌐 MỞ KEY DASHBOARD
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ==================== TAB 6: DIAGNOSTICS & SYSTEM ==================== -->
+          <div id="tabSystem" class="tab-pane">
+            <div class="dashboard-grid">
+              <!-- Riot Telemetry -->
+              <div class="val-card">
+                <div class="val-card-header">
+                  <div class="val-card-title">⚡ RIOT CLIENT TELEMETRY</div>
+                  <button id="btnRefreshRiot" class="val-btn val-btn-outline val-btn-sm" data-i18n="btnRefreshRiot">
+                    RETRY RIOT CONNECTION
+                  </button>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                  <div class="mini-status-grid">
+                    <div class="mini-chip">
+                      <div class="mini-chip-label">// LOCKFILE DETECTED</div>
+                      <div class="mini-chip-val" id="diagLockfile">LOCAL (127.0.0.1)</div>
+                    </div>
+                    <div class="mini-chip">
+                      <div class="mini-chip-label">// RIOT PORT</div>
+                      <div class="mini-chip-val" id="diagPort">AUTO DETECT</div>
+                    </div>
+                    <div class="mini-chip">
+                      <div class="mini-chip-label">// REGION & SHARD</div>
+                      <div class="mini-chip-val" id="diagShard">AP / LIVE</div>
+                    </div>
+                    <div class="mini-chip">
+                      <div class="mini-chip-label">// PROTOCOL LATENCY</div>
+                      <div class="mini-chip-val"><span style="color:var(--val-cyan)">●</span> &lt; 2 MS</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Live Diagnostic Console Logs -->
+              <div class="val-card">
+                <div class="val-card-header">
+                  <div class="val-card-title" data-i18n="sysConsoleTitle">📋 REALTIME DIAGNOSTIC CONSOLE</div>
+                  <button id="btnClearLogs" class="val-btn val-btn-outline val-btn-sm" data-i18n="btnClearLogs">
+                    CLEAR LOGS
+                  </button>
+                </div>
+
+                <div id="sysLogConsole" class="diagnostic-console">
+                  <div class="log-line info"><span class="log-time">[INIT]</span> System diagnostics initialized. Ready.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </main>
       </div>
     </div>
   </div>
@@ -1746,16 +2277,10 @@
     <div id="licExpires"></div>
     <div id="licDevice"></div>
     <div id="licVerified"></div>
-    <div id="headerUserChip"></div>
-    <div id="headerUserName"></div>
-    <div id="headerUserBadge"></div>
     <button id="btnHeaderLicModal"></button>
-    <button id="btnSimRound"></button>
-    <button id="btnSimCustom"></button>
-    <button id="btnSimMatchPoint"></button>
-    <button id="btnSimEnd"></button>
     <button id="btnAuthTrial"></button>
     <button id="btnAuthOpenKeyModal"></button>
+    <button id="btnCopyDeviceId"></button>
   </div>
 
   <div id="valToast" class="val-toast">MESSAGE</div>
@@ -2008,7 +2533,30 @@
         toastEnterKey: '⚠️ Please enter a license key.',
         toastActivatingKey: '🔑 Activating license...',
         toastKeySuccess: '✅ LICENSE ACTIVATED SUCCESSFULLY!',
-        toastTrialActive: 'TRIAL MODE ACTIVATED'
+        toastTrialActive: 'TRIAL MODE ACTIVATED',
+
+        navHud: 'LIVE SCORE HUD',
+        navAlerts: 'ALERT RULES',
+        navNotify: 'AUDIO & NOTIFY',
+        navSync: '4G CLOUD SYNC',
+        navAccount: 'ACCOUNT & LICENSE',
+        navSystem: 'DIAGNOSTICS',
+        breadcrumbHud: '/// OVERVIEW // LIVE SCORE HUD',
+        breadcrumbAlerts: '/// FEATURES // ALERT RULES & SCENARIOS',
+        breadcrumbNotify: '/// FEATURES // AUDIO ENGINE & NOTIFICATIONS',
+        breadcrumbSync: '/// CONNECTIVITY // MULTI-DEVICE 4G SYNC',
+        breadcrumbAccount: '/// SYSTEM // ACCOUNT & LICENSE MANAGEMENT',
+        breadcrumbSystem: '/// SYSTEM // RIOT & SYSTEM DIAGNOSTICS',
+        evtSpikePlanted: '💣 SPIKE PLANTED ALERT',
+        evtOvertime: '🔥 OVERTIME (12-12 SUDDEN DEATH)',
+        evtDangerVignette: '🚨 FULLSCREEN DANGER VIGNETTE',
+        discordTitle: '🌐 DISCORD WEBHOOK & NOTIFICATIONS',
+        discordWebhookPlaceholder: 'https://discord.com/api/webhooks/...',
+        btnTestDiscord: 'TEST WEBHOOK',
+        evtDesktopNotify: 'WINDOWS DESKTOP NOTIFICATIONS',
+        sysConsoleTitle: '📋 REALTIME DIAGNOSTIC CONSOLE',
+        btnClearLogs: 'CLEAR LOGS',
+        btnRefreshRiot: 'RETRY RIOT CONNECTION',
       },
       vi: {
         langBtn: 'TIẾNG VIỆT',
@@ -2154,7 +2702,30 @@
         toastEnterKey: '⚠️ Vui lòng nhập license key.',
         toastActivatingKey: '🔑 Đang kích hoạt license...',
         toastKeySuccess: '✅ KÍCH HOẠT LICENSE THÀNH CÔNG!',
-        toastTrialActive: 'CHẾ ĐỘ DÙNG THỬ (TRIAL MODE) ĐÃ KÍCH HOẠT'
+        toastTrialActive: 'CHẾ ĐỘ DÙNG THỬ (TRIAL MODE) ĐÃ KÍCH HOẠT',
+
+        navHud: 'HUD TỈ SỐ TRỰC TIẾP',
+        navAlerts: 'KỊCH BẢN CẢNH BÁO',
+        navNotify: 'ÂM THANH & THÔNG BÁO',
+        navSync: 'ĐỒNG BỘ 4G CLOUD',
+        navAccount: 'TÀI KHOẢN & LICENSE',
+        navSystem: 'CHẨN ĐOÁN HỆ THỐNG',
+        breadcrumbHud: '/// TỔNG QUAN // HUD TỈ SỐ TRỰC TIẾP',
+        breadcrumbAlerts: '/// TÍNH NĂNG // QUY TẮC & KỊCH BẢN CẢNH BÁO',
+        breadcrumbNotify: '/// TÍNH NĂNG // BỘ ÂM THANH & THÔNG BÁO',
+        breadcrumbSync: '/// KẾT NỐI // ĐỒNG BỘ ĐA THIẾT BỊ 4G CLOUD',
+        breadcrumbAccount: '/// HỆ THỐNG // QUẢN LÝ TÀI KHOẢN & LICENSE',
+        breadcrumbSystem: '/// HỆ THỐNG // CHẨN ĐOÁN RIOT & HỆ THỐNG',
+        evtSpikePlanted: '💣 CẢNH BÁO ĐẶT SPIKE',
+        evtOvertime: '🔥 CẢNH BÁO OVERTIME (12-12)',
+        evtDangerVignette: '🚨 HIỆU ỨNG VIỀN ĐỎ TOÀN MÀN HÌNH',
+        discordTitle: '🌐 TÍCH HỢP DISCORD WEBHOOK',
+        discordWebhookPlaceholder: 'https://discord.com/api/webhooks/...',
+        btnTestDiscord: 'THỬ GỬI WEBHOOK',
+        evtDesktopNotify: 'THÔNG BÁO DESKTOP WINDOWS',
+        sysConsoleTitle: '📋 NHẬT KÝ HOẠT ĐỘNG THỜI GIAN THỰC',
+        btnClearLogs: 'XÓA NHẬT KÝ',
+        btnRefreshRiot: 'LÀM MỚI KẾT NỐI RIOT',
       }
     };
 
@@ -3532,6 +4103,161 @@
         }
       };
     }
-  </script>
+  
+
+    /* ===================== TAB NAVIGATION & SYSTEM LOGS ===================== */
+    const activeTabBreadcrumb = document.getElementById('activeTabBreadcrumb');
+    const sysLogConsole = document.getElementById('sysLogConsole');
+    const discordWebhookUrl = document.getElementById('discordWebhookUrl');
+    const btnTestDiscord = document.getElementById('btnTestDiscord');
+    const evtSpikePlanted = document.getElementById('evtSpikePlanted');
+    const evtOvertime = document.getElementById('evtOvertime');
+    const evtDangerVignette = document.getElementById('evtDangerVignette');
+    const evtDesktopNotify = document.getElementById('evtDesktopNotify');
+    const btnRefreshRiot = document.getElementById('btnRefreshRiot');
+    const btnClearLogs = document.getElementById('btnClearLogs');
+    const licKeyInputMain = document.getElementById('licKeyInputMain');
+    const btnLicApplyMain = document.getElementById('btnLicApplyMain');
+    const btnLicRecheckMain = document.getElementById('btnLicRecheckMain');
+    const hudMatchStatus = document.getElementById('hudMatchStatus');
+    const hudAlliedStatus = document.getElementById('hudAlliedStatus');
+    const hudEnemyThreat = document.getElementById('hudEnemyThreat');
+
+    function addSysLog(msg, level = 'info') {
+      if (!sysLogConsole) return;
+      const time = new Date().toTimeString().split(' ')[0];
+      const div = document.createElement('div');
+      div.className = `log-line ${level}`;
+      div.innerHTML = `<span class="log-time">[${time}]</span> ${msg}`;
+      sysLogConsole.appendChild(div);
+      if (sysLogConsole.childNodes.length > 150) {
+        sysLogConsole.removeChild(sysLogConsole.firstChild);
+      }
+      sysLogConsole.scrollTop = sysLogConsole.scrollHeight;
+    }
+
+    btnClearLogs?.addEventListener('click', () => {
+      if (sysLogConsole) sysLogConsole.innerHTML = '';
+      addSysLog('Diagnostic console cleared.', 'info');
+    });
+
+    const BREADCRUMB_MAP = {
+      tabHud: 'breadcrumbHud',
+      tabAlerts: 'breadcrumbAlerts',
+      tabNotify: 'breadcrumbNotify',
+      tabSync: 'breadcrumbSync',
+      tabAccount: 'breadcrumbAccount',
+      tabSystem: 'breadcrumbSystem'
+    };
+
+    function switchTab(tabId) {
+      const allTabs = ['tabHud', 'tabAlerts', 'tabNotify', 'tabSync', 'tabAccount', 'tabSystem'];
+      if (!allTabs.includes(tabId)) tabId = 'tabHud';
+
+      allTabs.forEach(tName => {
+        const el = document.getElementById(tName);
+        if (el) el.classList.toggle('active', tName === tabId);
+      });
+
+      document.querySelectorAll('.sidebar-nav-item').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+      });
+
+      if (activeTabBreadcrumb) {
+        activeTabBreadcrumb.innerText = t(BREADCRUMB_MAP[tabId] || 'breadcrumbHud');
+      }
+      localStorage.setItem('val_active_tab', tabId);
+      addSysLog(`Switched view to: ${tabId}`, 'info');
+    }
+
+    document.querySelectorAll('.sidebar-nav-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tName = btn.getAttribute('data-tab');
+        if (tName) switchTab(tName);
+      });
+    });
+
+    // Restore active tab
+    const savedTab = localStorage.getItem('val_active_tab') || 'tabHud';
+    switchTab(savedTab);
+
+    // Discord Webhook Storage & Dispatcher
+    if (discordWebhookUrl) {
+      const savedWh = localStorage.getItem('val_discord_webhook') || '';
+      discordWebhookUrl.value = savedWh;
+      discordWebhookUrl.addEventListener('change', () => {
+        localStorage.setItem('val_discord_webhook', discordWebhookUrl.value.trim());
+        showToast(currentLang === 'vi' ? 'ĐÃ LƯU DISCORD WEBHOOK' : 'DISCORD WEBHOOK SAVED');
+      });
+    }
+
+    async function sendDiscordWebhook(title, desc, color = 0xFF4655) {
+      const wh = discordWebhookUrl ? discordWebhookUrl.value.trim() : '';
+      if (!wh || !wh.startsWith('https://discord.com/api/webhooks/')) return;
+      try {
+        await fetch(wh, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            embeds: [{
+              title: `VALORANT SCORE ALERT // ${title}`,
+              description: desc,
+              color: color,
+              footer: { text: "VALORANT SCORE ALERT PROTOCOL" },
+              timestamp: new Date().toISOString()
+            }]
+          })
+        });
+        addSysLog(`Discord webhook sent: ${title}`, 'success');
+      } catch (e) {
+        addSysLog(`Discord webhook failed: ${e.message}`, 'danger');
+      }
+    }
+
+    btnTestDiscord?.addEventListener('click', async () => {
+      const wh = discordWebhookUrl ? discordWebhookUrl.value.trim() : '';
+      if (!wh) {
+        showToast(currentLang === 'vi' ? 'VUI LÒNG NHẬP LINK DISCORD WEBHOOK' : 'PLEASE ENTER DISCORD WEBHOOK URL');
+        return;
+      }
+      btnTestDiscord.disabled = true;
+      try {
+        await sendDiscordWebhook('TEST ALERT', 'This is a test notification from Valorant Score Alert PC Dashboard.', 0x00F5D4);
+        showToast('DISCORD WEBHOOK TEST SENT!');
+      } catch (e) {
+        showToast('FAILED TO SEND DISCORD WEBHOOK');
+      } finally {
+        btnTestDiscord.disabled = false;
+      }
+    });
+
+    // Refresh Riot telemetry
+    btnRefreshRiot?.addEventListener('click', () => {
+      fetch('/api/info').then(r => r.json()).then(info => {
+        if (riotStatusVal) {
+          if (info.riotConnected) {
+            riotStatusVal.innerHTML = `<span style="color:var(--val-cyan)">●</span> ${(info.region || 'RIOT').toUpperCase()} (${info.shard || 'live'})`;
+            addSysLog(`Riot connection active: ${info.region || 'AP'}/${info.shard || 'live'}`, 'success');
+          } else {
+            riotStatusVal.innerHTML = `<span style="color:var(--val-red)">●</span> OFFLINE`;
+            addSysLog(`Riot client not detected.`, 'warning');
+          }
+        }
+        showToast('RIOT CONNECTION REFRESHED');
+      }).catch(err => {
+        addSysLog(`Error polling Riot API: ${err.message}`, 'danger');
+      });
+    });
+
+    // Quick Main Account Tab Key Activation
+    btnLicApplyMain?.addEventListener('click', () => {
+      const k = (licKeyInputMain ? licKeyInputMain.value : '').trim();
+      if (k) applyLicenseKey(k);
+      else showToast(t('toastEnterKey'));
+    });
+    btnLicRecheckMain?.addEventListener('click', () => {
+      licAct('recheck', 'POST', null, t('toastCheckingLicServer'));
+    });
+</script>
 </body>
 </html>
