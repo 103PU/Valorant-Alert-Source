@@ -8,11 +8,12 @@ const LOGO_URL =
 const RULE = '━'.repeat(42);
 
 function assertRepo(repo) {
-  if (!/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(String(repo || ''))) {
+  const clean = String(repo || '').replace(/^[`'"]+|[`'"]+$/g, '').trim();
+  if (!/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(clean)) {
     throw new Error(`repo must be owner/name, got '${repo}'`);
   }
 
-  return repo;
+  return clean;
 }
 
 function assertTag(tag) {
@@ -32,13 +33,13 @@ function assertTag(tag) {
  */
 function buildReleaseNotice({ tag, repo, now } = {}) {
   const version = assertTag(tag);
-  assertRepo(repo);
+  const cleanRepo = assertRepo(repo);
 
   const releaseUrl =
-    `https://github.com/${repo}/releases/tag/v${version}`;
+    `https://github.com/${cleanRepo}/releases/tag/v${version}`;
 
   const downloadBase =
-    `https://github.com/${repo}/releases/download/v${version}`;
+    `https://github.com/${cleanRepo}/releases/download/v${version}`;
 
   const setupUrl =
     `${downloadBase}/${setupExeName(version)}`;
