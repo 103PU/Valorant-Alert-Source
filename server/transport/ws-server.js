@@ -49,13 +49,21 @@ class ScoreWSServer {
         return;
       }
 
+      if (socket && typeof socket.setNoDelay === 'function') {
+        socket.setNoDelay(true);
+      }
+
       this.wss.handleUpgrade(request, socket, head, (ws) => {
         this.wss.emit('connection', ws, request);
       });
     });
 
     this.wss.on('connection', (ws, req) => {
-      const clientIp = req.socket.remoteAddress;
+      if (req && req.socket) {
+        if (typeof req.socket.setNoDelay === 'function') req.socket.setNoDelay(true);
+        if (typeof req.socket.setKeepAlive === 'function') req.socket.setKeepAlive(true, 15000);
+      }
+      const clientIp = req.socket ? req.socket.remoteAddress : 'unknown';
       logger.info(`[WSServer] Client authenticated and connected from: ${clientIp}`);
 
       // Send latest score state immediately on connect if available

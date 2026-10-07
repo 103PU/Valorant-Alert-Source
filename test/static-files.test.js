@@ -112,3 +112,30 @@ test('malformed percent-encoding is 400, not a crash', async () => {
   const r = await rawGet('/%zz');
   assert.strictEqual(r.status, 400);
 });
+
+test('returns ETag and responds with 304 Not Modified on match', async () => {
+  const res1 = await fetch(`${base}/index.html`);
+  assert.strictEqual(res1.status, 200);
+  const etag = res1.headers.get('etag');
+  assert.ok(etag, 'ETag header must be present');
+
+  const res2 = await fetch(`${base}/index.html`, {
+    headers: { 'If-None-Match': etag }
+  });
+  assert.strictEqual(res2.status, 304);
+});
+
+test('serves gzip compressed payload when accepted', async () => {
+  // Create a large html file that triggers compression threshold (> 256 bytes)
+  const bigHtml = '<!DOCTYPE html><html><body>' + 'x'.repeat(1000) + '</body></html>';
+  fs.writeFileSync(path.join(publicDir, 'big.html'), bigHtml, 'utf8');
+
+  const res = await fetch(`${base}/big.html`, {
+    headers: { 'Accept-Encoding': 'gzip' }
+  });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.headers.get('content-encoding'), 'gzip');
+  const text = await res.text();
+  assert.strictEqual(text, bigHtml);
+});
+

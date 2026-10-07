@@ -75,8 +75,8 @@ class CloudRelay {
     const payloadHash = `${scoreData.inGame}:${scoreData.alliedScore}:${scoreData.enemyScore}:${scoreData.status}:${scoreData.round}:${scoreData.mapName}`;
     const isStateChange = this.lastPayloadHash !== payloadHash;
 
-    // Skip if throttled and state hasn't changed
-    if (!isStateChange && (now - this.lastPushTime < this.minIntervalMs)) {
+    // Skip if throttled or if player is idle in lobby and state hasn't changed
+    if (!isStateChange && (!scoreData.inGame || (now - this.lastPushTime < this.minIntervalMs))) {
       return;
     }
 

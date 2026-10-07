@@ -15,7 +15,7 @@ function createApp({ wsServer, cloudRelay, lanIp, publicUrl, port, rootDir, publ
 
     // API Endpoint: Serve System Info
     if (reqPath === '/api/info') {
-      return handleApiInfo(req, res, { wsServer, cloudRelay, lanIp, port, publicUrl });
+      return handleApiInfo(req, res, { wsServer, cloudRelay, lanIp, port, publicUrl, licensing });
     }
 
     // API Endpoint: Create Desktop Shortcut

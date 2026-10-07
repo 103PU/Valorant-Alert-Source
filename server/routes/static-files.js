@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 
 const mimeTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -11,6 +12,18 @@ const mimeTypes = {
   '.ico': 'image/x-icon',
   '.webmanifest': 'application/manifest+json'
 };
+
+const COMPRESSIBLE_TYPES = new Set([
+  'text/html; charset=utf-8',
+  'application/javascript',
+  'text/css',
+  'application/json',
+  'image/svg+xml',
+  'application/manifest+json'
+]);
+
+// In-memory cache: filePath -> { mtimeMs, size, etag, contentType, data, gzip }
+const fileCache = new Map();
 
 function handleStaticFiles(req, res, { publicDir }) {
   let reqPath = req.url.split('?')[0];
@@ -52,12 +65,16 @@ function handleStaticFiles(req, res, { publicDir }) {
 
   const ext = path.extname(filePath).toLowerCase();
   const contentType = mimeTypes[ext] || 'application/octet-stream';
+  const isHtml = ext === '.html';
 
-  fs.readFile(filePath, (err, data) => {
-    if (err) {
-      // EISDIR/ENOTDIR are "no such file" from the client's point of view; only
-      // a genuine read failure is a 500.
-      if (err.code === 'ENOENT' || err.code === 'EISDIR' || err.code === 'ENOTDIR') {
+  fs.stat(filePath, (statErr, stats) => {
+    if (statErr || stats.isDirectory()) {
+      if (!statErr && stats.isDirectory()) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('404 Not Found');
+        return;
+      }
+      if (statErr.code === 'ENOENT' || statErr.code === 'EISDIR' || statErr.code === 'ENOTDIR') {
         res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
         res.end('404 Not Found');
       } else {
@@ -66,12 +83,74 @@ function handleStaticFiles(req, res, { publicDir }) {
       }
       return;
     }
-    res.writeHead(200, {
-      'Content-Type': contentType,
-      'Cache-Control': 'no-cache, must-revalidate'
+
+    const etag = `W/"${stats.size.toString(16)}-${Math.floor(stats.mtimeMs).toString(16)}"`;
+    const ifNoneMatch = req.headers['if-none-match'];
+
+    if (ifNoneMatch && ifNoneMatch === etag) {
+      res.writeHead(304, {
+        'ETag': etag,
+        'Cache-Control': isHtml ? 'no-cache, must-revalidate' : 'public, max-age=86400, stale-while-revalidate=3600'
+      });
+      res.end();
+      return;
+    }
+
+    const cached = fileCache.get(filePath);
+    if (cached && cached.mtimeMs === stats.mtimeMs && cached.size === stats.size) {
+      serveCached(req, res, cached, isHtml);
+      return;
+    }
+
+    fs.readFile(filePath, (readErr, data) => {
+      if (readErr) {
+        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('500 Internal Server Error');
+        return;
+      }
+
+      let gzip = null;
+      if (COMPRESSIBLE_TYPES.has(contentType) && data.length > 256) {
+        try {
+          gzip = zlib.gzipSync(data, { level: 6 });
+        } catch (e) {}
+      }
+
+      const entry = {
+        mtimeMs: stats.mtimeMs,
+        size: stats.size,
+        etag,
+        contentType,
+        data,
+        gzip
+      };
+
+      // ponytail: in-memory cache unbounded, fine for single desktop app with ~15 static files
+      fileCache.set(filePath, entry);
+      serveCached(req, res, entry, isHtml);
     });
-    res.end(data);
   });
+}
+
+function serveCached(req, res, entry, isHtml) {
+  const acceptEncoding = req.headers['accept-encoding'] || '';
+  const canGzip = entry.gzip && acceptEncoding.includes('gzip');
+  const payload = canGzip ? entry.gzip : entry.data;
+
+  const headers = {
+    'Content-Type': entry.contentType,
+    'ETag': entry.etag,
+    'Cache-Control': isHtml ? 'no-cache, must-revalidate' : 'public, max-age=86400, stale-while-revalidate=3600',
+    'Vary': 'Accept-Encoding',
+    'Content-Length': payload.length
+  };
+
+  if (canGzip) {
+    headers['Content-Encoding'] = 'gzip';
+  }
+
+  res.writeHead(200, headers);
+  res.end(payload);
 }
 
 module.exports = { handleStaticFiles };

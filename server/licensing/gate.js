@@ -1,7 +1,14 @@
 const logger = require('../utils/logger');
 const { KldError, KldNetworkError } = require('./kld-client');
 const { SignatureError, verifyEnvelope, extractEnvelope, issuedAtMs } = require('./signature');
-const { isPlanAllowed } = require('./policy');
+const {
+  isPlanAllowed,
+  isProductAllowed,
+  normalizePlanKey,
+  getServicesForPlan,
+  isServiceEntitledForPlan,
+  CANONICAL_SERVICES
+} = require('./policy');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -85,6 +92,7 @@ class LicenseGate {
     this.checking = false;
     this.lastCheckedAt = null;
     this.listeners = [];
+    this.customGrants = null;
 
     // Last signature verdict, for the rollout-step-3 question "is every activate
     // arriving signed yet?". Informational only — never consulted as a decision.
@@ -113,11 +121,33 @@ class LicenseGate {
     }
   }
 
+  getPlanName() {
+    if (this.state === STATE.TRIAL) return 'trial';
+    const s = this.store.publicSnapshot();
+    const raw = (this.signature && this.signature.payload && this.signature.payload.plan) || (s.license && s.license.plan);
+    return normalizePlanKey(raw || (s.trial ? 'trial' : 'trial'));
+  }
+
+  getEntitledServices() {
+    if (!isEntitled(this.state)) return [];
+    const plan = this.getPlanName();
+    return getServicesForPlan(plan, this.customGrants);
+  }
+
+  isServiceEntitled(serviceCode) {
+    if (!isEntitled(this.state)) return false;
+    return this.getEntitledServices().includes(serviceCode);
+  }
+
   snapshot() {
     const s = this.store.publicSnapshot();
+    const plan = this.getPlanName();
+    const services = this.getEntitledServices();
     return {
       state: this.state,
       entitled: isEntitled(this.state),
+      plan,
+      services,
       reason: this.reason,
       message: this.message,
       checking: this.checking,
@@ -204,30 +234,75 @@ class LicenseGate {
             if (res.valid === true || res.status === 'active') {
               const plan = res.plan || 'valorant-alert';
               if (isPlanAllowed(plan)) {
-                this.store.recordEntitlement({
-                  key: storedKey,
-                  plan,
-                  status: res.status || 'active',
-                  expiresAt: res.expiresAt || null,
-                  maxDevices: res.maxDevices || 1,
-                  deviceCount: res.deviceCount || 1
-                });
+                if (typeof this.store.recordEntitlement === 'function') {
+                  this.store.recordEntitlement({
+                    key: storedKey,
+                    plan,
+                    status: res.status || 'active',
+                    expiresAt: res.expiresAt || null,
+                    maxDevices: res.maxDevices || 1,
+                    deviceCount: res.deviceCount || 1
+                  });
+                }
                 this.set(STATE.LICENSED);
                 this.lastCheckedAt = new Date().toISOString();
                 return this.snapshot();
               }
             }
 
-            // Key is invalid or revoked
-            logger.warn(`[license] verify-public indicated stored key is invalid or revoked (${res.reason || res.status || 'invalid'}). Clearing stored key.`);
-            if (typeof this.store.setLicenseKey === 'function') {
-              this.store.setLicenseKey(null);
+            // If device is not activated yet, auto-activate instead of discarding the valid key
+            if (res.reason === 'device_not_activated' || res.status === 'inactive') {
+              logger.info(`[license] key ${storedKey} is valid but device needs activation. Attempting auto-activation...`);
+              let actSuccess = false;
+              if (this.store.isLoggedIn()) {
+                const actRes = await this.activate(storedKey);
+                if (actRes && actRes.ok) actSuccess = true;
+              }
+              if (!actSuccess && typeof this.kld.getChallengePublic === 'function') {
+                try {
+                  const challenge = await this.kld.getChallengePublic(this.cfg.productId);
+                  if (challenge && challenge.nonce) {
+                    await this.kld.activatePublic({
+                      licenseKey: storedKey,
+                      deviceId: this.deviceId,
+                      deviceName: this.deviceName,
+                      nonce: challenge.nonce,
+                      productId: this.cfg.productId
+                    });
+                    actSuccess = true;
+                  }
+                } catch (e) {}
+              }
+              if (actSuccess) {
+                const plan = res.plan || 'valorant-alert';
+                if (typeof this.store.recordEntitlement === 'function') {
+                  this.store.recordEntitlement({
+                    key: storedKey,
+                    plan,
+                    status: 'active',
+                    expiresAt: res.expiresAt || null,
+                    maxDevices: res.maxDevices || 1,
+                    deviceCount: (res.deviceCount || 0) + 1
+                  });
+                }
+                this.set(STATE.LICENSED);
+                this.lastCheckedAt = new Date().toISOString();
+                return this.snapshot();
+              }
+            }
+
+            // Only clear stored key when explicitly revoked or invalid
+            if (res.reason === 'license_revoked' || res.reason === 'invalid_license' || res.status === 'revoked') {
+              logger.warn(`[license] verify-public indicated stored key is revoked (${res.reason || res.status}). Clearing stored key.`);
+              if (typeof this.store.setLicenseKey === 'function') {
+                this.store.setLicenseKey(null);
+              }
             }
 
             // If user is not logged in, block and inform them to enter key or sign in
             if (!this.store.isLoggedIn()) {
               this.set(STATE.BLOCKED, {
-                reason: 'license_revoked',
+                reason: res.reason || 'license_revoked',
                 message: 'Bản quyền không hợp lệ hoặc đã bị thu hồi. Vui lòng đăng nhập hoặc nhập key mới.'
               });
               this.lastCheckedAt = new Date().toISOString();
@@ -280,8 +355,23 @@ class LicenseGate {
 
   async checkOnline() {
     const jwt = this.store.getJwt();
+    if (typeof this.kld.getPlanFeatures === 'function') {
+      try {
+        const feat = await this.kld.getPlanFeatures(this.cfg.productId);
+        if (feat && feat.grants) {
+          this.customGrants = feat.grants;
+        }
+      } catch (e) {}
+    }
     let applied = await this.kld.getAppliedLicense(jwt);
-    let appliedKey = applied && (applied.appliedLicenseKey || (applied.license && applied.license.license_key));
+    let appliedKey = applied && (applied.appliedLicenseKey || (applied.license && (applied.license.license_key || applied.license.key)));
+
+    // Ensure currently applied license matches this product scope
+    const appliedProd = applied && applied.license && (applied.license.productId || applied.license.product_id);
+    if (appliedKey && appliedProd && !isProductAllowed(appliedProd, this.cfg.productId)) {
+      logger.info(`[license] account applied license (${appliedKey}) is for "${appliedProd}", searching for a "${this.cfg.productId}" license`);
+      appliedKey = null;
+    }
 
     if (!appliedKey && typeof this.kld.listMyLicenses === 'function') {
       try {
@@ -290,7 +380,8 @@ class LicenseGate {
         const candidate = licenses.find(l => {
           const status = l.status || 'active';
           if (status !== 'active') return false;
-          if (l.product_id && l.product_id !== this.cfg.productId) return false;
+          const pid = l.product_id || l.productId;
+          if (!isProductAllowed(pid, this.cfg.productId)) return false;
           return isPlanAllowed(l.plan);
         });
         if (candidate) {
@@ -305,6 +396,16 @@ class LicenseGate {
       } catch (e) {
         logger.warn(`[license] listMyLicenses fallback check error: ${e.message}`);
       }
+    }
+
+    // Fallback: If account has no applied license for this product, but a local stored key exists, try claiming & applying it
+    const storedKey = typeof this.store.getLicenseKey === 'function' ? this.store.getLicenseKey() : null;
+    if (!appliedKey && storedKey) {
+      try {
+        await this.kld.claimLicense(jwt, storedKey);
+        await this.kld.applyLicense(jwt, storedKey);
+        appliedKey = storedKey;
+      } catch (e) {}
     }
 
     if (!appliedKey) {

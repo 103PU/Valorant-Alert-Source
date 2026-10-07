@@ -57,6 +57,70 @@ function missingForRoute(env, route) {
   return missing;
 }
 
+async function deleteSingleMessage(env, channelId, messageId) {
+  let del = await fetch(`${DISCORD_API}/channels/${channelId}/messages/${messageId}`, {
+    method: 'DELETE',
+    headers: { authorization: `Bot ${env.DISCORD_BOT_TOKEN}` }
+  });
+  if (del.status === 429) {
+    const retry = await del.json().catch(() => ({}));
+    await new Promise(r => setTimeout(r, ((retry.retry_after ?? 1) + 0.1) * 1000));
+    del = await fetch(`${DISCORD_API}/channels/${channelId}/messages/${messageId}`, {
+      method: 'DELETE',
+      headers: { authorization: `Bot ${env.DISCORD_BOT_TOKEN}` }
+    });
+  }
+  return del.ok || del.status === 404;
+}
+
+async function prunePreviousMessages(env, channelId, botId, keepMessageId) {
+  const resp = await fetch(`${DISCORD_API}/channels/${channelId}/messages?limit=100`, {
+    headers: { authorization: `Bot ${env.DISCORD_BOT_TOKEN}` }
+  });
+  if (!resp.ok) return { pruned: 0, error: `fetch_${resp.status}` };
+
+  const messages = await resp.json().catch(() => []);
+  if (!Array.isArray(messages)) return { pruned: 0, error: 'invalid_messages_response' };
+
+  const toDelete = messages.filter(m => m.author?.id === botId && m.id !== keepMessageId);
+  if (toDelete.length === 0) return { pruned: 0 };
+
+  const now = Date.now();
+  const fourteenDays = 14 * 24 * 60 * 60 * 1000;
+  const recent = toDelete.filter(m => now - new Date(m.timestamp).getTime() < fourteenDays);
+  const old = toDelete.filter(m => now - new Date(m.timestamp).getTime() >= fourteenDays);
+
+  let pruned = 0;
+  const bulkDeletedIds = new Set();
+
+  if (recent.length >= 2) {
+    const bulkResp = await fetch(`${DISCORD_API}/channels/${channelId}/messages/bulk-delete`, {
+      method: 'POST',
+      headers: { ...JSON_HEADERS, authorization: `Bot ${env.DISCORD_BOT_TOKEN}` },
+      body: JSON.stringify({ messages: recent.map(m => m.id) })
+    });
+    if (bulkResp.ok) {
+      pruned += recent.length;
+      recent.forEach(m => bulkDeletedIds.add(m.id));
+    }
+  }
+
+  const remainingRecent = recent.filter(m => !bulkDeletedIds.has(m.id));
+  for (const msg of remainingRecent) {
+    if (await deleteSingleMessage(env, channelId, msg.id)) {
+      pruned += 1;
+    }
+  }
+
+  for (const msg of old) {
+    if (await deleteSingleMessage(env, channelId, msg.id)) {
+      pruned += 1;
+    }
+  }
+
+  return { pruned };
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -128,8 +192,25 @@ export default {
       });
     }
 
-    let messageId = null;
-    try { messageId = JSON.parse(text).id ?? null; } catch { /* message id is optional */ }
+    const shouldPrune = route.prunePrevious === true ||
+      request.headers.get('x-discord-prune') === 'true';
+
+    let sentMessage = {};
+    try { sentMessage = JSON.parse(text); } catch { /* ignore parse error */ }
+    const messageId = sentMessage.id ?? null;
+    let botId = sentMessage.author?.id ?? null;
+
+    if (shouldPrune && !botId && env.DISCORD_BOT_TOKEN) {
+      try {
+        const meResp = await fetch(`${DISCORD_API}/users/@me`, {
+          headers: { authorization: `Bot ${env.DISCORD_BOT_TOKEN}` }
+        });
+        if (meResp.ok) {
+          const me = await meResp.json();
+          botId = me.id ?? null;
+        }
+      } catch {}
+    }
 
     let crossposted = false;
     if (route.crosspost === true && messageId) {
@@ -142,22 +223,35 @@ export default {
         }
       });
       if (!published.ok) {
+        let pruned = null;
+        if (shouldPrune && botId && messageId) {
+          const result = await prunePreviousMessages(env, channelId, botId, messageId);
+          pruned = result.pruned;
+        }
         return json(200, {
           ok: true,
           messageId,
           channelId,
           crossposted: false,
-          crosspostStatus: published.status
+          crosspostStatus: published.status,
+          ...(pruned !== null ? { pruned } : {})
         });
       }
       crossposted = true;
+    }
+
+    let pruned = null;
+    if (shouldPrune && botId && messageId) {
+      const result = await prunePreviousMessages(env, channelId, botId, messageId);
+      pruned = result.pruned;
     }
 
     return json(200, {
       ok: true,
       messageId,
       channelId,
-      ...(route.crosspost === true ? { crossposted } : {})
+      ...(route.crosspost === true ? { crossposted } : {}),
+      ...(pruned !== null ? { pruned } : {})
     });
   }
 };

@@ -469,10 +469,10 @@ test('the plan check reads the signed payload, not the unsigned response body', 
 });
 
 test('isPlanAllowed covers the sold plans, is case-insensitive, and tolerates absence', () => {
-  for (const plan of ['plus', 'pro', 'ultra', 'PRO', ' Ultra ']) {
+  for (const plan of ['trial', 'plus', 'pro', 'ultra', 'PRO', ' Ultra ']) {
     assert.strictEqual(isPlanAllowed(plan), true, `${plan} should be allowed`);
   }
-  for (const plan of ['free', 'basic', 'trial', 'enterprise']) {
+  for (const plan of ['free', 'basic', 'enterprise']) {
     assert.strictEqual(isPlanAllowed(plan), false, `${plan} should not be allowed`);
   }
   // Absence is a KLD data question, not a bypass — the signature already proves

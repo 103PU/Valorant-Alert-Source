@@ -19,11 +19,13 @@
       "valorant-tweaks": {
         "channelBinding": "DISCORD_CHANNEL_ID",
         "tokenBinding": "AUTH_TOKEN",
-        "crosspost": true
+        "crosspost": true,
+        "prunePrevious": true
       },
       "valorant-alert": {
         "channelId": "1555280650096087150",
-        "tokenBinding": "ALERT_AUTH_TOKEN"
+        "tokenBinding": "ALERT_AUTH_TOKEN",
+        "prunePrevious": true
       }
     }
   },

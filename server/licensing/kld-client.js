@@ -120,7 +120,12 @@ class KldClient {
     return this.request(this.cfg.endpoints.claimLicense, {
       method: 'POST',
       jwt,
-      json: { licenseKey, productId: this.cfg.productId }
+      json: {
+        licenseKey,
+        productId: this.cfg.productId,
+        platform: this.cfg.platform,
+        appVersion: this.cfg.appVersion
+      }
     });
   }
 
@@ -129,7 +134,8 @@ class KldClient {
   }
 
   getChallenge(jwt) {
-    return this.request(this.cfg.endpoints.challenge, { jwt });
+    const q = `productId=${encodeURIComponent(this.cfg.productId)}`;
+    return this.request(`${this.cfg.endpoints.challenge}?${q}`, { jwt });
   }
 
   activateLicense(jwt, { licenseKey, deviceId, deviceName, nonce }) {
@@ -195,6 +201,13 @@ class KldClient {
    */
   getDownloadInfo(productId) {
     return this.request(this.cfg.endpoints.download(productId || this.cfg.productId));
+  }
+
+  /**
+   * Dynamic Plan Features Matrix: GET /api/app-config/plan-features?productId=valorant-alert
+   */
+  getPlanFeatures(productId) {
+    return this.request(this.cfg.endpoints.planFeatures(productId || this.cfg.productId));
   }
 
   // --- trials ---------------------------------------------------------------

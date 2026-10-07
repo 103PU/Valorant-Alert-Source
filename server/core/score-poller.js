@@ -181,6 +181,24 @@ class ScorePoller {
             });
             return;
           }
+
+          // Optimization: If presence loopState indicates lobby or pre-game, player is not in live match.
+          // Skip the 200-500ms international roundtrip to Riot GLZ regional server.
+          if (loopState === 'MENUS' || loopState === 'PREGAME') {
+            if (this.currentMatchId !== null) {
+              logger.info('[ScorePoller] Match ended or player returned to lobby.');
+              this.currentMatchId = null;
+            }
+            this.notifyUpdate({
+              inGame: false,
+              matchId: null,
+              alliedScore: 0,
+              enemyScore: 0,
+              status: loopState === 'PREGAME' ? 'AGENT_SELECT' : 'NO_MATCH',
+              timestamp: Date.now()
+            });
+            return;
+          }
         }
       }
     } catch (err) {

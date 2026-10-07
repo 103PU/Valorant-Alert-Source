@@ -52,7 +52,8 @@ async function call(request, env, discord = { status: 200, body: '{"id":"999"}' 
   globalThis.fetch = async (url, init) => {
     calls.push({ url: String(url), init });
     const reply = replies[Math.min(calls.length - 1, replies.length - 1)];
-    return new Response(reply.body, { status: reply.status });
+    const body = reply.status === 204 ? null : reply.body;
+    return new Response(body, { status: reply.status });
   };
   try {
     const res = await worker.fetch(request, env);
@@ -261,4 +262,38 @@ test('a Discord rejection is a 502 that quotes Discord, not the credential', asy
   const serialized = JSON.stringify(body);
   assert.ok(!serialized.includes(BOT_TOKEN) && !serialized.includes(TWEAKS_TOKEN));
   assert.ok(!serialized.includes(ALERT_TOKEN));
+});
+
+test('pruning deletes a single previous message with fallback DELETE', async () => {
+  const req = new Request('https://relay.test/', {
+    method: 'POST',
+    headers: {
+      'x-auth-token': ALERT_TOKEN,
+      'x-discord-route': 'valorant-alert',
+      'x-discord-prune': 'true'
+    },
+    body: JSON.stringify(notice())
+  });
+
+  const responses = [
+    // 1. POST message
+    { status: 200, body: JSON.stringify({ id: 'new_msg', author: { id: 'bot_1' } }) },
+    // 2. GET messages
+    {
+      status: 200,
+      body: JSON.stringify([
+        { id: 'new_msg', author: { id: 'bot_1' }, timestamp: new Date().toISOString() },
+        { id: 'old_msg_1', author: { id: 'bot_1' }, timestamp: new Date().toISOString() }
+      ])
+    },
+    // 3. DELETE single message
+    { status: 204, body: '' }
+  ];
+
+  const { res, body, calls } = await call(req, fullEnv(), responses);
+  assert.equal(res.status, 200);
+  assert.equal(body.pruned, 1);
+  assert.equal(calls.length, 3);
+  assert.equal(calls[2].init.method, 'DELETE');
+  assert.ok(calls[2].url.includes('old_msg_1'));
 });

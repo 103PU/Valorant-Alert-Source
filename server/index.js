@@ -90,8 +90,15 @@ const licensing = createLicensing({ rawConfig: config, rootDir });
 
 // Create HTTP Server & WebSocket Server
 const server = http.createServer();
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 66000;
+server.on('connection', (socket) => {
+  if (socket && typeof socket.setNoDelay === 'function') {
+    socket.setNoDelay(true);
+  }
+});
 const wsServer = new ScoreWSServer(server, {
-  isEntitled: () => licensing.entitled
+  isEntitled: () => licensing.isServiceEntitled('score_hud')
 });
 
 // Create Cloud Relay Client (Syncs match scores to Cloudflare Worker)
@@ -102,7 +109,7 @@ const cloudRelay = new CloudRelay({
     jwt: licensing.store ? licensing.store.getJwt() : null,
     user: licensing.store?.state?.user || licensing.gate?.snapshot()?.user
   }),
-  isEntitled: () => licensing.entitled
+  isEntitled: () => licensing.isServiceEntitled('cloud_relay')
 });
 
 const authToken = wsServer.getToken();

@@ -27,7 +27,8 @@ const ENDPOINTS = {
   // Update check. Scoped with ?productId= and only trusted when KLD echoes the
   // product back — see ./app-version.js for why an unscoped answer is refused.
   appVersion: '/api/app/version',
-  download: (productId = 'valorant-alert') => `/api/applications/${encodeURIComponent(productId)}/download`
+  download: (productId = 'valorant-alert') => `/api/applications/${encodeURIComponent(productId)}/download`,
+  planFeatures: (productId = 'valorant-alert') => `/api/app-config/plan-features?productId=${encodeURIComponent(productId)}`
 };
 
 // Where releases are published, and therefore where the update check looks when

@@ -51,6 +51,14 @@ class Licensing {
     return isEntitled(this.gate.state);
   }
 
+  isServiceEntitled(serviceCode) {
+    return this.gate ? this.gate.isServiceEntitled(serviceCode) : false;
+  }
+
+  getEntitledServices() {
+    return this.gate ? this.gate.getEntitledServices() : [];
+  }
+
   onChange(fn) {
     this.gate.onChange(fn);
   }
@@ -159,34 +167,10 @@ class Licensing {
     }
     const cleanKey = licenseKey.trim();
 
-    // 1. Challenge-Response Activation against Server KLD (Spec Section 1.3)
-    let activated = false;
-    try {
-      const challenge = await this.kld.getChallengePublic(this.cfg.productId);
-      const nonce = challenge && challenge.nonce;
-      if (nonce) {
-        await this.kld.activatePublic({
-          licenseKey: cleanKey,
-          deviceId: this.deviceId,
-          deviceName: this.deviceName,
-          nonce,
-          productId: this.cfg.productId
-        });
-        activated = true;
-      }
-    } catch (e) {
-      if (e instanceof KldNetworkError) throw e;
-      // If 404 endpoint not implemented on older worker, allow fallback to claim+apply if jwt is present
-      if (e.status !== 404) {
-        throw e;
-      }
-    }
-
-    // Persist license key
-    this.store.setLicenseKey(cleanKey);
-
-    // 2. Account linking if logged into Google OAuth
     const jwt = this.store.getJwt();
+    let activated = false;
+
+    // 1. Account linking & authenticated activation if logged into Google OAuth
     if (jwt) {
       try {
         await this.kld.claimLicense(jwt, cleanKey);
@@ -197,15 +181,62 @@ class Licensing {
           logger.warn(`[license] claim returned ${e.code}, continuing to apply`);
         }
       }
+
       try {
         await this.kld.applyLicense(jwt, cleanKey);
       } catch (e) {
         if (e instanceof KldNetworkError) throw e;
-        if (!activated) throw e;
+        logger.warn(`[license] applyLicense returned ${e.code || e.message}`);
       }
-    } else if (!activated) {
-      throw new KldError(401, 'not_logged_in', 'Cần đăng nhập Google hoặc kích hoạt key hợp lệ.');
+
+      try {
+        const challenge = await this.kld.getChallenge(jwt);
+        const nonce = challenge && challenge.nonce;
+        if (nonce) {
+          const actRes = await this.kld.activateLicense(jwt, {
+            licenseKey: cleanKey,
+            deviceId: this.deviceId,
+            deviceName: this.deviceName,
+            nonce
+          });
+          if (actRes && actRes.ok !== false && actRes.valid !== false) {
+            activated = true;
+          }
+        }
+      } catch (e) {
+        if (e instanceof KldNetworkError) throw e;
+        logger.warn(`[license] authenticated activate returned ${e.code || e.message}, trying public fallback`);
+      }
     }
+
+    // 2. Challenge-Response Activation against Server KLD (Spec Section 1.3 / fallback)
+    if (!activated) {
+      try {
+        const challenge = await this.kld.getChallengePublic(this.cfg.productId);
+        const nonce = challenge && challenge.nonce;
+        if (nonce) {
+          await this.kld.activatePublic({
+            licenseKey: cleanKey,
+            deviceId: this.deviceId,
+            deviceName: this.deviceName,
+            nonce,
+            productId: this.cfg.productId
+          });
+          activated = true;
+        }
+      } catch (e) {
+        if (e instanceof KldNetworkError) throw e;
+        const benign = ['device_already_active', 'activation_reused', 'already_activated'];
+        if (benign.includes(e.code) || e.status === 404) {
+          activated = true;
+        } else if (!jwt) {
+          throw e;
+        }
+      }
+    }
+
+    // Persist license key
+    this.store.setLicenseKey(cleanKey);
 
     logger.info('[license] key applied, re-checking entitlement');
     return this.gate.check();

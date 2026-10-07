@@ -2963,7 +2963,14 @@
       }
     };
 
+    function canUseService(code) {
+      if (!lastLicSnapshot || !lastLicSnapshot.entitled) return false;
+      const s = Array.isArray(lastLicSnapshot.services) ? lastLicSnapshot.services : [];
+      return s.includes(code);
+    }
+
     function playSound(pitch = 1.0) {
+      if (!canUseService('sound_engine')) return;
       const { audioCtx: ctx, dest } = ensureAudioContext();
       const soundKey = soundPicker.value || 'melodicChime';
       const playFn = soundPresets[soundKey] || soundPresets.melodicChime;
@@ -2971,11 +2978,19 @@
     }
 
     btnTestChime.addEventListener('click', () => {
+      if (!canUseService('sound_engine')) {
+        showToast(currentLang === 'vi' ? '⚠️ Gói TRIAL không bao gồm Sound Engine. Cần nâng cấp gói PLUS trở lên!' : '⚠️ TRIAL plan does not include Sound Engine. Upgrade to PLUS or higher!');
+        return;
+      }
       playSound(1.0);
       showToast('PLAYING AUDIO PRESET TEST (1.0X)');
     });
 
     btnPcAudio.addEventListener('click', () => {
+      if (!canUseService('sound_engine')) {
+        showToast(currentLang === 'vi' ? '⚠️ Gói TRIAL không bao gồm Sound Engine. Cần nâng cấp gói PLUS trở lên!' : '⚠️ TRIAL plan does not include Sound Engine. Upgrade to PLUS or higher!');
+        return;
+      }
       isPcAudioEnabled = !isPcAudioEnabled;
       if (isPcAudioEnabled) {
         playSound(1.0);
@@ -2994,20 +3009,36 @@
 
     // --- Scenario Simulator Handlers (Compatibility) ---
     document.getElementById('btnSimRound')?.addEventListener('click', () => {
+      if (!canUseService('sound_engine')) {
+        showToast(currentLang === 'vi' ? '⚠️ Cần gói PLUS trở lên để dùng Simulator!' : '⚠️ PLUS plan or higher required for Simulator!');
+        return;
+      }
       playSound(1.0);
       showToast('SIMULATOR: ROUND 9 (1.0X)');
     });
     document.getElementById('btnSimCustom')?.addEventListener('click', () => {
+      if (!canUseService('sound_engine')) {
+        showToast(currentLang === 'vi' ? '⚠️ Cần gói PLUS trở lên để dùng Simulator!' : '⚠️ PLUS plan or higher required for Simulator!');
+        return;
+      }
       playSound(1.15);
       showToast('SIMULATOR: CUSTOM ROUND (1.15X)');
     });
     document.getElementById('btnSimMatchPoint')?.addEventListener('click', () => {
+      if (!canUseService('sound_engine')) {
+        showToast(currentLang === 'vi' ? '⚠️ Cần gói PLUS trở lên để dùng Simulator!' : '⚠️ PLUS plan or higher required for Simulator!');
+        return;
+      }
       playSound(1.35);
       dangerVignette.classList.add('active');
       setTimeout(() => dangerVignette.classList.remove('active'), 4000);
       showToast('SIMULATOR: MATCH POINT (1.35X)');
     });
     document.getElementById('btnSimEnd')?.addEventListener('click', () => {
+      if (!canUseService('sound_engine')) {
+        showToast(currentLang === 'vi' ? '⚠️ Cần gói PLUS trở lên để dùng Simulator!' : '⚠️ PLUS plan or higher required for Simulator!');
+        return;
+      }
       playSound(0.82);
       showToast('SIMULATOR: VICTORY / END MATCH (0.82X)');
     });
@@ -3169,6 +3200,10 @@
     const syncStatusLabel = document.getElementById('syncStatusLabel');
 
     function switchSyncMode(mode) {
+      if (mode === 'cloud' && !canUseService('cloud_relay')) {
+        showToast(currentLang === 'vi' ? '⚠️ Cloud Relay 4G / Mobile PWA chỉ hỗ trợ gói ULTRA. Vui lòng nâng cấp gói!' : '⚠️ Cloud Relay 4G / Mobile PWA requires ULTRA plan. Please upgrade!');
+        mode = 'lan';
+      }
       activeSyncMode = mode;
       if (mode === 'cloud') {
         if (btnModeCloud) btnModeCloud.className = 'val-btn val-btn-sm val-btn-cyan';
@@ -3494,7 +3529,7 @@
       if (lic) {
         rawCurrentKey = lic.key || '';
         licKey.innerText = lic.key || '—';
-        planText = lic.plan ? lic.plan.toUpperCase() : 'PRO';
+        planText = lic.plan ? lic.plan.toUpperCase() : 'VALORANT ALERT';
         expText = lic.expiresAt ? fmtDate(lic.expiresAt) : t('planLifetime');
         stateText = t('stateValid');
       } else if (trial) {
@@ -3593,13 +3628,25 @@
               modalKeyFeedback.classList.remove('lic-hidden');
             }
           } else if (action === 'apply-key') {
-            showToast(t('toastKeySuccess'));
-            if (modalKeyFeedback) {
-              modalKeyFeedback.className = 'modal-feedback-alert success';
-              modalKeyFeedback.innerText = t('toastKeySuccess');
-              modalKeyFeedback.classList.remove('lic-hidden');
+            if (snap.entitled || snap.state === 'LICENSED') {
+              showToast(t('toastKeySuccess'));
+              if (modalKeyFeedback) {
+                modalKeyFeedback.className = 'modal-feedback-alert success';
+                modalKeyFeedback.innerText = t('toastKeySuccess');
+                modalKeyFeedback.classList.remove('lic-hidden');
+              }
+              if (licenseModal) licenseModal.classList.add('lic-hidden');
+              if (mainAppScreen) mainAppScreen.classList.remove('app-locked');
+              licKeyInputModal.value = '';
+            } else {
+              const errMsg = snap.message || licErrText(snap);
+              showToast('⚠️ ' + errMsg);
+              if (modalKeyFeedback) {
+                modalKeyFeedback.className = 'modal-feedback-alert error';
+                modalKeyFeedback.innerText = '⚠️ ' + errMsg;
+                modalKeyFeedback.classList.remove('lic-hidden');
+              }
             }
-            licKeyInputModal.value = '';
           }
           return snap;
         })
