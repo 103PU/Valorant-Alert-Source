@@ -30,7 +30,8 @@ function handleApiInfo(req, res, { wsServer, cloudRelay, lanIp, port, publicUrl,
     riotConnected: !!lockfile,
     region: regionInfo.region,
     shard: regionInfo.shard,
-    clientVersion: regionInfo.clientVersion
+    clientVersion: regionInfo.clientVersion,
+    appVersion: (licensing && licensing.cfg && licensing.cfg.appVersion) || '1.0.7'
   }));
 }
 

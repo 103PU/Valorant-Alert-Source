@@ -1498,7 +1498,7 @@
           </button>
 
           <div class="sidebar-footer">
-            <div class="sidebar-version-badge">PROTOCOL v1.0.5</div>
+            <div class="sidebar-version-badge" id="sidebarVersionBadge">PROTOCOL v1.0.8</div>
             <div class="sidebar-pulse-status">
               <span class="status-dot"></span>
               <span>ONLINE PROTOCOL</span>
@@ -3132,6 +3132,10 @@
         if (lanDashboardInput) lanDashboardInput.value = fullLanDashboardUrl;
         if (tokenDisplay) tokenDisplay.innerText = currentAuthToken;
         if (qrImg) qrImg.src = '/api/qr?t=' + Date.now();
+        if (info.appVersion) {
+          const badge = document.getElementById('sidebarVersionBadge');
+          if (badge) badge.innerText = 'PROTOCOL v' + info.appVersion;
+        }
 
         if (riotStatusVal) {
           if (info.riotConnected) {
