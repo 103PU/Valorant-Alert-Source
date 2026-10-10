@@ -8,14 +8,16 @@ async function handleApiQr(req, res, { wsServer, cloudRelay, lanIp, port, public
   const qrType = parsed.searchParams.get('type');
   const token = wsServer.getToken();
 
-  const cloudUrl = cloudRelay && cloudRelay.getRelayWebUrl ? cloudRelay.getRelayWebUrl() : null;
+  const cloudUrl = (cloudRelay && cloudRelay.getRelayWebUrl) ? cloudRelay.getRelayWebUrl(true, token) : null;
   const localUrl = `${publicUrl || `http://${lanIp}:${port}`}?token=${token}`;
 
-  let appUrl = cloudUrl || localUrl;
-  if (qrType === 'lan') {
+  let appUrl = localUrl;
+  if (qrType === 'cloud') {
+    appUrl = cloudUrl || localUrl;
+  } else if (qrType === 'lan') {
     appUrl = localUrl;
-  } else if (qrType === 'cloud' && cloudUrl) {
-    appUrl = cloudUrl;
+  } else {
+    appUrl = cloudUrl || localUrl;
   }
 
   // Fast-path: Return cached QR code immediately without re-rendering

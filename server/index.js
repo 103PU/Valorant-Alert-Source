@@ -229,7 +229,7 @@ server.listen(PORT, '0.0.0.0', async () => {
   logger.info('===========================================================');
   logger.info(`🔑 AUTH TOKEN:    ${authToken}`);
   logger.info(`🖥️ PC DASHBOARD: ${dashboardUrl}`);
-  const primaryMobileUrl = cloudRelay.getRelayWebUrl() || fullAppUrl;
+  const primaryMobileUrl = (cloudRelay && cloudRelay.getRelayWebUrl(true, authToken)) || fullAppUrl;
   logger.info(`☁️ CLOUD RELAY (4G/5G): ${primaryMobileUrl}`);
   logger.info(`📝 LOG FILE:      ${logger.getLogFilePath()}`);
   logger.info('===========================================================');

@@ -42,17 +42,20 @@ class CloudRelay {
       lastSyncAt: this.lastSyncAt,
       lastError: this.lastError,
       user: user ? { id: user.id, email: user.email, name: user.name } : null,
-      relayWebUrl: this.getRelayWebUrl()
+      relayWebUrl: this.getRelayWebUrl(true)
     };
   }
 
-  getRelayWebUrl(requireUser = false) {
+  getRelayWebUrl(requireUser = false, token = null) {
     const session = this.getSession() || {};
     const user = session.user;
     if (requireUser && (!user || !user.id)) return null;
     let url = (!user || !user.id)
       ? `${this.webBaseUrl}?mode=relay`
       : `${this.webBaseUrl}?mode=relay&userId=${encodeURIComponent(user.id)}&name=${encodeURIComponent(user.name || user.email || '')}`;
+    if (token) {
+      url += `&token=${encodeURIComponent(token)}`;
+    }
     if (this.baseUrl && !this.baseUrl.includes('keylicensedashboard.dungbd2005.workers.dev')) {
       url += `&server=${encodeURIComponent(this.baseUrl)}`;
     }

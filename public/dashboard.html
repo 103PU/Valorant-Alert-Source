@@ -88,7 +88,8 @@
     .container {
       position: relative;
       z-index: 1;
-      max-width: 1200px;
+      max-width: 1400px;
+      width: 96%;
       margin: 0 auto;
     }
 
@@ -97,24 +98,12 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-bottom: 20px;
-      margin-bottom: 20px;
+      padding-bottom: 14px;
+      margin-bottom: 16px;
       border-bottom: 1px solid var(--val-border);
       position: relative;
       flex-wrap: wrap;
       gap: 12px;
-    }
-
-    header::after {
-      content: "// PROTOCOL : REALTIME ESPORTS HUD //";
-      position: absolute;
-      bottom: -10px;
-      right: 0;
-      font-family: var(--val-font-tactical);
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: var(--val-gray);
-      letter-spacing: 2px;
     }
 
     .brand {
@@ -404,42 +393,50 @@
     /* Tactical 2-Column Grid Layout (1 HÀNG CÓ 2 LAYOUT CHỨC NĂNG) */
     .dashboard-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
     }
 
     /* Tactical Cards */
     .val-card {
       background: var(--val-surface);
       border: 1px solid var(--val-border);
-      padding: 22px;
+      padding: 18px 20px;
       position: relative;
-      clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+      clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
       box-shadow: 0 15px 35px rgba(0,0,0,0.5);
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
+      min-width: 0;
     }
 
     .val-card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 18px;
-      padding-bottom: 10px;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
       border-bottom: 1px dashed var(--val-border);
+      gap: 12px;
+      min-width: 0;
     }
 
     .val-card-title {
       font-family: var(--val-font-display);
-      font-size: 1.22rem;
+      font-size: 1.08rem;
       font-weight: 900;
-      letter-spacing: 1.5px;
+      letter-spacing: 1px;
       text-transform: uppercase;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       color: var(--val-white);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+      flex: 1;
     }
 
     .val-tag {
@@ -447,7 +444,9 @@
       font-size: 0.72rem;
       font-weight: 800;
       color: var(--val-red);
-      letter-spacing: 2px;
+      letter-spacing: 1.5px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     /* Buttons */
@@ -1231,7 +1230,7 @@
     }
 
     .app-sidebar {
-      width: 250px;
+      width: 224px;
       flex-shrink: 0;
       background: var(--val-surface);
       border: 1px solid var(--val-border);
@@ -1605,10 +1604,10 @@
 
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
                   <button id="btnShortcut" class="val-btn val-btn-cyan" style="flex: 1;" data-i18n="btnShortcut">
-                    📌 CREATE DESKTOP SHORTCUT
+                    📌 ADD SHORTCUT
                   </button>
                   <button id="btnToggleSync" class="val-btn val-btn-outline" style="flex: 1;" data-i18n="btnToggleSyncOpen">
-                    📱 QR CODE & SYNC
+                    📱 QR CODE
                   </button>
                 </div>
               </div>
@@ -1620,7 +1619,7 @@
                   <div class="val-tag" style="color: var(--val-cyan);">[ LIVE ENGINE ]</div>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 4px;">
                   <div style="background: var(--val-surface-dark); border: 1px solid var(--val-border); padding: 14px 16px;">
                     <div style="font-family: var(--val-font-tactical); font-size: 0.8rem; color: var(--val-gray); letter-spacing: 1.5px; text-transform: uppercase;">
                       // LIVE MATCH STATUS
@@ -1643,10 +1642,6 @@
                       <div class="mini-chip-val" id="hudEnemyThreat"><span style="color: var(--val-gold);">●</span> NORMAL</div>
                     </div>
                   </div>
-
-                  <div style="font-family: var(--val-font-tactical); font-size: 0.85rem; color: var(--val-gray); line-height: 1.5;">
-                    💡 Khi vào trận Valorant, tỉ số sẽ tự động đồng bộ theo từng round. Bạn có thể bấm <strong style="color:var(--val-cyan);">MINI HUD</strong> ở góc trên để ghim tỉ số nổi lên trên game hoặc quét mã QR sang điện thoại.
-                  </div>
                 </div>
               </div>
             </div>
@@ -1662,12 +1657,9 @@
                   <div class="val-tag">[ ACTIVE RULES ]</div>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 10px;">
                   <div class="event-item">
-                    <div>
-                      <span data-i18n="evtMatchPoint" style="font-weight: 800;">⚠️ MATCH POINT (12 RD)</span>
-                      <div style="font-size: 0.78rem; color: var(--val-gray); font-family: var(--val-font-tactical);">Báo động khi đối thủ hoặc đồng minh chạm mốc 12 round</div>
-                    </div>
+                    <span data-i18n="evtMatchPoint" style="font-weight: 800;">⚠️ MATCH POINT (12 RD)</span>
                     <label class="switch">
                       <input type="checkbox" id="evtMatchPoint" checked>
                       <span class="slider"></span>
@@ -1675,10 +1667,7 @@
                   </div>
 
                   <div class="event-item">
-                    <div>
-                      <span data-i18n="evtRoundChange" style="font-weight: 800;">🔔 ROUND CHANGE / SCORE UPDATE</span>
-                      <div style="font-size: 0.78rem; color: var(--val-gray); font-family: var(--val-font-tactical);">Âm báo nhẹ mỗi khi kết thúc 1 round và đổi điểm</div>
-                    </div>
+                    <span data-i18n="evtRoundChange" style="font-weight: 800;">🔔 ROUND CHANGE / SCORE UPDATE</span>
                     <label class="switch">
                       <input type="checkbox" id="evtRoundChange" checked>
                       <span class="slider"></span>
@@ -1686,10 +1675,7 @@
                   </div>
 
                   <div class="event-item">
-                    <div>
-                      <span data-i18n="evtCustomRound" style="font-weight: 800;">🎯 CUSTOM ROUND TARGET</span>
-                      <div style="font-size: 0.78rem; color: var(--val-gray); font-family: var(--val-font-tactical);">Báo động khi chạm mốc round tuỳ chọn chỉ định</div>
-                    </div>
+                    <span data-i18n="evtCustomRound" style="font-weight: 800;">🎯 CUSTOM ROUND TARGET</span>
                     <div style="display: flex; align-items: center; gap: 8px;">
                       <input type="number" id="customRoundInput" min="2" max="19" value="10" style="width: 44px; height: 26px; padding: 2px 4px; text-align: center; font-family: var(--val-font-tactical); font-size: 0.95rem; font-weight: 800; color: var(--val-gold); background: var(--val-surface-dark); border: 1px solid var(--val-border); outline: none;">
                       <label class="switch">
@@ -1700,10 +1686,7 @@
                   </div>
 
                   <div class="event-item">
-                    <div>
-                      <span data-i18n="evtMatchEnded" style="font-weight: 800;">🏆 MATCH FINISHED</span>
-                      <div style="font-size: 0.78rem; color: var(--val-gray); font-family: var(--val-font-tactical);">Báo hiệu khi trận đấu kết thúc (Chiến thắng / Thất bại)</div>
-                    </div>
+                    <span data-i18n="evtMatchEnded" style="font-weight: 800;">🏆 MATCH FINISHED</span>
                     <label class="switch">
                       <input type="checkbox" id="evtMatchEnded" checked>
                       <span class="slider"></span>
@@ -1711,10 +1694,7 @@
                   </div>
 
                   <div class="event-item">
-                    <div>
-                      <span data-i18n="evtSpikePlanted" style="font-weight: 800;">💣 SPIKE PLANTED ALERT</span>
-                      <div style="font-size: 0.78rem; color: var(--val-gray); font-family: var(--val-font-tactical);">Báo động âm thanh khi Spike vừa được đặt xuống</div>
-                    </div>
+                    <span data-i18n="evtSpikePlanted" style="font-weight: 800;">💣 SPIKE PLANTED ALERT</span>
                     <label class="switch">
                       <input type="checkbox" id="evtSpikePlanted" checked>
                       <span class="slider"></span>
@@ -1722,10 +1702,7 @@
                   </div>
 
                   <div class="event-item">
-                    <div>
-                      <span data-i18n="evtOvertime" style="font-weight: 800;">🔥 OVERTIME (12-12 SUDDEN DEATH)</span>
-                      <div style="font-size: 0.78rem; color: var(--val-gray); font-family: var(--val-font-tactical);">Cảnh báo khi hai đội hoà 12-12 bước vào round Overtime</div>
-                    </div>
+                    <span data-i18n="evtOvertime" style="font-weight: 800;">🔥 OVERTIME (12-12 SUDDEN DEATH)</span>
                     <label class="switch">
                       <input type="checkbox" id="evtOvertime" checked>
                       <span class="slider"></span>
@@ -1733,10 +1710,7 @@
                   </div>
 
                   <div class="event-item">
-                    <div>
-                      <span data-i18n="evtDangerVignette" style="font-weight: 800;">🚨 FULLSCREEN DANGER VIGNETTE</span>
-                      <div style="font-size: 0.78rem; color: var(--val-gray); font-family: var(--val-font-tactical);">Hiệu ứng viền đỏ nhấp nháy toàn màn hình ở Match Point</div>
-                    </div>
+                    <span data-i18n="evtDangerVignette" style="font-weight: 800;">🚨 FULLSCREEN DANGER VIGNETTE</span>
                     <label class="switch">
                       <input type="checkbox" id="evtDangerVignette" checked>
                       <span class="slider"></span>
@@ -1752,11 +1726,7 @@
                   <div class="val-tag" style="color: var(--val-cyan);">[ TEST HARNESS ]</div>
                 </div>
 
-                <div style="font-family: var(--val-font-tactical); font-size: 0.88rem; color: var(--val-gray); margin-bottom: 16px; line-height: 1.5;">
-                  Thử nghiệm âm báo và kịch bản cảnh báo ngay lập tức mà không cần phải chờ vào một trận đấu thật trên Valorant:
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px;">
                   <button id="btnSimRound" class="val-btn val-btn-outline" style="padding: 14px 10px; font-size: 0.85rem;">
                     🔔 TEST ROUND WIN (1.0x)
                   </button>
@@ -1908,15 +1878,15 @@
                   <div class="val-tag" style="color: var(--val-cyan);">[ HƯỚNG DẪN ]</div>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 12px; font-family: var(--val-font-tactical); font-size: 0.95rem; color: var(--val-white); line-height: 1.6;">
-                  <div style="background: var(--val-surface-dark); border: 1px solid var(--val-border); padding: 12px 14px;">
-                    <strong style="color: var(--val-cyan);">Bước 1:</strong> Đăng nhập tài khoản Google trên PC App để kích hoạt Cloud Relay.
+                <div style="display: flex; flex-direction: column; gap: 8px; font-family: var(--val-font-tactical); font-size: 0.88rem; color: var(--val-white);">
+                  <div style="background: var(--val-surface-dark); border: 1px solid var(--val-border); padding: 10px 12px;">
+                    <strong style="color: var(--val-cyan);">1.</strong> Đăng nhập Google để bật Cloud Relay.
                   </div>
-                  <div style="background: var(--val-surface-dark); border: 1px solid var(--val-border); padding: 12px 14px;">
-                    <strong style="color: var(--val-cyan);">Bước 2:</strong> Quét mã QR bằng Camera điện thoại hoặc bấm nút <strong style="color: var(--val-gold);">📱 MOBILE LINK</strong> để copy link gửi sang Zalo / Messenger.
+                  <div style="background: var(--val-surface-dark); border: 1px solid var(--val-border); padding: 10px 12px;">
+                    <strong style="color: var(--val-cyan);">2.</strong> Quét QR bằng Camera hoặc copy <strong style="color: var(--val-gold);">📱 MOBILE LINK</strong>.
                   </div>
-                  <div style="background: var(--val-surface-dark); border: 1px solid var(--val-border); padding: 12px 14px;">
-                    <strong style="color: var(--val-cyan);">Bước 3:</strong> Mở link trên điện thoại ngoài đường (sử dụng 4G/5G). Tỉ số trận đấu sẽ cập nhật tức thời theo từng giây!
+                  <div style="background: var(--val-surface-dark); border: 1px solid var(--val-border); padding: 10px 12px;">
+                    <strong style="color: var(--val-cyan);">3.</strong> Mở link trên điện thoại (4G/5G) để nhận tỉ số trực tiếp.
                   </div>
                 </div>
               </div>
@@ -1995,11 +1965,7 @@
                   <div class="val-tag" style="color: var(--val-cyan);">[ INSTANT KEY ]</div>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 14px;">
-                  <div style="font-family: var(--val-font-tactical); font-size: 0.9rem; color: var(--val-gray); line-height: 1.5;">
-                    Nhập License Key đã mua hoặc nhận từ KeyLicense Dashboard để kích hoạt vĩnh viễn trên thiết bị này:
-                  </div>
-
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 4px;">
                   <div style="display: flex; gap: 10px;">
                     <input type="text" id="licKeyInputMain" class="val-input" placeholder="VAL-XXXX-XXXX-XXXX" style="font-family: monospace; letter-spacing: 1.5px; text-transform: uppercase;">
                     <button id="btnLicApplyMain" class="val-btn val-btn-cyan" style="white-space: nowrap;">
@@ -2419,9 +2385,9 @@
         matchIdle: 'IDLE // LOBBY',
         teamAllied: '// ALLIED TEAM',
         teamEnemy: '// ENEMY TEAM',
-        btnShortcut: '📌 CREATE DESKTOP SHORTCUT',
-        btnToggleSyncOpen: '📱 QR CODE & SYNC',
-        btnToggleSyncClose: '📱 COLLAPSE QR CODE',
+        btnShortcut: '📌 ADD SHORTCUT',
+        btnToggleSyncOpen: '📱 QR CODE',
+        btnToggleSyncClose: '📱 QR CODE',
         syncTitle: '📱 MULTI-DEVICE SYNC & QR',
         btnModeLan: '🏠 LOCAL WI-FI',
         btnModeCloud: '☁️ CLOUD RELAY (4G)',
@@ -2588,9 +2554,9 @@
         matchIdle: 'IDLE // LOBBY',
         teamAllied: '// ĐỒNG MINH (ALLIED)',
         teamEnemy: '// ĐỐI THỦ (ENEMY)',
-        btnShortcut: '📌 TẠO SHORTCUT DESKTOP',
-        btnToggleSyncOpen: '📱 MÃ QR & ĐỒNG BỘ',
-        btnToggleSyncClose: '📱 THU GỌN MÃ QR',
+        btnShortcut: '📌 ADD SHORTCUT',
+        btnToggleSyncOpen: '📱 QR CODE',
+        btnToggleSyncClose: '📱 QR CODE',
         syncTitle: '📱 MULTI-DEVICE SYNC & QR',
         btnModeLan: '🏠 WI-FI NỘI BỘ',
         btnModeCloud: '☁️ CLOUD RELAY (4G)',
@@ -2815,11 +2781,10 @@
       }
     });
 
-    // Toggle Sync QR Card
+    // QR Code Button: Auto-switch to 4G Cloud Sync tab & Cloud mode
     btnToggleSync.addEventListener('click', () => {
-      isSyncCardOpen = !isSyncCardOpen;
-      syncCard.style.display = isSyncCardOpen ? 'flex' : 'none';
-      btnToggleSync.innerText = isSyncCardOpen ? t('btnToggleSyncClose') : t('btnToggleSyncOpen');
+      switchTab('tabSync');
+      switchSyncMode('cloud');
     });
 
     // Restore Sound Preference & Custom Round

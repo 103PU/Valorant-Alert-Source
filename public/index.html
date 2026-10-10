@@ -1091,16 +1091,14 @@
 
             if (window.jsQR) {
               const code = window.jsQR(imageData.data, imageData.width, imageData.height);
-              if (code && code.data) {
-                handleScannedQr(code.data);
+              if (code && code.data && handleScannedQr(code.data, false)) {
                 return;
               }
             } else if ('BarcodeDetector' in window) {
               try {
                 const detector = new BarcodeDetector({ formats: ['qr_code'] });
                 const barcodes = await detector.detect(qrVideo);
-                if (barcodes.length > 0) {
-                  handleScannedQr(barcodes[0].rawValue);
+                if (barcodes.length > 0 && handleScannedQr(barcodes[0].rawValue, false)) {
                   return;
                 }
               } catch (e) {}
@@ -1145,8 +1143,7 @@
 
           if (window.jsQR) {
             const code = window.jsQR(imageData.data, imageData.width, imageData.height);
-            if (code && code.data) {
-              handleScannedQr(code.data);
+            if (code && code.data && handleScannedQr(code.data, true)) {
               return;
             }
           }
@@ -1169,22 +1166,35 @@
       qrVideo.srcObject = null;
     }
 
-    function handleScannedQr(qrData) {
-      stopQrScanner();
-      try {
-        let extractedToken = null;
-        let extractedUserId = null;
-        let extractedServer = null;
+    function handleScannedQr(qrData, isManualFile = false) {
+      if (!qrData || typeof qrData !== 'string') return false;
+      const cleanData = qrData.trim();
+      let extractedToken = null;
+      let extractedUserId = null;
+      let extractedServer = null;
 
-        if (qrData.includes('http://') || qrData.includes('https://')) {
-          const urlObj = new URL(qrData);
+      if (cleanData.includes('http://') || cleanData.includes('https://')) {
+        try {
+          const urlObj = new URL(cleanData);
           extractedToken = urlObj.searchParams.get('token');
           extractedUserId = urlObj.searchParams.get('userId');
           extractedServer = urlObj.searchParams.get('server');
-        } else if (/^[A-Za-z0-9]{4,10}$/.test(qrData.trim())) {
-          extractedToken = qrData.trim();
-        }
+        } catch (e) {}
+      } else if (/^[A-Za-z0-9]{4,10}$/.test(cleanData)) {
+        extractedToken = cleanData;
+      }
 
+      if (!extractedToken && !extractedUserId) {
+        if (isManualFile) {
+          showToast('MÃ QR KHÔNG CHỨA TOKEN HOẶC USER ID HỢP LỆ');
+        }
+        return false;
+      }
+
+      stopQrScanner();
+      scannerSection.style.display = 'none';
+
+      try {
         if (extractedUserId) {
           relayUserId = extractedUserId;
           relayMode = true;
@@ -1193,20 +1203,24 @@
             relayBaseUrl = extractedServer;
             localStorage.setItem('val_relay_server', extractedServer);
           }
+          if (extractedToken) {
+            token = extractedToken.toUpperCase();
+            localStorage.setItem('val_alert_token', token);
+          }
           tokenModal.style.display = 'none';
           showToast('☁️ ĐÃ KẾT NỐI CLOUD RELAY (4G)');
           startCloudRelay(extractedUserId);
-          return;
+          return true;
         }
 
         if (extractedToken) {
           applyTokenAndConnect(extractedToken.toUpperCase());
-        } else {
-          showToast('MÃ QR KHÔNG CHỨA TOKEN HOẶC USER ID HỢP LỆ');
+          return true;
         }
       } catch (err) {
         showToast('LỖI ĐỌC MÃ QR: ' + err.message);
       }
+      return true;
     }
 
     btnStartScan.addEventListener('click', startQrScanner);

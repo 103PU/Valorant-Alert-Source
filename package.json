@@ -1,6 +1,6 @@
 {
   "name": "valorant-score-alert",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Valorant Realtime Score Alert PWA with PC Dashboard and Sound Engine",
   "main": "server/index.js",
   "scripts": {
