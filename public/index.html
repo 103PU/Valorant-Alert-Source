@@ -853,13 +853,24 @@
     let ws = null;
     const urlParams = new URLSearchParams(window.location.search);
     let token = urlParams.get('token') || localStorage.getItem('val_alert_token');
-    let relayUserId = urlParams.get('userId') || (urlParams.get('mode') !== 'lan' ? localStorage.getItem('val_relay_user_id') : null);
-    let relayMode = urlParams.get('mode') === 'relay' || !!urlParams.get('userId') || (urlParams.get('mode') !== 'lan' && !!relayUserId);
+
+    const isLocalServerHost = window.location.hostname === 'localhost' ||
+                              window.location.hostname === '127.0.0.1' ||
+                              /^192\.168\./.test(window.location.hostname) ||
+                              /^10\./.test(window.location.hostname) ||
+                              /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(window.location.hostname) ||
+                              window.location.port === '3000';
+
+    if (urlParams.get('mode') === 'lan' || (isLocalServerHost && urlParams.get('mode') !== 'relay' && !urlParams.get('userId'))) {
+      localStorage.removeItem('val_relay_user_id');
+    }
+
+    let relayUserId = urlParams.get('userId') || (urlParams.get('mode') !== 'lan' && !isLocalServerHost ? localStorage.getItem('val_relay_user_id') : null);
+    let relayMode = urlParams.get('mode') === 'relay' || !!urlParams.get('userId') || (urlParams.get('mode') !== 'lan' && !isLocalServerHost && !!relayUserId);
     let relayPollTimer = null;
     let relayBaseUrl = urlParams.get('server') || localStorage.getItem('val_relay_server') || 'https://keylicensedashboard.dungbd2005.workers.dev';
 
-    if (urlParams.get('mode') === 'lan') {
-      localStorage.removeItem('val_relay_user_id');
+    if (urlParams.get('mode') === 'lan' || (isLocalServerHost && urlParams.get('mode') !== 'relay' && !urlParams.get('userId'))) {
       relayUserId = null;
       relayMode = false;
     } else if (urlParams.get('userId')) {
@@ -988,9 +999,17 @@
           connStatusText.innerText = '☁️ CLOUD RELAY';
 
           if (data.inGame && data.score) {
-            updateUI(data.score);
+            updateUI({
+              ...data.score,
+              inGame: Boolean(data.inGame !== undefined ? data.inGame : data.score.inGame),
+              alliedScore: Number(data.score.alliedScore !== undefined ? data.score.alliedScore : (data.score.teamA !== undefined ? data.score.teamA : 0)),
+              enemyScore: Number(data.score.enemyScore !== undefined ? data.score.enemyScore : (data.score.teamB !== undefined ? data.score.teamB : 0)),
+              status: data.score.status || data.score.phase || 'IN_MATCH',
+              mapName: data.score.mapName || data.score.matchId || 'ASCENT',
+              gameMode: data.score.gameMode || 'COMPETITIVE'
+            });
           } else if (data.ok && !data.inGame) {
-            updateUI({ inGame: false });
+            updateUI({ inGame: false, alliedScore: 0, enemyScore: 0, status: 'NO_MATCH' });
           }
         } else {
           connStatus.className = 'status-badge status-connecting';
@@ -1692,13 +1711,18 @@
 
     // --- UI & Event Notification Update Logic ---
     function updateUI(data) {
-      const { alliedScore = 0, enemyScore = 0, status, inGame, timestamp } = data;
+      if (!data) return;
+      const inGame = Boolean(data.inGame !== undefined ? data.inGame : (data.phase && data.phase !== 'idle' && data.phase !== 'NO_MATCH'));
+      const alliedScore = Number(data.alliedScore !== undefined ? data.alliedScore : (data.teamA !== undefined ? data.teamA : 0));
+      const enemyScore = Number(data.enemyScore !== undefined ? data.enemyScore : (data.teamB !== undefined ? data.teamB : 0));
+      const status = data.status || data.phase || (inGame ? 'IN_MATCH' : 'NO_MATCH');
+      const timestamp = data.timestamp || data.updatedAt || Date.now();
 
       alliedScoreEl.innerText = alliedScore;
       enemyScoreEl.innerText = enemyScore;
       renderMobileTimeline(alliedScore, enemyScore);
 
-      lastUpdateText.innerText = 'SYNC: ' + new Date(timestamp || Date.now()).toLocaleTimeString();
+      lastUpdateText.innerText = 'SYNC: ' + new Date(timestamp).toLocaleTimeString();
 
       const mobileStatusBadge = document.getElementById('mobileStatusBadge');
 

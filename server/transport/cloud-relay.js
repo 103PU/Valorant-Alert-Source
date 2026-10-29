@@ -96,8 +96,12 @@ class CloudRelay {
     const scoreObj = {
       teamA: scoreData.alliedScore ?? 0,
       teamB: scoreData.enemyScore ?? 0,
+      alliedScore: scoreData.alliedScore ?? 0,
+      enemyScore: scoreData.enemyScore ?? 0,
       currentRound: scoreData.round ?? 0,
       phase: scoreData.status || (scoreData.inGame ? 'in_progress' : 'idle'),
+      status: scoreData.status || (scoreData.inGame ? 'IN_MATCH' : 'NO_MATCH'),
+      inGame: Boolean(scoreData.inGame),
       bombPlanted: Boolean(scoreData.bombPlanted),
       mapName: scoreData.mapName || ''
     };
@@ -107,7 +111,10 @@ class CloudRelay {
       inGame: Boolean(scoreData.inGame),
       scorePayload: JSON.stringify(scoreObj),
       // Preserve flat score properties for backwards compatibility
-      ...scoreData
+      ...scoreData,
+      alliedScore: scoreData.alliedScore ?? 0,
+      enemyScore: scoreData.enemyScore ?? 0,
+      status: scoreData.status || (scoreData.inGame ? 'IN_MATCH' : 'NO_MATCH')
     };
 
     try {

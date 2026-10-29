@@ -9,7 +9,7 @@ async function handleApiQr(req, res, { wsServer, cloudRelay, lanIp, port, public
   const token = wsServer.getToken();
 
   const cloudUrl = (cloudRelay && cloudRelay.getRelayWebUrl) ? cloudRelay.getRelayWebUrl(true, token) : null;
-  const localUrl = `${publicUrl || `http://${lanIp}:${port}`}?token=${token}`;
+  const localUrl = `${publicUrl || `http://${lanIp}:${port}`}?token=${token}&mode=lan`;
 
   let appUrl = localUrl;
   if (qrType === 'cloud') {
