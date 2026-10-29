@@ -46,7 +46,7 @@ var
   ResultCode: Integer;
 begin
   Exec('taskkill.exe', '/F /IM ValorantScoreAlert.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Exec('powershell.exe', '-NoProfile -Command "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like ''*tray.ps1*'' -or $_.CommandLine -like ''*launcher.vbs*'' -or $_.CommandLine -like ''*ValorantScoreAlert*'' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec('powershell.exe', '-NoProfile -Command "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like ''*tray.ps1*'' -or $_.CommandLine -like ''*launcher.vbs*'' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec('cmd.exe', '/c "for /f ""tokens=5"" %a in (''netstat -aon ^| findstr :3000 ^| findstr LISTENING'') do taskkill /f /pid %a"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Sleep(500);
   Result := True;
@@ -57,6 +57,6 @@ var
   ResultCode: Integer;
 begin
   Exec('taskkill.exe', '/F /IM ValorantScoreAlert.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Exec('powershell.exe', '-NoProfile -Command "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like ''*tray.ps1*'' -or $_.CommandLine -like ''*launcher.vbs*'' -or $_.CommandLine -like ''*ValorantScoreAlert*'' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec('powershell.exe', '-NoProfile -Command "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like ''*tray.ps1*'' -or $_.CommandLine -like ''*launcher.vbs*'' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Result := True;
 end;
