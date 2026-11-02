@@ -105,17 +105,19 @@ class NativeSoundPlayer {
       return;
     }
 
-    // Reset when starting new match
+    const allied = Number(scoreData.alliedScore) || 0;
+    const enemy = Number(scoreData.enemyScore) || 0;
+
+    // Reset when starting new match or when score decreases
     const matchId = scoreData.matchId || scoreData.mapName;
-    if (this.lastMatchId && this.lastMatchId !== matchId) {
+    if ((this.lastMatchId && this.lastMatchId !== matchId) ||
+        (this.lastAllied !== -1 && (allied < this.lastAllied || enemy < this.lastEnemy))) {
       this.lastAllied = -1;
       this.lastEnemy = -1;
       this.isMatchEndedTriggered = false;
     }
     this.lastMatchId = matchId;
 
-    const allied = Number(scoreData.alliedScore) || 0;
-    const enemy = Number(scoreData.enemyScore) || 0;
     const isAudioEnabled = settings.isPcAudioEnabled !== false;
 
     // Do not play if PC audio is disabled
@@ -143,7 +145,7 @@ class NativeSoundPlayer {
 
     // 2. Match Point Alert
     const threshold = Number(settings.alertEnemyScoreThreshold) || 12;
-    const isMatchPoint = (enemy >= threshold && enemy > allied) || scoreData.status === 'MATCH_POINT_RISK';
+    const isMatchPoint = (enemy >= threshold) || (allied >= threshold) || scoreData.status === 'MATCH_POINT_RISK' || scoreData.status === 'MATCH_POINT';
     if (isMatchPoint && settings.evtMatchPoint !== false) {
       const now = Date.now();
       // Throttle match point sound to once every 20s or whenever score updates
