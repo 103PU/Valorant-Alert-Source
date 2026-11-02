@@ -405,8 +405,9 @@ class UpdateInstaller {
   }
 
   launch(target, handoffKind = 'legacy-zip') {
+    const vbs = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'ValorantAlert', 'scripts', 'launcher.vbs');
     const cmd = handoffKind === 'setup-exe'
-      ? `start /wait "" "${target}" /SILENT /SP- /CLOSEAPPLICATIONS /SUPPRESSMSGBOXES && start "" "${path.join(process.env.LOCALAPPDATA || '', 'Programs', 'ValorantAlert', 'scripts', 'launcher.vbs')}"`
+      ? `start /wait "" "${target}" /SILENT /SP- /CLOSEAPPLICATIONS /SUPPRESSMSGBOXES && start "" wscript.exe //nologo "${vbs}"`
       : path.join(target, INSTALLER_CMD);
     const args = handoffKind === 'setup-exe' ? ['/c', cmd] : ['/c', cmd, '-Launch'];
     // spawn() on a .cmd is refused outright by Node ≥18.20 (the CVE-2024-27980 fix)
@@ -424,7 +425,8 @@ class UpdateInstaller {
         cwd: handoffKind === 'setup-exe' ? path.dirname(target) : target,
         detached: true,
         stdio: 'ignore',
-        windowsHide: false
+        windowsHide: false,
+        windowsVerbatimArguments: handoffKind === 'setup-exe'
       });
     } catch (e) {
       throw fail('launch', 'spawn_failed', (e && e.message) || String(e));
