@@ -127,7 +127,7 @@ class CloudRelay {
           'Authorization': `Bearer ${session.jwt}`
         },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined
+        signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined
       });
 
       // If /api/relays/live returns 404, gracefully fallback to legacy /api/relay/score
@@ -142,7 +142,7 @@ class CloudRelay {
             'Authorization': `Bearer ${session.jwt}`
           },
           body: JSON.stringify(payload),
-          signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined
+          signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined
         });
       }
 

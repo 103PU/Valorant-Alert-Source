@@ -86,7 +86,20 @@ class LicenseGate {
     // (docs/kld-entitlement-signing.md §9 item 3).
     this.trust = trust || {};
 
-    this.state = store.isLoggedIn() ? STATE.NEEDS_LICENSE : STATE.NOT_LOGGED_IN;
+    const cachedLic = store && store.state && store.state.license;
+    const isCachedActive = cachedLic && cachedLic.status === 'active' && (!cachedLic.expiresAt || new Date(cachedLic.expiresAt).getTime() > Date.now());
+    const isCachedTrial = store && store.state && store.state.trial && store.state.trial.status === 'active';
+    const hasStoredKey = !!(store && typeof store.getLicenseKey === 'function' && store.getLicenseKey());
+
+    if (isCachedActive || hasStoredKey) {
+      this.state = STATE.LICENSED;
+    } else if (isCachedTrial) {
+      this.state = STATE.TRIAL;
+    } else if (store && store.isLoggedIn()) {
+      this.state = STATE.NEEDS_LICENSE;
+    } else {
+      this.state = STATE.NOT_LOGGED_IN;
+    }
     this.reason = null;
     this.message = null;
     this.checking = false;

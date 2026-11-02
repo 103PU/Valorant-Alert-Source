@@ -13,12 +13,13 @@ class ScoreWSServer {
   // not enough either: it only covers undefined, so an explicit null would then
   // throw inside the upgrade handler and take the process down. An entitlement
   // check must fail closed and stay up: no usable gate means no stream.
-  constructor(httpServer, { isEntitled } = {}) {
+  constructor(httpServer, { isEntitled, token, getLastScore } = {}) {
     this.httpServer = httpServer;
-    this.authToken = this.generateToken();
+    this.authToken = (typeof token === 'string' && token.trim()) ? token.trim().toUpperCase() : this.generateToken();
     this.wss = new WebSocketServer({ noServer: true });
     this.lastPayloadJson = null;
     this.isEntitled = typeof isEntitled === 'function' ? isEntitled : () => false;
+    this.getLastScore = typeof getLastScore === 'function' ? getLastScore : null;
 
     this.init();
   }
@@ -69,6 +70,11 @@ class ScoreWSServer {
       // Send latest score state immediately on connect if available
       if (this.lastPayloadJson) {
         ws.send(this.lastPayloadJson);
+      } else if (this.getLastScore) {
+        const last = this.getLastScore();
+        if (last) {
+          try { ws.send(JSON.stringify(last)); } catch (e) {}
+        }
       }
 
       // Respond to ping heartbeats from mobile clients

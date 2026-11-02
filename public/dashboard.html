@@ -1498,10 +1498,10 @@
           </button>
 
           <div class="sidebar-footer">
-            <div class="sidebar-version-badge" id="sidebarVersionBadge">PROTOCOL v1.0.8</div>
+            <div class="sidebar-version-badge" id="sidebarVersionBadge">PROTOCOL v1.0.9</div>
             <div class="sidebar-pulse-status">
               <span class="status-dot"></span>
-              <span>ONLINE PROTOCOL</span>
+              <span>ONLINE</span>
             </div>
           </div>
         </aside>
@@ -1513,7 +1513,6 @@
             <div class="brand">
               <div class="brand-text">
                 <h1 id="activeTabBreadcrumb">/// OVERVIEW // LIVE SCORE HUD</h1>
-                <span>TACTICAL REALTIME PROTOCOL // PC HUD</span>
               </div>
             </div>
 
@@ -1581,7 +1580,7 @@
               <!-- Live Score Arena -->
               <div class="val-card">
                 <div class="val-card-header">
-                  <div class="val-card-title" data-i18n="liveScoreTitle">🎯 LIVE SCORE MONITOR // HERO HUD</div>
+                  <div class="val-card-title" data-i18n="liveScoreTitle">🎯 LIVE SCORE MONITOR</div>
                   <div id="matchInfoTag" class="status-badge-btn status-badge-idle" data-i18n="matchIdle">IDLE // LOBBY</div>
                 </div>
 
@@ -1615,14 +1614,14 @@
               <!-- Match Telemetry & Quick Overlay -->
               <div class="val-card">
                 <div class="val-card-header">
-                  <div class="val-card-title">⚡ MATCH INTELLIGENCE & TELEMETRY</div>
-                  <div class="val-tag" style="color: var(--val-cyan);">[ LIVE ENGINE ]</div>
+                  <div class="val-card-title">⚡ MATCH TELEMETRY</div>
+                  <div class="val-tag" style="color: var(--val-cyan);">[ LIVE ]</div>
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 4px;">
                   <div style="background: var(--val-surface-dark); border: 1px solid var(--val-border); padding: 14px 16px;">
                     <div style="font-family: var(--val-font-tactical); font-size: 0.8rem; color: var(--val-gray); letter-spacing: 1.5px; text-transform: uppercase;">
-                      // LIVE MATCH STATUS
+                      STATUS
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
                       <div style="font-family: var(--val-font-display); font-size: 1.4rem; font-weight: 900; color: var(--val-white);" id="hudMatchStatus">
@@ -1634,11 +1633,11 @@
 
                   <div class="mini-status-grid">
                     <div class="mini-chip">
-                      <div class="mini-chip-label">// ALLIED STATUS</div>
+                      <div class="mini-chip-label">ALLIED</div>
                       <div class="mini-chip-val" id="hudAlliedStatus"><span style="color: var(--val-cyan);">●</span> DEFENDING</div>
                     </div>
                     <div class="mini-chip">
-                      <div class="mini-chip-label">// ENEMY THREAT</div>
+                      <div class="mini-chip-label">ENEMY</div>
                       <div class="mini-chip-val" id="hudEnemyThreat"><span style="color: var(--val-gold);">●</span> NORMAL</div>
                     </div>
                   </div>
@@ -1653,8 +1652,8 @@
               <!-- Scenario Trigger Controls -->
               <div class="val-card">
                 <div class="val-card-header">
-                  <div class="val-card-title">⚠️ SCENARIO TRIGGERS & RULES</div>
-                  <div class="val-tag">[ ACTIVE RULES ]</div>
+                  <div class="val-card-title">⚠️ ALERT RULES</div>
+                  <div class="val-tag">[ RULES ]</div>
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 10px;">
@@ -1667,7 +1666,7 @@
                   </div>
 
                   <div class="event-item">
-                    <span data-i18n="evtRoundChange" style="font-weight: 800;">🔔 ROUND CHANGE / SCORE UPDATE</span>
+                    <span data-i18n="evtRoundChange" style="font-weight: 800;">🔔 ROUND CHANGE</span>
                     <label class="switch">
                       <input type="checkbox" id="evtRoundChange" checked>
                       <span class="slider"></span>
@@ -1675,7 +1674,7 @@
                   </div>
 
                   <div class="event-item">
-                    <span data-i18n="evtCustomRound" style="font-weight: 800;">🎯 CUSTOM ROUND TARGET</span>
+                    <span data-i18n="evtCustomRound" style="font-weight: 800;">🎯 CUSTOM ROUND</span>
                     <div style="display: flex; align-items: center; gap: 8px;">
                       <input type="number" id="customRoundInput" min="2" max="19" value="10" style="width: 44px; height: 26px; padding: 2px 4px; text-align: center; font-family: var(--val-font-tactical); font-size: 0.95rem; font-weight: 800; color: var(--val-gold); background: var(--val-surface-dark); border: 1px solid var(--val-border); outline: none;">
                       <label class="switch">
@@ -1694,7 +1693,7 @@
                   </div>
 
                   <div class="event-item">
-                    <span data-i18n="evtSpikePlanted" style="font-weight: 800;">💣 SPIKE PLANTED ALERT</span>
+                    <span data-i18n="evtSpikePlanted" style="font-weight: 800;">💣 SPIKE PLANTED</span>
                     <label class="switch">
                       <input type="checkbox" id="evtSpikePlanted" checked>
                       <span class="slider"></span>
@@ -1702,7 +1701,7 @@
                   </div>
 
                   <div class="event-item">
-                    <span data-i18n="evtOvertime" style="font-weight: 800;">🔥 OVERTIME (12-12 SUDDEN DEATH)</span>
+                    <span data-i18n="evtOvertime" style="font-weight: 800;">🔥 OVERTIME (12-12)</span>
                     <label class="switch">
                       <input type="checkbox" id="evtOvertime" checked>
                       <span class="slider"></span>
@@ -1710,7 +1709,7 @@
                   </div>
 
                   <div class="event-item">
-                    <span data-i18n="evtDangerVignette" style="font-weight: 800;">🚨 FULLSCREEN DANGER VIGNETTE</span>
+                    <span data-i18n="evtDangerVignette" style="font-weight: 800;">🚨 DANGER VIGNETTE</span>
                     <label class="switch">
                       <input type="checkbox" id="evtDangerVignette" checked>
                       <span class="slider"></span>
@@ -1722,22 +1721,22 @@
               <!-- Interactive Simulators -->
               <div class="val-card">
                 <div class="val-card-header">
-                  <div class="val-card-title">🎮 SCENARIO SIMULATOR</div>
-                  <div class="val-tag" style="color: var(--val-cyan);">[ TEST HARNESS ]</div>
+                  <div class="val-card-title">🎮 SIMULATOR</div>
+                  <div class="val-tag" style="color: var(--val-cyan);">[ TEST ]</div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px;">
                   <button id="btnSimRound" class="val-btn val-btn-outline" style="padding: 14px 10px; font-size: 0.85rem;">
-                    🔔 TEST ROUND WIN (1.0x)
+                    🔔 TEST ROUND WIN
                   </button>
                   <button id="btnSimCustom" class="val-btn val-btn-outline" style="padding: 14px 10px; font-size: 0.85rem;">
-                    🎯 TEST CUSTOM (1.15x)
+                    🎯 TEST CUSTOM
                   </button>
                   <button id="btnSimMatchPoint" class="val-btn" style="padding: 14px 10px; font-size: 0.85rem;">
-                    ⚠️ TEST MATCH POINT (1.35x)
+                    ⚠️ TEST MATCH POINT
                   </button>
                   <button id="btnSimEnd" class="val-btn val-btn-cyan" style="padding: 14px 10px; font-size: 0.85rem;">
-                    🏆 TEST VICTORY (0.82x)
+                    🏆 TEST VICTORY
                   </button>
                 </div>
               </div>
@@ -1750,7 +1749,7 @@
               <!-- Audio Engine Settings -->
               <div class="val-card">
                 <div class="val-card-header">
-                  <div class="val-card-title" data-i18n="audioTitle">🔊 AUDIO ENGINE SETTINGS</div>
+                  <div class="val-card-title" data-i18n="audioTitle">🔊 AUDIO SETTINGS</div>
                   <button id="btnTestChime" class="val-btn val-btn-outline val-btn-sm" data-i18n="btnTestAudio">
                     🔊 TEST AUDIO
                   </button>
@@ -1758,7 +1757,7 @@
 
                 <div>
                   <div style="font-family: var(--val-font-tactical); font-size: 0.8rem; color: var(--val-gray); margin-bottom: 6px; text-transform: uppercase;">
-                    // SOUND PACK PROFILE
+                    SOUND PRESET
                   </div>
                   <select id="soundPicker" class="val-select">
                     <option value="melodicChime" data-i18n="soundOpt1">🎼 1. Melodic Triad (Default)</option>
@@ -1771,7 +1770,7 @@
                   <!-- Master Volume Slider -->
                   <div class="volume-box">
                     <div class="volume-header">
-                      <span data-i18n="volLabel">ALERT VOLUME</span>
+                      <span data-i18n="volLabel">VOLUME</span>
                       <span id="volValue">80%</span>
                     </div>
                     <input type="range" id="volSlider" class="vol-slider" min="0" max="100" value="80">
@@ -1786,7 +1785,7 @@
               <!-- Discord Webhook & External Notifications -->
               <div class="val-card">
                 <div class="val-card-header">
-                  <div class="val-card-title" data-i18n="discordTitle">🌐 DISCORD WEBHOOK & NOTIFICATIONS</div>
+                  <div class="val-card-title" data-i18n="discordTitle">🌐 DISCORD WEBHOOK</div>
                   <button id="btnTestDiscord" class="val-btn val-btn-outline val-btn-sm" data-i18n="btnTestDiscord">
                     TEST WEBHOOK
                   </button>
@@ -1795,13 +1794,13 @@
                 <div style="display: flex; flex-direction: column; gap: 12px;">
                   <div>
                     <div style="font-family: var(--val-font-tactical); font-size: 0.8rem; color: var(--val-gray); margin-bottom: 6px; text-transform: uppercase;">
-                      // DISCORD WEBHOOK URL
+                      WEBHOOK URL
                     </div>
                     <input type="text" id="discordWebhookUrl" class="val-input" placeholder="https://discord.com/api/webhooks/..." data-i18n-placeholder="discordWebhookPlaceholder">
                   </div>
 
                   <div class="event-item">
-                    <span style="font-size: 0.9rem; font-weight: 700;">Gửi Webhook khi Match Point (12 RD)</span>
+                    <span style="font-size: 0.9rem; font-weight: 700;">Webhook khi Match Point (12 RD)</span>
                     <label class="switch">
                       <input type="checkbox" id="evtDiscordMatchPoint" checked>
                       <span class="slider"></span>
@@ -1809,7 +1808,7 @@
                   </div>
 
                   <div class="event-item">
-                    <span style="font-size: 0.9rem; font-weight: 700;">Gửi Webhook khi kết thúc trận đấu</span>
+                    <span style="font-size: 0.9rem; font-weight: 700;">Webhook khi kết thúc trận</span>
                     <label class="switch">
                       <input type="checkbox" id="evtDiscordMatchEnd" checked>
                       <span class="slider"></span>
@@ -1817,7 +1816,7 @@
                   </div>
 
                   <div class="event-item">
-                    <span data-i18n="evtDesktopNotify" style="font-size: 0.9rem; font-weight: 700;">THÔNG BÁO DESKTOP WINDOWS</span>
+                    <span data-i18n="evtDesktopNotify" style="font-size: 0.9rem; font-weight: 700;">THÔNG BÁO WINDOWS</span>
                     <label class="switch">
                       <input type="checkbox" id="evtDesktopNotify">
                       <span class="slider"></span>
@@ -1834,7 +1833,7 @@
               <!-- Multi-Device Sync Card -->
               <div id="syncCard" class="val-card">
                 <div class="val-card-header" style="margin-bottom: 8px;">
-                  <div class="val-card-title" data-i18n="syncTitle">📱 MULTI-DEVICE SYNC // CLOUD RELAY</div>
+                  <div class="val-card-title" data-i18n="syncTitle">📱 4G CLOUD RELAY</div>
                   <div id="syncModeTag" class="val-tag" style="color: var(--val-cyan);">[ ☁️ CLOUD_RELAY // 4G/5G ]</div>
                 </div>
 
@@ -1874,20 +1873,14 @@
               <!-- Remote Guidance Card -->
               <div class="val-card">
                 <div class="val-card-header">
-                  <div class="val-card-title">📖 HƯỚNG DẪN KẾT NỐI TỪ XA QUA 4G</div>
+                  <div class="val-card-title">📖 HƯỚNG DẪN KẾT NỐI QUA 4G</div>
                   <div class="val-tag" style="color: var(--val-cyan);">[ HƯỚNG DẪN ]</div>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 8px; font-family: var(--val-font-tactical); font-size: 0.88rem; color: var(--val-white);">
-                  <div style="background: var(--val-surface-dark); border: 1px solid var(--val-border); padding: 10px 12px;">
-                    <strong style="color: var(--val-cyan);">1.</strong> Đăng nhập Google để bật Cloud Relay.
-                  </div>
-                  <div style="background: var(--val-surface-dark); border: 1px solid var(--val-border); padding: 10px 12px;">
-                    <strong style="color: var(--val-cyan);">2.</strong> Quét QR bằng Camera hoặc copy <strong style="color: var(--val-gold);">📱 MOBILE LINK</strong>.
-                  </div>
-                  <div style="background: var(--val-surface-dark); border: 1px solid var(--val-border); padding: 10px 12px;">
-                    <strong style="color: var(--val-cyan);">3.</strong> Mở link trên điện thoại (4G/5G) để nhận tỉ số trực tiếp.
-                  </div>
+                <div style="font-family: var(--val-font-tactical); font-size: 0.88rem; color: var(--val-white); line-height: 1.8;">
+                  1. Đăng nhập Google để bật Cloud Relay.<br>
+                  2. Quét QR hoặc copy <strong style="color: var(--val-gold);">📱 MOBILE LINK</strong>.<br>
+                  3. Mở link trên điện thoại (4G/5G) để nhận tỉ số trực tiếp.
                 </div>
               </div>
             </div>
@@ -1899,7 +1892,7 @@
               <!-- Google Account Profile -->
               <div id="userProfileCard" class="val-card">
                 <div class="val-card-header">
-                  <div class="val-card-title" data-i18n="userCardTitle">👤 ACCOUNT & SYSTEM</div>
+                  <div class="val-card-title" data-i18n="userCardTitle">👤 ACCOUNT</div>
                   <div id="userCardBadge" class="val-tag">[ PRO ]</div>
                 </div>
 
@@ -1961,8 +1954,8 @@
               <!-- Quick License Activation Form -->
               <div class="val-card">
                 <div class="val-card-header">
-                  <div class="val-card-title">🔑 KÍCH HOẠT BẢN QUYỀN NHANH</div>
-                  <div class="val-tag" style="color: var(--val-cyan);">[ INSTANT KEY ]</div>
+                  <div class="val-card-title">🔑 NHẬP KEY</div>
+                  <div class="val-tag" style="color: var(--val-cyan);">[ LICENSE KEY ]</div>
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 4px;">
@@ -1992,7 +1985,7 @@
               <!-- Riot Telemetry -->
               <div class="val-card">
                 <div class="val-card-header">
-                  <div class="val-card-title">⚡ RIOT CLIENT TELEMETRY</div>
+                  <div class="val-card-title">⚡ RIOT TELEMETRY</div>
                   <button id="btnRefreshRiot" class="val-btn val-btn-outline val-btn-sm" data-i18n="btnRefreshRiot">
                     RETRY RIOT CONNECTION
                   </button>
@@ -2001,19 +1994,19 @@
                 <div style="display: flex; flex-direction: column; gap: 12px;">
                   <div class="mini-status-grid">
                     <div class="mini-chip">
-                      <div class="mini-chip-label">// LOCKFILE DETECTED</div>
+                      <div class="mini-chip-label">LOCKFILE</div>
                       <div class="mini-chip-val" id="diagLockfile">LOCAL (127.0.0.1)</div>
                     </div>
                     <div class="mini-chip">
-                      <div class="mini-chip-label">// RIOT PORT</div>
+                      <div class="mini-chip-label">PORT</div>
                       <div class="mini-chip-val" id="diagPort">AUTO DETECT</div>
                     </div>
                     <div class="mini-chip">
-                      <div class="mini-chip-label">// REGION & SHARD</div>
+                      <div class="mini-chip-label">REGION</div>
                       <div class="mini-chip-val" id="diagShard">AP / LIVE</div>
                     </div>
                     <div class="mini-chip">
-                      <div class="mini-chip-label">// PROTOCOL LATENCY</div>
+                      <div class="mini-chip-label">LATENCY</div>
                       <div class="mini-chip-val"><span style="color:var(--val-cyan)">●</span> &lt; 2 MS</div>
                     </div>
                   </div>
@@ -2023,7 +2016,7 @@
               <!-- Live Diagnostic Console Logs -->
               <div class="val-card">
                 <div class="val-card-header">
-                  <div class="val-card-title" data-i18n="sysConsoleTitle">📋 REALTIME DIAGNOSTIC CONSOLE</div>
+                  <div class="val-card-title" data-i18n="sysConsoleTitle">📋 SYSTEM LOGS</div>
                   <button id="btnClearLogs" class="val-btn val-btn-outline val-btn-sm" data-i18n="btnClearLogs">
                     CLEAR LOGS
                   </button>
@@ -2270,6 +2263,13 @@
     const evtCustomRound = document.getElementById('evtCustomRound');
     const customRoundInput = document.getElementById('customRoundInput');
     const evtMatchEnded = document.getElementById('evtMatchEnded');
+    const evtSpikePlanted = document.getElementById('evtSpikePlanted');
+    const evtOvertime = document.getElementById('evtOvertime');
+    const evtDangerVignette = document.getElementById('evtDangerVignette');
+    const evtDiscordMatchPoint = document.getElementById('evtDiscordMatchPoint');
+    const evtDiscordMatchEnd = document.getElementById('evtDiscordMatchEnd');
+    const evtDesktopNotify = document.getElementById('evtDesktopNotify');
+    const discordWebhookUrl = document.getElementById('discordWebhookUrl');
     const dangerVignette = document.getElementById('dangerVignette');
     const roundTimeline = document.getElementById('roundTimeline');
     const btnToggleSync = document.getElementById('btnToggleSync');
@@ -2360,11 +2360,11 @@
         miniHudTitle: 'Open mini HUD overlay',
         sysStatus: 'SYS_STATUS: ONLINE',
         authBadge: 'LICENSE AUTHENTICATION',
-        authDesc: 'System integrated with <strong>KeyLicense Dashboard</strong> via Google OAuth 2.0. Sign in to activate real-time match score synchronization, multi-device license management, and secure automatic updates.',
+        authDesc: 'Sign in via Google to sync match scores in real time.',
         btnMainLogin: '🔐 SIGN IN WITH GOOGLE (KEYLICENSE)',
         loginModalTitle: 'VALORANT SCORE ALERT',
         loginModalBadge: 'AUTHENTICATION GATEWAY',
-        loginModalDesc: 'Sign in with Google to synchronize live match scores in real time, manage multi-device licenses, and receive secure automatic updates.',
+        loginModalDesc: 'Sign in via Google to sync match scores in real time.',
         btnGoogleLogin: 'Sign in with Google',
         loginStatusWaiting: '🌐 Complete Google sign-in in your browser...',
         btnUserLogin: '🔐 SIGN IN',
@@ -2381,14 +2381,14 @@
         authSecGoogle: '🛡️ <strong>Google Standard Security:</strong> Never stores passwords or personal credentials.',
         authSecLan: '🌐 <strong>Local LAN Protocol:</strong> Direct peer alerts without third-party cloud intermediaries.',
         authSecInstant: '⚡ <strong>Instant Match Detection:</strong> Automatic game state tracking as soon as Valorant starts.',
-        liveScoreTitle: '🎯 LIVE SCORE MONITOR // HERO HUD',
+        liveScoreTitle: '🎯 LIVE SCORE MONITOR',
         matchIdle: 'IDLE // LOBBY',
         teamAllied: '// ALLIED TEAM',
         teamEnemy: '// ENEMY TEAM',
         btnShortcut: '📌 ADD SHORTCUT',
         btnToggleSyncOpen: '📱 QR CODE',
         btnToggleSyncClose: '📱 QR CODE',
-        syncTitle: '📱 MULTI-DEVICE SYNC & QR',
+        syncTitle: '📱 4G CLOUD RELAY',
         btnModeLan: '🏠 LOCAL WI-FI',
         btnModeCloud: '☁️ CLOUD RELAY (4G)',
         pinLabel: 'AUTH PIN:',
@@ -2397,21 +2397,21 @@
         btnCopyMobile: '📱 MOBILE LINK',
         laptopPlaceholder: 'Laptop / PC Dashboard Link...',
         btnCopyLaptop: '💻 LAPTOP LINK',
-        audioTitle: '🔊 AUDIO ENGINE & SCENARIO CONTROL',
+        audioTitle: '🔊 AUDIO SETTINGS',
         btnTestAudio: '🔊 TEST AUDIO',
         soundOpt1: '🎼 1. Melodic Triad (Default)',
         soundOpt2: '📡 2. Radar Sci-Fi Pulse (Modern Alert)',
         soundOpt3: '🔔 3. Gentle Crystal Bell',
         soundOpt4: '👾 4. Arcade 8-Bit Ascending (Retro Game)',
         soundOpt5: '🛡️ 5. Tactical Dual-Tone (Tactical Alert)',
-        volLabel: 'ALERT VOLUME',
-        btnPcAudioOn: '🔊 ENABLE PC SPEAKER AUDIO',
-        btnPcAudioActive: '✅ PC AUDIO ALERT: ACTIVE',
+        volLabel: 'VOLUME',
+        btnPcAudioOn: '🔊 ENABLE PC AUDIO',
+        btnPcAudioActive: '✅ PC AUDIO: ACTIVE',
         evtMatchPoint: '⚠️ MATCH POINT (12 RD)',
-        evtRoundChange: '🔔 ROUND CHANGE / SCORE UPDATE',
+        evtRoundChange: '🔔 ROUND CHANGE',
         evtCustomRound: '🎯 CUSTOM ROUND',
         evtMatchEnded: '🏆 MATCH FINISHED',
-        userCardTitle: '👤 ACCOUNT & SYSTEM',
+        userCardTitle: '👤 ACCOUNT',
         userStatus: 'Secure session active',
         chipLocalServer: '// LOCAL SERVER',
         chipValClient: '// VALORANT CLIENT',
@@ -2431,7 +2431,7 @@
         btnCopyModalKey: '📋 COPY',
         btnLicRecheck: '♻️ RECHECK',
         modalSecActivate: '// ACTIVATE NEW LICENSE KEY',
-        modalDesc: 'Enter the license key purchased or received from KeyLicense Dashboard to activate immediately:',
+        modalDesc: 'Enter license key to activate:',
         modalKeyPlaceholder: 'VAL-XXXX-XXXX-XXXX',
         btnLicApplyModal: 'ACTIVATE',
         btnCloseModal: 'CLOSE',
@@ -2508,19 +2508,19 @@
         navAccount: 'ACCOUNT & LICENSE',
         navSystem: 'DIAGNOSTICS',
         breadcrumbHud: '/// OVERVIEW // LIVE SCORE HUD',
-        breadcrumbAlerts: '/// FEATURES // ALERT RULES & SCENARIOS',
-        breadcrumbNotify: '/// FEATURES // AUDIO ENGINE & NOTIFICATIONS',
-        breadcrumbSync: '/// CONNECTIVITY // MULTI-DEVICE 4G SYNC',
-        breadcrumbAccount: '/// SYSTEM // ACCOUNT & LICENSE MANAGEMENT',
-        breadcrumbSystem: '/// SYSTEM // RIOT & SYSTEM DIAGNOSTICS',
-        evtSpikePlanted: '💣 SPIKE PLANTED ALERT',
-        evtOvertime: '🔥 OVERTIME (12-12 SUDDEN DEATH)',
-        evtDangerVignette: '🚨 FULLSCREEN DANGER VIGNETTE',
-        discordTitle: '🌐 DISCORD WEBHOOK & NOTIFICATIONS',
+        breadcrumbAlerts: '/// FEATURES // ALERT RULES',
+        breadcrumbNotify: '/// FEATURES // AUDIO & NOTIFY',
+        breadcrumbSync: '/// CONNECTIVITY // 4G CLOUD SYNC',
+        breadcrumbAccount: '/// SYSTEM // ACCOUNT & LICENSE',
+        breadcrumbSystem: '/// SYSTEM // DIAGNOSTICS',
+        evtSpikePlanted: '💣 SPIKE PLANTED',
+        evtOvertime: '🔥 OVERTIME (12-12)',
+        evtDangerVignette: '🚨 DANGER VIGNETTE',
+        discordTitle: '🌐 DISCORD WEBHOOK',
         discordWebhookPlaceholder: 'https://discord.com/api/webhooks/...',
         btnTestDiscord: 'TEST WEBHOOK',
-        evtDesktopNotify: 'WINDOWS DESKTOP NOTIFICATIONS',
-        sysConsoleTitle: '📋 REALTIME DIAGNOSTIC CONSOLE',
+        evtDesktopNotify: 'WINDOWS NOTIFICATIONS',
+        sysConsoleTitle: '📋 SYSTEM LOGS',
         btnClearLogs: 'CLEAR LOGS',
         btnRefreshRiot: 'RETRY RIOT CONNECTION',
       },
@@ -2529,11 +2529,11 @@
         miniHudTitle: 'Mở cửa sổ mini ghim góc màn hình',
         sysStatus: 'SYS_STATUS: ONLINE',
         authBadge: 'XÁC THỰC BẢN QUYỀN',
-        authDesc: 'Hệ thống tích hợp xác thực <strong>KeyLicense Dashboard</strong> thông qua Google OAuth 2.0. Đăng nhập để kích hoạt đồng bộ tỉ số trận đấu thời gian thực, quản lý bản quyền đa thiết bị và cập nhật tự động an toàn.',
+        authDesc: 'Đăng nhập Google để đồng bộ tỉ số thời gian thực qua Cloud Relay 4G.',
         btnMainLogin: '🔐 ĐĂNG NHẬP BẰNG GOOGLE (KEYLICENSE)',
         loginModalTitle: 'VALORANT SCORE ALERT',
         loginModalBadge: 'CỔNG XÁC THỰC BẢN QUYỀN',
-        loginModalDesc: 'Đăng nhập Google để đồng bộ tỉ số thời gian thực, quản lý bản quyền đa thiết bị và nhận các bản cập nhật an toàn.',
+        loginModalDesc: 'Đăng nhập Google để đồng bộ tỉ số thời gian thực qua Cloud Relay 4G.',
         btnGoogleLogin: 'Đăng nhập bằng Google',
         loginStatusWaiting: '🌐 Hoàn tất đăng nhập Google trên trình duyệt...',
         btnUserLogin: '🔐 ĐĂNG NHẬP',
@@ -2550,14 +2550,14 @@
         authSecGoogle: '🛡️ <strong>Bảo mật chuẩn Google:</strong> Không lưu trữ mật khẩu hay thông tin cá nhân.',
         authSecLan: '🌐 <strong>Mạng nội bộ LAN:</strong> Cảnh báo trực tiếp không qua server trung gian của bên thứ ba.',
         authSecInstant: '⚡ <strong>Trải nghiệm tức thì:</strong> Nhận diện trận đấu tự động ngay khi vào trận Valorant.',
-        liveScoreTitle: '🎯 LIVE SCORE MONITOR // HERO HUD',
+        liveScoreTitle: '🎯 LIVE SCORE MONITOR',
         matchIdle: 'IDLE // LOBBY',
         teamAllied: '// ĐỒNG MINH (ALLIED)',
         teamEnemy: '// ĐỐI THỦ (ENEMY)',
         btnShortcut: '📌 ADD SHORTCUT',
         btnToggleSyncOpen: '📱 QR CODE',
         btnToggleSyncClose: '📱 QR CODE',
-        syncTitle: '📱 MULTI-DEVICE SYNC & QR',
+        syncTitle: '📱 4G CLOUD RELAY',
         btnModeLan: '🏠 WI-FI NỘI BỘ',
         btnModeCloud: '☁️ CLOUD RELAY (4G)',
         pinLabel: 'MÃ PIN XÁC THỰC:',
@@ -2566,21 +2566,21 @@
         btnCopyMobile: '📱 LINK MOBILE',
         laptopPlaceholder: 'Link Laptop / PC Dashboard...',
         btnCopyLaptop: '💻 LINK LAPTOP',
-        audioTitle: '🔊 AUDIO ENGINE & SCENARIO CONTROL',
+        audioTitle: '🔊 CÀI ĐẶT ÂM THANH',
         btnTestAudio: '🔊 TEST AUDIO',
         soundOpt1: '🎼 1. Melodic Triad (Du Dương - Mặc định)',
         soundOpt2: '📡 2. Radar Sci-Fi Pulse (Cảnh Báo Hiện Đại)',
         soundOpt3: '🔔 3. Gentle Crystal Bell (Chuông Pha Lê)',
         soundOpt4: '👾 4. Arcade 8-Bit Ascending (Retro Game)',
         soundOpt5: '🛡️ 5. Tactical Dual-Tone (Trầm Hùng Chiến Thuật)',
-        volLabel: 'ÂM LƯỢNG CẢNH BÁO',
-        btnPcAudioOn: '🔊 BẬT ÂM THANH CẢNH BÁO TRÊN LOA PC',
-        btnPcAudioActive: '✅ PC AUDIO ALERT: ACTIVE',
+        volLabel: 'ÂM LƯỢNG',
+        btnPcAudioOn: '🔊 BẬT ÂM THANH LOA PC',
+        btnPcAudioActive: '✅ ÂM THANH PC: BẬT',
         evtMatchPoint: '⚠️ MATCH POINT (12 RD)',
-        evtRoundChange: '🔔 QUA ROUND / ĐỔI ĐIỂM',
+        evtRoundChange: '🔔 QUA ROUND',
         evtCustomRound: '🎯 CUSTOM ROUND',
         evtMatchEnded: '🏆 KẾT THÚC TRẬN ĐẤU',
-        userCardTitle: '👤 TÀI KHOẢN & HỆ THỐNG',
+        userCardTitle: '👤 TÀI KHOẢN',
         userStatus: 'Phiên hoạt động an toàn',
         chipLocalServer: '// LOCAL SERVER',
         chipValClient: '// VALORANT CLIENT',
@@ -2600,7 +2600,7 @@
         btnCopyModalKey: '📋 SAO CHÉP',
         btnLicRecheck: '♻️ KIỂM TRA LẠI',
         modalSecActivate: '// KÍCH HOẠT LICENSE KEY MỚI',
-        modalDesc: 'Nhập mã key bản quyền bạn đã mua hoặc nhận được từ Keylicense Dashboard để kích hoạt ngay:',
+        modalDesc: 'Nhập mã bản quyền để kích hoạt:',
         modalKeyPlaceholder: 'VAL-XXXX-XXXX-XXXX',
         btnLicApplyModal: 'KÍCH HOẠT',
         btnCloseModal: 'ĐÓNG',
@@ -2677,19 +2677,19 @@
         navAccount: 'TÀI KHOẢN & LICENSE',
         navSystem: 'CHẨN ĐOÁN HỆ THỐNG',
         breadcrumbHud: '/// TỔNG QUAN // HUD TỈ SỐ TRỰC TIẾP',
-        breadcrumbAlerts: '/// TÍNH NĂNG // QUY TẮC & KỊCH BẢN CẢNH BÁO',
-        breadcrumbNotify: '/// TÍNH NĂNG // BỘ ÂM THANH & THÔNG BÁO',
-        breadcrumbSync: '/// KẾT NỐI // ĐỒNG BỘ ĐA THIẾT BỊ 4G CLOUD',
-        breadcrumbAccount: '/// HỆ THỐNG // QUẢN LÝ TÀI KHOẢN & LICENSE',
-        breadcrumbSystem: '/// HỆ THỐNG // CHẨN ĐOÁN RIOT & HỆ THỐNG',
-        evtSpikePlanted: '💣 CẢNH BÁO ĐẶT SPIKE',
-        evtOvertime: '🔥 CẢNH BÁO OVERTIME (12-12)',
-        evtDangerVignette: '🚨 HIỆU ỨNG VIỀN ĐỎ TOÀN MÀN HÌNH',
-        discordTitle: '🌐 TÍCH HỢP DISCORD WEBHOOK',
+        breadcrumbAlerts: '/// TÍNH NĂNG // QUY TẮC CẢNH BÁO',
+        breadcrumbNotify: '/// TÍNH NĂNG // ÂM THANH & THÔNG BÁO',
+        breadcrumbSync: '/// KẾT NỐI // ĐỒNG BỘ 4G CLOUD',
+        breadcrumbAccount: '/// HỆ THỐNG // TÀI KHOẢN & LICENSE',
+        breadcrumbSystem: '/// HỆ THỐNG // CHẨN ĐOÁN',
+        evtSpikePlanted: '💣 ĐẶT SPIKE',
+        evtOvertime: '🔥 OVERTIME (12-12)',
+        evtDangerVignette: '🚨 VIỀN ĐỎ NGUY HIỂM',
+        discordTitle: '🌐 DISCORD WEBHOOK',
         discordWebhookPlaceholder: 'https://discord.com/api/webhooks/...',
         btnTestDiscord: 'THỬ GỬI WEBHOOK',
-        evtDesktopNotify: 'THÔNG BÁO DESKTOP WINDOWS',
-        sysConsoleTitle: '📋 NHẬT KÝ HOẠT ĐỘNG THỜI GIAN THỰC',
+        evtDesktopNotify: 'THÔNG BÁO WINDOWS',
+        sysConsoleTitle: '📋 NHẬT KÝ HỆ THỐNG',
         btnClearLogs: 'XÓA NHẬT KÝ',
         btnRefreshRiot: 'LÀM MỚI KẾT NỐI RIOT',
       }
@@ -2744,6 +2744,7 @@
       btnLangToggle.addEventListener('click', () => {
         const nextLang = currentLang === 'en' ? 'vi' : 'en';
         applyLanguage(nextLang);
+        if (typeof persistSettings === 'function') persistSettings();
         showToast(nextLang === 'vi' ? 'ĐÃ CHUYỂN SANG TIẾNG VIỆT' : 'SWITCHED TO ENGLISH');
       });
     }
@@ -2765,43 +2766,160 @@
     }
     renderTimeline(0, 0);
 
-    // Restore volume
-    const savedVol = localStorage.getItem('val_master_volume');
-    if (savedVol !== null) {
-      masterVolume = parseFloat(savedVol);
-      volSlider.value = Math.round(masterVolume * 100);
-      volValue.innerText = `${volSlider.value}%`;
+    function updatePcAudioButton() {
+      if (!btnPcAudio) return;
+      if (isPcAudioEnabled) {
+        btnPcAudio.classList.remove('val-btn-outline');
+        btnPcAudio.classList.add('val-btn-cyan');
+        btnPcAudio.innerText = t('btnPcAudioActive');
+      } else {
+        if (pcAlarmInterval) { clearInterval(pcAlarmInterval); pcAlarmInterval = null; }
+        btnPcAudio.classList.remove('val-btn-cyan');
+        btnPcAudio.classList.add('val-btn-outline');
+        btnPcAudio.innerText = t('btnPcAudioOn');
+      }
     }
-    volSlider.addEventListener('input', () => {
+
+    /* ===================== SETTINGS PERSISTENCE ENGINE ===================== */
+    let saveSettingsDebounceTimer = null;
+
+    function getSettingsSnapshot() {
+      return {
+        masterVolume: masterVolume,
+        soundPreset: soundPicker ? soundPicker.value : 'melodicChime',
+        customRound: customRoundInput ? (parseInt(customRoundInput.value, 10) || 10) : 10,
+        isPcAudioEnabled: !!isPcAudioEnabled,
+        evtMatchPoint: evtMatchPoint ? !!evtMatchPoint.checked : true,
+        evtRoundChange: evtRoundChange ? !!evtRoundChange.checked : true,
+        evtCustomRound: evtCustomRound ? !!evtCustomRound.checked : true,
+        evtMatchEnded: evtMatchEnded ? !!evtMatchEnded.checked : true,
+        evtSpikePlanted: evtSpikePlanted ? !!evtSpikePlanted.checked : true,
+        evtOvertime: evtOvertime ? !!evtOvertime.checked : true,
+        evtDangerVignette: evtDangerVignette ? !!evtDangerVignette.checked : true,
+        evtDiscordMatchPoint: evtDiscordMatchPoint ? !!evtDiscordMatchPoint.checked : true,
+        evtDiscordMatchEnd: evtDiscordMatchEnd ? !!evtDiscordMatchEnd.checked : true,
+        evtDesktopNotify: evtDesktopNotify ? !!evtDesktopNotify.checked : false,
+        discordWebhook: discordWebhookUrl ? discordWebhookUrl.value.trim() : '',
+        activeSyncMode: (typeof activeSyncMode !== 'undefined' ? activeSyncMode : 'cloud') || 'cloud',
+        lang: currentLang || 'vi'
+      };
+    }
+
+    function applySettings(s, syncServer = false) {
+      if (!s || typeof s !== 'object') return;
+      if (s.masterVolume !== undefined) {
+        masterVolume = parseFloat(s.masterVolume);
+        if (volSlider) volSlider.value = Math.round(masterVolume * 100);
+        if (volValue) volValue.innerText = `${Math.round(masterVolume * 100)}%`;
+        if (masterGainNode && audioCtx) {
+          masterGainNode.gain.setValueAtTime(masterVolume, audioCtx.currentTime);
+        }
+        localStorage.setItem('val_master_volume', masterVolume);
+      }
+      if (s.soundPreset && soundPicker) {
+        soundPicker.value = s.soundPreset;
+        localStorage.setItem('val_selected_sound', s.soundPreset);
+      }
+      if (s.customRound !== undefined && customRoundInput) {
+        let cr = parseInt(s.customRound, 10);
+        if (isNaN(cr) || cr < 2) cr = 2;
+        if (cr > 19) cr = 19;
+        customRoundInput.value = cr;
+        localStorage.setItem('val_custom_round_val', cr);
+      }
+      if (s.isPcAudioEnabled !== undefined) {
+        isPcAudioEnabled = !!s.isPcAudioEnabled;
+        updatePcAudioButton();
+      }
+      if (s.evtMatchPoint !== undefined && evtMatchPoint) evtMatchPoint.checked = !!s.evtMatchPoint;
+      if (s.evtRoundChange !== undefined && evtRoundChange) evtRoundChange.checked = !!s.evtRoundChange;
+      if (s.evtCustomRound !== undefined && evtCustomRound) evtCustomRound.checked = !!s.evtCustomRound;
+      if (s.evtMatchEnded !== undefined && evtMatchEnded) evtMatchEnded.checked = !!s.evtMatchEnded;
+      if (s.evtSpikePlanted !== undefined && evtSpikePlanted) evtSpikePlanted.checked = !!s.evtSpikePlanted;
+      if (s.evtOvertime !== undefined && evtOvertime) evtOvertime.checked = !!s.evtOvertime;
+      if (s.evtDangerVignette !== undefined && evtDangerVignette) evtDangerVignette.checked = !!s.evtDangerVignette;
+      if (s.evtDiscordMatchPoint !== undefined && evtDiscordMatchPoint) evtDiscordMatchPoint.checked = !!s.evtDiscordMatchPoint;
+      if (s.evtDiscordMatchEnd !== undefined && evtDiscordMatchEnd) evtDiscordMatchEnd.checked = !!s.evtDiscordMatchEnd;
+      if (s.evtDesktopNotify !== undefined && evtDesktopNotify) evtDesktopNotify.checked = !!s.evtDesktopNotify;
+      if (s.discordWebhook !== undefined && discordWebhookUrl) {
+        discordWebhookUrl.value = s.discordWebhook;
+        localStorage.setItem('val_discord_webhook', s.discordWebhook);
+      }
+      if (s.activeSyncMode && (s.activeSyncMode === 'cloud' || s.activeSyncMode === 'lan')) {
+        if (typeof switchSyncMode === 'function') switchSyncMode(s.activeSyncMode);
+      }
+      if (s.lang && (s.lang === 'vi' || s.lang === 'en') && s.lang !== currentLang) {
+        if (typeof applyLanguage === 'function') applyLanguage(s.lang);
+      }
+      try {
+        localStorage.setItem('val_app_settings', JSON.stringify(getSettingsSnapshot()));
+      } catch (e) {}
+      if (syncServer) syncSettingsToServer();
+    }
+
+    function syncSettingsToServer() {
+      if (saveSettingsDebounceTimer) clearTimeout(saveSettingsDebounceTimer);
+      saveSettingsDebounceTimer = setTimeout(() => {
+        const payload = getSettingsSnapshot();
+        const tok = currentAuthToken || (new URLSearchParams(window.location.search)).get('token') || '';
+        fetch(`/api/settings?token=${encodeURIComponent(tok)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).catch((e) => console.log('Could not sync settings to server:', e.message));
+      }, 300);
+    }
+
+    function persistSettings() {
+      try {
+        localStorage.setItem('val_app_settings', JSON.stringify(getSettingsSnapshot()));
+      } catch (e) {}
+      syncSettingsToServer();
+    }
+
+    // Instant local restore on startup
+    try {
+      const cachedSettingsRaw = localStorage.getItem('val_app_settings');
+      if (cachedSettingsRaw) {
+        applySettings(JSON.parse(cachedSettingsRaw), false);
+      }
+    } catch (e) {}
+
+    // Vol slider events
+    volSlider?.addEventListener('input', () => {
       masterVolume = parseInt(volSlider.value, 10) / 100;
       volValue.innerText = `${volSlider.value}%`;
       localStorage.setItem('val_master_volume', masterVolume);
       if (masterGainNode && audioCtx) {
         masterGainNode.gain.setValueAtTime(masterVolume, audioCtx.currentTime);
       }
+      persistSettings();
     });
+    window.addEventListener('beforeunload', () => { persistSettings(); });
+    volSlider?.addEventListener('change', persistSettings);
 
     // QR Code Button: Auto-switch to 4G Cloud Sync tab & Cloud mode
-    btnToggleSync.addEventListener('click', () => {
+    btnToggleSync?.addEventListener('click', () => {
       switchTab('tabSync');
       switchSyncMode('cloud');
     });
 
-    // Restore Sound Preference & Custom Round
-    const savedSound = localStorage.getItem('val_selected_sound');
-    if (savedSound) soundPicker.value = savedSound;
-    soundPicker.addEventListener('change', () => {
-      localStorage.setItem('val_selected_sound', soundPicker.value);
-    });
-
-    const savedCustomRound = localStorage.getItem('val_custom_round_val');
-    if (savedCustomRound) customRoundInput.value = savedCustomRound;
-    customRoundInput.addEventListener('change', () => {
+    soundPicker?.addEventListener('change', persistSettings);
+    customRoundInput?.addEventListener('change', () => {
       let v = parseInt(customRoundInput.value, 10);
       if (isNaN(v) || v < 2) v = 2;
       if (v > 19) v = 19;
       customRoundInput.value = v;
-      localStorage.setItem('val_custom_round_val', v);
+      persistSettings();
+    });
+    discordWebhookUrl?.addEventListener('change', persistSettings);
+
+    [
+      evtMatchPoint, evtRoundChange, evtCustomRound, evtMatchEnded,
+      evtSpikePlanted, evtOvertime, evtDangerVignette,
+      evtDiscordMatchPoint, evtDiscordMatchEnd, evtDesktopNotify
+    ].forEach(chk => {
+      chk?.addEventListener('change', persistSettings);
     });
 
     function showToast(msg) {
@@ -2957,19 +3075,15 @@
         return;
       }
       isPcAudioEnabled = !isPcAudioEnabled;
+      updatePcAudioButton();
       if (isPcAudioEnabled) {
         playSound(1.0);
-        btnPcAudio.classList.remove('val-btn-outline');
-        btnPcAudio.classList.add('val-btn-cyan');
-        btnPcAudio.innerText = t('btnPcAudioActive');
         showToast(t('toastPcAudioActive'));
       } else {
         if (pcAlarmInterval) { clearInterval(pcAlarmInterval); pcAlarmInterval = null; }
-        btnPcAudio.classList.remove('val-btn-cyan');
-        btnPcAudio.classList.add('val-btn-outline');
-        btnPcAudio.innerText = t('btnPcAudioOn');
         showToast(t('toastPcAudioOff'));
       }
+      persistSettings();
     });
 
     // --- Scenario Simulator Handlers (Compatibility) ---
@@ -3088,7 +3202,13 @@
 
     btnHeaderLicModal?.addEventListener('click', openLicenseModal);
     btnOpenLicPopup?.addEventListener('click', openLicenseModal);
-    headerUserChip?.addEventListener('click', openLicenseModal);
+    headerUserChip?.addEventListener('click', () => {
+      if (licEntitled) {
+        switchTab('tabAccount');
+      } else {
+        openLicenseModal();
+      }
+    });
     btnAuthOpenKeyModal?.addEventListener('click', openLicenseModal);
     btnCloseLicModal?.addEventListener('click', closeLicenseModal);
     btnCloseLicModalFooter?.addEventListener('click', closeLicenseModal);
@@ -3149,7 +3269,18 @@
           cloudRelayUrl = info.cloudRelay.relayWebUrl;
         }
 
-        switchSyncMode('cloud');
+        if (info.settings) {
+          let mergedSettings = { ...info.settings };
+          try {
+            const localSaved = localStorage.getItem('val_app_settings');
+            if (localSaved) {
+              mergedSettings = { ...mergedSettings, ...JSON.parse(localSaved) };
+            }
+          } catch (e) {}
+          applySettings(mergedSettings, true);
+        } else {
+          switchSyncMode('cloud');
+        }
         initDashboardWS(info.token);
       } catch (err) {
         console.error('Error parsing info:', err);
@@ -3203,8 +3334,14 @@
       }
     }
 
-    btnModeLan?.addEventListener('click', () => switchSyncMode('lan'));
-    btnModeCloud?.addEventListener('click', () => switchSyncMode('cloud'));
+    btnModeLan?.addEventListener('click', () => {
+      switchSyncMode('lan');
+      if (typeof persistSettings === 'function') persistSettings();
+    });
+    btnModeCloud?.addEventListener('click', () => {
+      switchSyncMode('cloud');
+      if (typeof persistSettings === 'function') persistSettings();
+    });
 
     /* ===================== KEYLICENSE GATE ===================== */
     const licBanner = document.getElementById('licBanner');
@@ -3378,14 +3515,22 @@
       licEntitled = !!snap.entitled;
 
       // 1. Popup Modal Visibility & App Locked state
-      if (snap.state === 'NOT_LOGGED_IN') {
-        loginModal.classList.remove('lic-hidden');
-        licenseModal.classList.add('lic-hidden');
-        mainAppScreen.classList.add('app-locked');
-      } else if (snap.state === 'NEEDS_LICENSE') {
+      if (snap.entitled || snap.state === 'LICENSED' || snap.state === 'TRIAL' || snap.state === 'OFFLINE_GRACE' || (snap.license && (snap.license.status === 'active' || snap.license.key))) {
         loginModal.classList.add('lic-hidden');
-        licenseModal.classList.remove('lic-hidden');
-        mainAppScreen.classList.add('app-locked');
+        licenseModal.classList.add('lic-hidden');
+        mainAppScreen.classList.remove('app-locked');
+      } else if (snap.state === 'NOT_LOGGED_IN') {
+        if (!snap.checking) {
+          loginModal.classList.remove('lic-hidden');
+          licenseModal.classList.add('lic-hidden');
+          mainAppScreen.classList.add('app-locked');
+        }
+      } else if (snap.state === 'NEEDS_LICENSE') {
+        if (!snap.checking && !(snap.license && snap.license.key)) {
+          loginModal.classList.add('lic-hidden');
+          licenseModal.classList.remove('lic-hidden');
+          mainAppScreen.classList.add('app-locked');
+        }
       } else {
         loginModal.classList.add('lic-hidden');
         licenseModal.classList.add('lic-hidden');
@@ -3639,6 +3784,12 @@
       loginStatusWrap.classList.remove('lic-hidden');
       btnMainLogin.disabled = true;
       licAct('login', 'POST', null, t('toastLoggingIn'))
+        .then((snap) => {
+          if (snap && (snap.entitled || snap.state === 'LICENSED' || snap.state === 'TRIAL' || (snap.license && snap.license.status === 'active'))) {
+            closeLicenseModal();
+            closeLoginModal();
+          }
+        })
         .finally(() => {
           loginStatusWrap.classList.add('lic-hidden');
           btnMainLogin.disabled = false;
@@ -3754,7 +3905,6 @@
           licActive = false;
           licBanner.classList.add('lic-hidden');
           console.log('License status unavailable:', e.message);
-          renderLicense({ state: 'NOT_LOGGED_IN', user: null, entitled: false });
         });
     }
 
@@ -4124,12 +4274,7 @@
     /* ===================== TAB NAVIGATION & SYSTEM LOGS ===================== */
     const activeTabBreadcrumb = document.getElementById('activeTabBreadcrumb');
     const sysLogConsole = document.getElementById('sysLogConsole');
-    const discordWebhookUrl = document.getElementById('discordWebhookUrl');
     const btnTestDiscord = document.getElementById('btnTestDiscord');
-    const evtSpikePlanted = document.getElementById('evtSpikePlanted');
-    const evtOvertime = document.getElementById('evtOvertime');
-    const evtDangerVignette = document.getElementById('evtDangerVignette');
-    const evtDesktopNotify = document.getElementById('evtDesktopNotify');
     const btnRefreshRiot = document.getElementById('btnRefreshRiot');
     const btnClearLogs = document.getElementById('btnClearLogs');
     const licKeyInputMain = document.getElementById('licKeyInputMain');

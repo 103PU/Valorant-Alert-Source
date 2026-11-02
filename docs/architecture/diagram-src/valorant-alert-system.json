@@ -1,0 +1,266 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Valorant Alert: kiến trúc runtime",
+    "output": "docs/architecture/diagrams/valorant-alert-system.html",
+    "quality_profile": "showcase",
+    "legend": {
+      "entries": {
+        "frontend": { "label": "Giao diện" },
+        "backend": { "label": "Host" },
+        "cloud": { "label": "Dịch vụ đám mây" },
+        "external": { "label": "Hệ thống ngoài" }
+      }
+    },
+    "repository": {
+      "url": "https://github.com/103PU/Valorant-Alert-Source",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "195cdac2cf44ab1753911d28b60a71b3d450eeec"
+    }
+  },
+  "components": [
+    {
+      "id": "player",
+      "type": "external",
+      "label": "Người chơi",
+      "sublabel": "PC + điện thoại",
+      "pos": [40, 260],
+      "size": [120, 64],
+      "sources": [
+        {
+          "path": "public/dashboard.html",
+          "line": 6,
+          "end_line": 6,
+          "label": "Dashboard PC"
+        },
+        {
+          "path": "public/index.html",
+          "line": 17,
+          "end_line": 17,
+          "label": "PWA di động"
+        }
+      ]
+    },
+    {
+      "id": "desktop",
+      "type": "frontend",
+      "label": "Dashboard PC",
+      "sublabel": "giao diện trình duyệt",
+      "pos": [230, 120],
+      "size": [150, 68],
+      "sources": [
+        {
+          "path": "server/index.js",
+          "line": 157,
+          "end_line": 226,
+          "label": "Mở dashboard"
+        }
+      ]
+    },
+    {
+      "id": "mobile",
+      "type": "frontend",
+      "label": "PWA di động",
+      "sublabel": "LAN / 4G",
+      "pos": [230, 400],
+      "size": [150, 68],
+      "sources": [
+        {
+          "path": "public/index.html",
+          "line": 992,
+          "end_line": 1024,
+          "label": "Đọc điểm Cloud Relay"
+        }
+      ]
+    },
+    {
+      "id": "host",
+      "type": "backend",
+      "label": "Máy chủ PC",
+      "sublabel": "Node.js · HTTP + WS",
+      "pos": [470, 260],
+      "size": [180, 76],
+      "sources": [
+        {
+          "path": "server/index.js",
+          "line": 92,
+          "end_line": 151,
+          "label": "Khởi tạo runtime"
+        },
+        {
+          "path": "server/index.js",
+          "line": 226,
+          "end_line": 280,
+          "label": "Khởi động listener"
+        }
+      ]
+    },
+    {
+      "id": "riot-local",
+      "type": "external",
+      "label": "Riot Client",
+      "sublabel": "lockfile + presence API",
+      "pos": [470, 100],
+      "size": [174, 72],
+      "sources": [
+        {
+          "path": "server/riot/lockfile-reader.js",
+          "line": 8,
+          "end_line": 48,
+          "label": "Credential cục bộ"
+        },
+        {
+          "path": "server/core/score-poller.js",
+          "line": 143,
+          "end_line": 205,
+          "label": "Đọc presence"
+        }
+      ]
+    },
+    {
+      "id": "riot-glz",
+      "type": "external",
+      "label": "Riot GLZ API",
+      "sublabel": "dữ liệu trận theo vùng",
+      "pos": [760, 260],
+      "size": [174, 72],
+      "sources": [
+        {
+          "path": "server/core/score-poller.js",
+          "line": 215,
+          "end_line": 295,
+          "label": "Tra cứu trận"
+        }
+      ]
+    },
+    {
+      "id": "github",
+      "type": "external",
+      "label": "GitHub Releases",
+      "sublabel": "bản cập nhật + artifact",
+      "pos": [800, 100],
+      "size": [174, 72],
+      "sources": [
+        {
+          "path": "server/licensing/app-version.js",
+          "line": 187,
+          "end_line": 227,
+          "label": "Kiểm tra release"
+        },
+        {
+          "path": "server/updater/index.js",
+          "line": 165,
+          "end_line": 218,
+          "label": "Tải artifact"
+        }
+      ]
+    },
+    {
+      "id": "kld",
+      "type": "cloud",
+      "label": "Keylicense Dashboard",
+      "sublabel": "license + relay điểm số",
+      "pos": [1000, 330],
+      "size": [190, 76],
+      "sources": [
+        {
+          "path": "server/transport/cloud-relay.js",
+          "line": 65,
+          "end_line": 145,
+          "label": "Publisher Cloud Relay"
+        },
+        {
+          "path": "server/licensing/kld-client.js",
+          "line": 160,
+          "end_line": 225,
+          "label": "Client license/version"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "player-desktop",
+      "from": "player",
+      "to": "desktop",
+      "label": "quản lý",
+      "variant": "default"
+    },
+    {
+      "id": "player-mobile",
+      "from": "player",
+      "to": "mobile",
+      "label": "xem tỉ số",
+      "variant": "default"
+    },
+    {
+      "id": "desktop-host",
+      "from": "desktop",
+      "to": "host",
+      "label": "HTTP / WS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "mobile-host",
+      "from": "mobile",
+      "to": "host",
+      "label": "WS LAN",
+      "variant": "default"
+    },
+    {
+      "id": "host-riot-local",
+      "from": "host",
+      "to": "riot-local",
+      "label": "presence",
+      "variant": "default"
+    },
+    {
+      "id": "host-riot-glz",
+      "from": "host",
+      "to": "riot-glz",
+      "label": "GLZ dự phòng",
+      "variant": "default"
+    },
+    {
+      "id": "host-github",
+      "from": "host",
+      "to": "github",
+      "label": "kiểm tra / tải",
+      "variant": "dashed"
+    },
+    {
+      "id": "host-kld",
+      "from": "host",
+      "to": "kld",
+      "label": "gửi điểm số",
+      "variant": "security"
+    },
+    {
+      "id": "mobile-kld",
+      "from": "mobile",
+      "to": "kld",
+      "label": "đọc score 4G",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "slate",
+      "title": "PC host sở hữu telemetry",
+      "items": [
+        "ScorePoller đọc trạng thái Riot; PC host phát snapshot tới client.",
+        "Cloud Relay là tùy chọn, cần KLD session và entitlement cloud_relay."
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "Mobile hiện là web client",
+      "items": [
+        "LAN dùng WebSocket PC; 4G đọc KLD bằng HTTP polling.",
+        "KLD pairing/push API không chứng minh app native đã được phát hành."
+      ]
+    }
+  ]
+}

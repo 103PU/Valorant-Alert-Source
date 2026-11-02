@@ -17,6 +17,11 @@ logs/
 .DS_Store
 Thumbs.db
 .claude/settings.local.json
+pnpm-lock.yaml
+
+# Local agent handoffs and working notes; not canonical product documentation.
+.agents/teamwork/
+docs/agent-runs/
 
 # relay/ — the web license SPA + Cloudflare Worker, ABANDONED on 2026-09-02
 # ("Bỏ relay, để KLD lo phần web"). See relay/wrangler.jsonc:1-11. Kept on disk as

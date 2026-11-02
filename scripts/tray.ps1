@@ -182,6 +182,13 @@ $itemExit.add_Click({
     $notifyIcon.Visible = $false
     $notifyIcon.Dispose()
 
+    # Kill dashboard browser app window if running
+    try {
+        Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+            $_.CommandLine -like "*dashboard.html*" -or $_.CommandLine -like "*:$configPort*"
+        } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    } catch {}
+
     Get-Process -Name node, ValorantScoreAlert -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 
     [System.Windows.Forms.Application]::Exit()

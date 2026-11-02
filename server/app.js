@@ -2,6 +2,7 @@ const { handleApiQr } = require('./routes/api-qr');
 const { handleApiInfo } = require('./routes/api-info');
 const { handleApiShortcut } = require('./routes/api-shortcut');
 const { handleApiLicense } = require('./routes/api-license');
+const { handleApiSettings } = require('./routes/api-settings');
 const { handleStaticFiles } = require('./routes/static-files');
 
 function createApp({ wsServer, cloudRelay, lanIp, publicUrl, port, rootDir, publicDir, licensing }) {
@@ -16,6 +17,11 @@ function createApp({ wsServer, cloudRelay, lanIp, publicUrl, port, rootDir, publ
     // API Endpoint: Serve System Info
     if (reqPath === '/api/info') {
       return handleApiInfo(req, res, { wsServer, cloudRelay, lanIp, port, publicUrl, licensing });
+    }
+
+    // API Endpoint: Get / Save User Settings
+    if (reqPath === '/api/settings') {
+      return handleApiSettings(req, res, { licensing, wsServer });
     }
 
     // API Endpoint: Create Desktop Shortcut

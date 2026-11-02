@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "E:\\PROJECT\\Valorant-Alert-Source\\docs\\architecture\\diagram-src\\valorant-alert-system.json",
+    "sha256": "e78dc0d1b9397e99f4ad0807528d1f2a8bf3f89a3aab47a10a5fb7cbb843dc2d",
+    "bytes": 6599
+  },
+  "artifact": {
+    "path": "E:\\PROJECT\\Valorant-Alert-Source\\docs\\architecture\\diagrams\\valorant-alert-system.html",
+    "sha256": "21ea757420020ca7d61b2b66640a6c9c08bea88c1b768eb5eda61476b2fe9f57",
+    "bytes": 827256
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "E:\\PROJECT\\Valorant-Alert-Source\\docs\\architecture\\diagrams\\valorant-alert-system.finalize.json",
+    "summaryReceipt": "E:\\PROJECT\\Valorant-Alert-Source\\docs\\architecture\\diagrams\\valorant-alert-system.finalize-summary.json",
+    "browserCheckReceipt": "E:\\PROJECT\\Valorant-Alert-Source\\docs\\architecture\\diagrams\\valorant-alert-system.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-11-01T09:53:01.557Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 5394,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  },
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "host-github",
+            "from": "host",
+            "to": "github",
+            "label": "kiểm tra / tải",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "bends": 3,
+          "stretch": 1
+        }
+      ],
+      "truncated": false
+    },
+    "hints": [
+      "host → github needs 3 bends: move node host or github so they share a row or column with matching centers, or sit diagonally with a clear corner."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

@@ -88,6 +88,23 @@ const publicUrl = (process.env.PUBLIC_URL || config.publicUrl || '').trim().repl
 // disabling the gate, because config.json is user-writable.
 const licensing = createLicensing({ rawConfig: config, rootDir });
 
+// Resolve Persistent Auth Token (stored in APPDATA so link/QR remains permanent)
+const tokenFilePath = path.join(licensing.cfg.appDataDir, 'token.txt');
+let persistentToken = config.authToken || null;
+if (!persistentToken && fs.existsSync(tokenFilePath)) {
+  try {
+    const raw = fs.readFileSync(tokenFilePath, 'utf8').trim();
+    if (raw && /^[A-Z0-9]{4,10}$/i.test(raw)) persistentToken = raw.toUpperCase();
+  } catch (e) {}
+}
+if (!persistentToken) {
+  persistentToken = require('crypto').randomBytes(3).toString('hex').toUpperCase();
+  try {
+    fs.mkdirSync(licensing.cfg.appDataDir, { recursive: true });
+    fs.writeFileSync(tokenFilePath, persistentToken, 'utf8');
+  } catch (e) {}
+}
+
 // Create HTTP Server & WebSocket Server
 const server = http.createServer();
 server.keepAliveTimeout = 65000;
@@ -97,8 +114,11 @@ server.on('connection', (socket) => {
     socket.setNoDelay(true);
   }
 });
+let poller = null;
 const wsServer = new ScoreWSServer(server, {
-  isEntitled: () => licensing.isServiceEntitled('score_hud')
+  isEntitled: () => licensing.isServiceEntitled('score_hud'),
+  token: persistentToken,
+  getLastScore: () => (poller ? poller.lastScoreData : null)
 });
 
 // Create Cloud Relay Client (Syncs match scores to Cloudflare Worker)
@@ -130,7 +150,7 @@ const appHandler = createApp({
 server.on('request', appHandler);
 
 // Initialize Core Score Poller
-const poller = new ScorePoller(config, (scoreData) => {
+poller = new ScorePoller(config, (scoreData) => {
   wsServer.broadcastScore(scoreData);
   cloudRelay.broadcastScore(scoreData);
 });

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "eb5f8ff3-2cf1-4201-b055-f7fcd8920bb0",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "E:\\PROJECT\\Valorant-Alert-Source\\docs\\architecture\\diagram-src\\valorant-alert-system.json",
+  "output": "E:\\PROJECT\\Valorant-Alert-Source\\docs\\architecture\\diagrams\\valorant-alert-system.html",
+  "specification": {
+    "sha256": "e78dc0d1b9397e99f4ad0807528d1f2a8bf3f89a3aab47a10a5fb7cbb843dc2d",
+    "bytes": 6599
+  },
+  "artifact": {
+    "sha256": "21ea757420020ca7d61b2b66640a6c9c08bea88c1b768eb5eda61476b2fe9f57",
+    "bytes": 827256
+  }
+}

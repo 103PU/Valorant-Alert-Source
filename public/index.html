@@ -964,6 +964,20 @@
       localStorage.setItem('val_custom_round_val', v);
     });
 
+    // Restore Event Checkbox Preferences
+    const eventCheckboxes = {
+      val_evt_match_point: evtMatchPoint,
+      val_evt_round_change: evtRoundChange,
+      val_evt_custom_round: evtCustomRound,
+      val_evt_match_ended: evtMatchEnded
+    };
+    for (const [key, el] of Object.entries(eventCheckboxes)) {
+      if (!el) continue;
+      const saved = localStorage.getItem(key);
+      if (saved !== null) el.checked = saved === 'true';
+      el.addEventListener('change', () => localStorage.setItem(key, el.checked));
+    }
+
     // Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(err => console.log('SW reg error:', err));
@@ -1033,7 +1047,23 @@
       tokenModal.style.display = 'none';
       startCloudRelay(relayUserId);
     } else if (!token) {
-      tokenModal.style.display = 'flex';
+      if (isLocalServerHost) {
+        fetch('/api/info').then(r => r.json()).then(info => {
+          if (info && info.token) {
+            token = info.token;
+            localStorage.setItem('val_alert_token', token);
+            tokenInput.value = token;
+            tokenModal.style.display = 'none';
+            connectWebSocket();
+            return;
+          }
+          tokenModal.style.display = 'flex';
+        }).catch(() => {
+          tokenModal.style.display = 'flex';
+        });
+      } else {
+        tokenModal.style.display = 'flex';
+      }
     } else {
       localStorage.setItem('val_alert_token', token);
       tokenInput.value = token;
@@ -1660,6 +1690,18 @@
         connStatus.className = 'status-badge status-disconnected';
         connStatusText.innerText = 'DISCONNECTED';
         if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
+        if (isLocalServerHost) {
+          fetch('/api/info').then(r => r.json()).then(info => {
+            if (info && info.token && info.token !== token) {
+              token = info.token;
+              localStorage.setItem('val_alert_token', token);
+              tokenInput.value = token;
+              tokenModal.style.display = 'none';
+              setTimeout(connectWebSocket, 1000);
+              return;
+            }
+          }).catch(() => {});
+        }
         if (!token) {
           tokenModal.style.display = 'flex';
           tokenModalNotice.innerText = 'CHƯA CÓ TOKEN HOẶC TOKEN HẾT HẠN. VUI LÒNG NHẬP MÃ PIN HOẶC QUÉT MÃ QR TRÊN PC!';
