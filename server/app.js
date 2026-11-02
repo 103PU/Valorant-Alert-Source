@@ -3,9 +3,10 @@ const { handleApiInfo } = require('./routes/api-info');
 const { handleApiShortcut } = require('./routes/api-shortcut');
 const { handleApiLicense } = require('./routes/api-license');
 const { handleApiSettings } = require('./routes/api-settings');
+const { handleApiSimulator } = require('./routes/api-simulator');
 const { handleStaticFiles } = require('./routes/static-files');
 
-function createApp({ wsServer, cloudRelay, lanIp, publicUrl, port, rootDir, publicDir, licensing }) {
+function createApp({ wsServer, cloudRelay, lanIp, publicUrl, port, rootDir, publicDir, licensing, nativeSound }) {
   return async function requestHandler(req, res) {
     const reqPath = req.url.split('?')[0];
 
@@ -22,6 +23,11 @@ function createApp({ wsServer, cloudRelay, lanIp, publicUrl, port, rootDir, publ
     // API Endpoint: Get / Save User Settings
     if (reqPath === '/api/settings') {
       return handleApiSettings(req, res, { licensing, wsServer });
+    }
+
+    // API Endpoint: Simulate Score Events
+    if (reqPath === '/api/simulator') {
+      return handleApiSimulator(req, res, { wsServer, cloudRelay, nativeSound, licensing });
     }
 
     // API Endpoint: Create Desktop Shortcut

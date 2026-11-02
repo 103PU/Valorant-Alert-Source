@@ -105,7 +105,7 @@ function Open-Dashboard {
 
     if ($foundBrowser) {
         try {
-            Start-Process -FilePath $foundBrowser -ArgumentList "--app=`"$targetUrl`"" -ErrorAction Stop
+            $global:browserProcess = Start-Process -FilePath $foundBrowser -ArgumentList "--app=`"$targetUrl`"" -PassThru -ErrorAction Stop
         } catch {
             Start-Process "explorer.exe" -ArgumentList "`"$targetUrl`""
         }
@@ -183,6 +183,12 @@ $itemExit.add_Click({
     $notifyIcon.Dispose()
 
     # Kill dashboard browser app window if running
+    if ($global:browserProcess) {
+        try { Stop-Process -Id $global:browserProcess.Id -Force -ErrorAction SilentlyContinue } catch {}
+    }
+    try {
+        Get-Process -Name chrome, msedge, brave, firefox, opera -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -like "*VALORANT SCORE ALERT*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+    } catch {}
     try {
         Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
             $_.CommandLine -like "*dashboard.html*" -or $_.CommandLine -like "*:$configPort*"

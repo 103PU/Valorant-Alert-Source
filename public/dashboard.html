@@ -2885,6 +2885,19 @@
       }
     } catch (e) {}
 
+    // Fetch persistent settings from server on startup
+    (function fetchServerSettings() {
+      const tok = currentAuthToken || (new URLSearchParams(window.location.search)).get('token') || '';
+      fetch(`/api/settings?token=${encodeURIComponent(tok)}`)
+        .then(r => r.json())
+        .then(res => {
+          if (res && res.ok && res.settings) {
+            applySettings(res.settings, false);
+          }
+        })
+        .catch(err => console.warn('[Settings] Failed to fetch server settings:', err.message));
+    })();
+
     // Vol slider events
     volSlider?.addEventListener('input', () => {
       masterVolume = parseInt(volSlider.value, 10) / 100;
@@ -3087,6 +3100,15 @@
     });
 
     // --- Scenario Simulator Handlers (Compatibility) ---
+    function triggerSimScore(payload) {
+      const tok = currentAuthToken || (new URLSearchParams(window.location.search)).get('token') || '';
+      fetch(`/api/simulator?token=${encodeURIComponent(tok)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).catch(() => {});
+    }
+
     document.getElementById('btnSimRound')?.addEventListener('click', () => {
       if (!canUseService('sound_engine')) {
         showToast(currentLang === 'vi' ? '⚠️ Cần gói PLUS trở lên để dùng Simulator!' : '⚠️ PLUS plan or higher required for Simulator!');
@@ -3094,14 +3116,17 @@
       }
       playSound(1.0);
       showToast('SIMULATOR: ROUND 9 (1.0X)');
+      triggerSimScore({ alliedScore: 5, enemyScore: 4, mapName: 'ASCENT', gameMode: 'COMPETITIVE' });
     });
     document.getElementById('btnSimCustom')?.addEventListener('click', () => {
       if (!canUseService('sound_engine')) {
         showToast(currentLang === 'vi' ? '⚠️ Cần gói PLUS trở lên để dùng Simulator!' : '⚠️ PLUS plan or higher required for Simulator!');
         return;
       }
+      const cr = parseInt(customRoundInput.value, 10) || 10;
       playSound(1.15);
       showToast('SIMULATOR: CUSTOM ROUND (1.15X)');
+      triggerSimScore({ alliedScore: Math.floor(cr / 2), enemyScore: Math.ceil(cr / 2), mapName: 'BIND', gameMode: 'COMPETITIVE' });
     });
     document.getElementById('btnSimMatchPoint')?.addEventListener('click', () => {
       if (!canUseService('sound_engine')) {
@@ -3112,6 +3137,7 @@
       dangerVignette.classList.add('active');
       setTimeout(() => dangerVignette.classList.remove('active'), 4000);
       showToast('SIMULATOR: MATCH POINT (1.35X)');
+      triggerSimScore({ alliedScore: 8, enemyScore: 12, status: 'MATCH_POINT_RISK', mapName: 'HAVEN', gameMode: 'COMPETITIVE' });
     });
     document.getElementById('btnSimEnd')?.addEventListener('click', () => {
       if (!canUseService('sound_engine')) {
@@ -3120,6 +3146,7 @@
       }
       playSound(0.82);
       showToast('SIMULATOR: VICTORY / END MATCH (0.82X)');
+      triggerSimScore({ alliedScore: 13, enemyScore: 11, status: 'MATCH_VICTORY', mapName: 'SPLIT', gameMode: 'COMPETITIVE' });
     });
 
     // --- Picture-in-Picture Mini HUD ---

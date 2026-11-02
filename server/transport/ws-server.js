@@ -110,6 +110,14 @@ class ScoreWSServer {
     }
   }
 
+  getClientCount() {
+    let count = 0;
+    for (const client of this.wss.clients) {
+      if (client.readyState === 1) count++;
+    }
+    return count;
+  }
+
   getToken() {
     return this.authToken;
   }

@@ -12,6 +12,8 @@ const { getRegionInfo } = require('./riot/riot-region');
 const ScorePoller = require('./core/score-poller');
 const ScoreWSServer = require('./transport/ws-server');
 const CloudRelay = require('./transport/cloud-relay');
+const NativeSoundPlayer = require('./core/sound-player');
+const { loadSettings } = require('./routes/api-settings');
 const { createApp } = require('./app');
 const { createLicensing } = require('./licensing');
 
@@ -136,6 +138,9 @@ const authToken = wsServer.getToken();
 const fullAppUrl = `${publicUrl || `http://${lanIp}:${PORT}`}?token=${authToken}`;
 const dashboardUrl = `http://localhost:${PORT}/dashboard.html?token=${authToken}`;
 
+// Initialize Native Sound Player for Background Audio
+const nativeSound = new NativeSoundPlayer(rootDir);
+
 // Attach Modular HTTP Request Handler
 const appHandler = createApp({
   wsServer,
@@ -145,7 +150,8 @@ const appHandler = createApp({
   port: PORT,
   rootDir,
   publicDir,
-  licensing
+  licensing,
+  nativeSound
 });
 server.on('request', appHandler);
 
@@ -153,6 +159,15 @@ server.on('request', appHandler);
 poller = new ScorePoller(config, (scoreData) => {
   wsServer.broadcastScore(scoreData);
   cloudRelay.broadcastScore(scoreData);
+
+  // Background Sound Engine: plays audio directly on PC when dashboard is closed
+  try {
+    const settings = loadSettings(licensing.cfg.appDataDir);
+    const hasActiveClients = wsServer.getClientCount() > 0;
+    nativeSound.handleScoreUpdate(scoreData, settings, hasActiveClients);
+  } catch (e) {
+    logger.warn('[NativeSound] Score audio handler error:', e.message);
+  }
 });
 
 let reclaimAttempts = 0;
