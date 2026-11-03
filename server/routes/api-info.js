@@ -35,6 +35,7 @@ function handleApiInfo(req, res, { wsServer, cloudRelay, lanIp, port, publicUrl,
     region: regionInfo.region,
     shard: regionInfo.shard,
     clientVersion: regionInfo.clientVersion,
+    devices: wsServer && typeof wsServer.getConnectedDevices === 'function' ? wsServer.getConnectedDevices() : [],
     appVersion: (licensing && licensing.cfg && licensing.cfg.appVersion) || '1.0.8'
   }));
 }

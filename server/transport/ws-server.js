@@ -20,6 +20,7 @@ class ScoreWSServer {
     this.lastPayloadJson = null;
     this.isEntitled = typeof isEntitled === 'function' ? isEntitled : () => false;
     this.getLastScore = typeof getLastScore === 'function' ? getLastScore : null;
+    this.connectedClients = new Map();
 
     this.init();
   }
@@ -65,7 +66,25 @@ class ScoreWSServer {
         if (typeof req.socket.setKeepAlive === 'function') req.socket.setKeepAlive(true, 15000);
       }
       const clientIp = req.socket ? req.socket.remoteAddress : 'unknown';
-      logger.info(`[WSServer] Client authenticated and connected from: ${clientIp}`);
+      const cleanIp = (clientIp || '').replace(/^.*:/, '') || clientIp;
+      const ua = (req.headers && req.headers['user-agent']) || '';
+      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+      const isWindows = /Windows/i.test(ua);
+      const isMac = /Macintosh|Mac OS/i.test(ua);
+      const isLinux = /Linux/i.test(ua) && !isMobile;
+      const os = isMobile ? (/iPhone|iPad|iPod/i.test(ua) ? 'iOS' : 'Android') : (isWindows ? 'Windows' : (isMac ? 'macOS' : (isLinux ? 'Linux' : 'Desktop')));
+      const clientId = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(6).toString('hex');
+      const clientData = {
+        id: clientId,
+        ip: cleanIp,
+        type: isMobile ? 'mobile' : 'desktop',
+        os,
+        name: isMobile ? `Mobile (${os})` : (cleanIp === '127.0.0.1' || cleanIp === 'localhost' ? 'Dashboard Host' : `Client (${os})`),
+        connectedAt: Date.now(),
+        lastActive: Date.now()
+      };
+      this.connectedClients.set(ws, clientData);
+      logger.info(`[WSServer] Client authenticated and connected from: ${clientIp} (${clientData.name})`);
 
       // Send latest score state immediately on connect if available
       if (this.lastPayloadJson) {
@@ -77,17 +96,26 @@ class ScoreWSServer {
         }
       }
 
-      // Respond to ping heartbeats from mobile clients
+      // Respond to ping heartbeats and client hello
       ws.on('message', (msg) => {
         try {
           const parsed = JSON.parse(msg);
-          if (parsed.type === 'ping') {
+          const current = this.connectedClients.get(ws);
+          if (current) current.lastActive = Date.now();
+          if (parsed.type === 'client_hello') {
+            if (current) {
+              if (parsed.device) current.type = parsed.device;
+              if (parsed.name) current.name = parsed.name;
+              if (parsed.os) current.os = parsed.os;
+            }
+          } else if (parsed.type === 'ping') {
             ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
           }
         } catch (e) {}
       });
 
       ws.on('close', () => {
+        this.connectedClients.delete(ws);
         logger.info(`[WSServer] Client disconnected: ${clientIp}`);
       });
     });
@@ -116,6 +144,38 @@ class ScoreWSServer {
       if (client.readyState === 1) count++;
     }
     return count;
+  }
+
+  getConnectedDevices() {
+    const list = [
+      {
+        id: 'host-pc',
+        name: 'PC Host (App Master)',
+        type: 'desktop',
+        os: 'Windows',
+        ip: '127.0.0.1',
+        isHost: true,
+        status: 'online',
+        connectedAt: Date.now()
+      }
+    ];
+
+    for (const [ws, data] of this.connectedClients.entries()) {
+      if (ws.readyState === 1) {
+        list.push({
+          id: data.id,
+          name: data.name,
+          type: data.type,
+          os: data.os,
+          ip: data.ip,
+          isHost: false,
+          status: 'online',
+          connectedAt: data.connectedAt,
+          lastActive: data.lastActive
+        });
+      }
+    }
+    return list;
   }
 
   getToken() {

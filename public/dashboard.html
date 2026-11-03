@@ -1333,13 +1333,15 @@
     }
     .sidebar-version-badge {
       font-family: var(--val-font-tactical);
-      font-size: 0.75rem;
-      font-weight: 800;
+      font-size: 0.8rem;
+      font-weight: 700;
       color: var(--val-gray);
-      padding: 4px 8px;
-      background: var(--val-surface-dark);
-      border: 1px solid var(--val-border);
-      text-align: center;
+      padding: 4px 6px;
+      background: transparent;
+      border: none;
+      text-align: left;
+      letter-spacing: 0.05em;
+      opacity: 0.85;
     }
     .sidebar-pulse-status {
       display: flex;
@@ -1351,6 +1353,151 @@
       font-weight: 800;
       color: var(--val-cyan);
       letter-spacing: 1.5px;
+    }
+
+    /* Floating Alert Dismiss Overlay (Mobile Alert Style) */
+    .alert-dismiss-overlay {
+      position: fixed;
+      right: 28px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 99999;
+      width: 300px;
+      background: rgba(15, 17, 21, 0.96);
+      border: 2px solid var(--val-red);
+      box-shadow: 0 0 35px rgba(255, 70, 85, 0.65), inset 0 0 15px rgba(255, 70, 85, 0.2);
+      backdrop-filter: blur(12px);
+      padding: 18px 20px;
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      animation: alertDismissGlow 1.2s infinite alternate ease-in-out;
+    }
+    @keyframes alertDismissGlow {
+      0% { box-shadow: 0 0 20px rgba(255, 70, 85, 0.4), inset 0 0 10px rgba(255, 70, 85, 0.15); }
+      100% { box-shadow: 0 0 45px rgba(255, 70, 85, 0.85), inset 0 0 20px rgba(255, 70, 85, 0.35); }
+    }
+    .alert-dismiss-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .alert-dismiss-icon {
+      font-size: 1.8rem;
+      line-height: 1;
+      animation: alertIconBlink 0.8s infinite alternate;
+    }
+    @keyframes alertIconBlink {
+      from { transform: scale(0.9); opacity: 0.8; }
+      to { transform: scale(1.15); opacity: 1; }
+    }
+    .alert-dismiss-title {
+      font-family: var(--val-font-display);
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--val-red);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .alert-dismiss-sub {
+      font-family: var(--val-font-tactical);
+      font-size: 0.75rem;
+      color: #C4C7CC;
+      margin-top: 2px;
+    }
+    .alert-dismiss-btn {
+      width: 100%;
+      background: var(--val-red);
+      color: #FFFFFF;
+      font-family: var(--val-font-tactical);
+      font-size: 0.95rem;
+      font-weight: 800;
+      padding: 10px;
+      border: 1px solid #FF6B78;
+      box-shadow: 0 0 15px rgba(255, 70, 85, 0.5);
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: all 0.2s ease;
+    }
+    .alert-dismiss-btn:hover {
+      background: #FF2B3D;
+      box-shadow: 0 0 25px rgba(255, 70, 85, 0.9);
+      transform: scale(1.02);
+    }
+
+    /* Custom MP3 Sound Engine Rows */
+    .sound-custom-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--val-surface-dark);
+      border: 1px solid var(--val-border);
+      margin-bottom: 8px;
+      gap: 12px;
+    }
+    .sound-custom-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .sound-custom-title {
+      font-family: var(--val-font-tactical);
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: var(--val-white);
+    }
+    .sound-custom-file {
+      font-family: var(--val-font-tactical);
+      font-size: 0.75rem;
+      color: var(--val-cyan);
+    }
+    .sound-custom-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    /* Connected Devices Table */
+    .device-list-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-family: var(--val-font-tactical);
+      font-size: 0.85rem;
+    }
+    .device-list-table th {
+      text-align: left;
+      padding: 8px 12px;
+      background: var(--val-surface-dark);
+      color: var(--val-gray);
+      border-bottom: 1px solid var(--val-border);
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+    .device-list-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--val-white);
+    }
+    .device-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .device-type-host {
+      background: rgba(0, 245, 212, 0.15);
+      color: var(--val-cyan);
+      border: 1px solid rgba(0, 245, 212, 0.4);
+    }
+    .device-type-client {
+      background: rgba(254, 240, 138, 0.15);
+      color: var(--val-gold);
+      border: 1px solid rgba(254, 240, 138, 0.4);
     }
 
     /* Main Viewport */
@@ -1483,7 +1630,7 @@
           </button>
           <button class="sidebar-nav-item" data-tab="tabSync" id="navSync">
             <span class="sidebar-nav-icon">📱</span>
-            <span data-i18n="navSync">4G CLOUD SYNC</span>
+            <span data-i18n="navSync">CLOUD SYNC</span>
           </button>
 
           <!-- Section: SYSTEM -->
@@ -1492,22 +1639,36 @@
             <span class="sidebar-nav-icon">👤</span>
             <span data-i18n="navAccount">ACCOUNT & LICENSE</span>
           </button>
+          <button class="sidebar-nav-item" data-tab="tabLanguage" id="navLanguage">
+            <span class="sidebar-nav-icon">🌐</span>
+            <span data-i18n="navLanguage">LANGUAGE / NGÔN NGỮ</span>
+          </button>
           <button class="sidebar-nav-item" data-tab="tabSystem" id="navSystem">
             <span class="sidebar-nav-icon">⚡</span>
             <span data-i18n="navSystem">DIAGNOSTICS</span>
           </button>
 
           <div class="sidebar-footer">
-            <div class="sidebar-version-badge" id="sidebarVersionBadge">PROTOCOL v1.0.10</div>
-            <div class="sidebar-pulse-status">
-              <span class="status-dot"></span>
-              <span>ONLINE</span>
-            </div>
+            <div class="sidebar-version-badge" id="sidebarVersionBadge">v1.0.10</div>
           </div>
         </aside>
 
         <!-- MAIN VIEWPORT -->
         <main class="app-viewport">
+          <!-- Floating Alert Dismiss Overlay (Mobile Alert Style) -->
+          <div id="alertDismissOverlay" class="alert-dismiss-overlay">
+            <div class="alert-dismiss-header">
+              <span class="alert-dismiss-icon">🚨</span>
+              <div class="alert-dismiss-text">
+                <div id="alertDismissTitle" class="alert-dismiss-title">CẢNH BÁO ĐANG PHÁT</div>
+                <div id="alertDismissSubtitle" class="alert-dismiss-sub">Đang lặp âm thanh cảnh báo...</div>
+              </div>
+            </div>
+            <button id="btnDismissAlarm" class="alert-dismiss-btn">
+              🛑 DỪNG CẢNH BÁO
+            </button>
+          </div>
+
           <!-- Top Header Bar -->
           <header>
             <div class="brand">
@@ -1517,30 +1678,6 @@
             </div>
 
             <div class="header-actions">
-              <button id="btnLangToggle" class="val-btn val-btn-outline val-btn-lang" title="Switch Language (EN / VI)">
-                <span style="font-size: 1.05rem; line-height: 1;">🌐</span>
-                <span id="langText">ENGLISH</span>
-              </button>
-              <button id="btnMiniPip" class="val-btn val-btn-outline val-btn-pip" title="Open mini HUD overlay" data-i18n-title="miniHudTitle">
-                🗗 MINI HUD
-              </button>
-              <div id="headerUserChip" class="header-user-chip" title="Manage License & Account">
-                <div class="user-avatar-mini" id="headerUserAvatarWrap">👤</div>
-                <div class="user-meta-mini">
-                  <span class="user-name-mini" id="headerUserName">Guest</span>
-                  <span class="user-plan-badge" id="headerUserBadge">PRO</span>
-                </div>
-              </div>
-              <button id="btnHeaderLogout" class="val-btn val-btn-outline val-btn-sm" title="Logout session" data-i18n="btnUserLogout">
-                🚪 LOGOUT
-              </button>
-              <button id="btnHeaderLogin" class="val-btn val-btn-cyan val-btn-sm lic-hidden" title="Sign In" data-i18n="btnUserLogin">
-                🔐 SIGN IN
-              </button>
-              <div class="status-pill">
-                <span class="status-dot"></span>
-                <span id="sysStatusText" data-i18n="sysStatus">SYS_STATUS: ONLINE</span>
-              </div>
             </div>
           </header>
 
@@ -1602,8 +1739,8 @@
                 <div class="round-timeline" id="roundTimeline"></div>
 
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
-                  <button id="btnShortcut" class="val-btn val-btn-cyan" style="flex: 1;" data-i18n="btnShortcut">
-                    📌 ADD SHORTCUT
+                  <button id="btnMiniPip" class="val-btn val-btn-cyan" style="flex: 1;" title="Open mini HUD overlay" data-i18n-title="miniHudTitle">
+                    🗗 MINI HUD
                   </button>
                   <button id="btnToggleSync" class="val-btn val-btn-outline" style="flex: 1;" data-i18n="btnToggleSyncOpen">
                     📱 QR CODE
@@ -1649,23 +1786,15 @@
           <!-- ==================== TAB 2: ALERTS & RULES ==================== -->
           <div id="tabAlerts" class="tab-pane">
             <div class="dashboard-grid">
-              <!-- Scenario Trigger Controls -->
+              <!-- Scenario Trigger Controls: Section 1 - ROUND -->
               <div class="val-card">
                 <div class="val-card-header">
-                  <div class="val-card-title">⚠️ ALERT RULES</div>
-                  <div class="val-tag">[ RULES ]</div>
+                  <div class="val-card-title">🔔 ROUND ALERTS</div>
+                  <div class="val-tag">[ ROUND ]</div>
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 10px;">
-                  <div class="event-item">
-                    <span data-i18n="evtMatchPoint" style="font-weight: 800;">⚠️ MATCH POINT (12 RD)</span>
-                    <label class="switch">
-                      <input type="checkbox" id="evtMatchPoint" checked>
-                      <span class="slider"></span>
-                    </label>
-                  </div>
-
-                  <div class="event-item">
+                  <div class="event-item" id="rowRoundChange">
                     <span data-i18n="evtRoundChange" style="font-weight: 800;">🔔 ROUND CHANGE</span>
                     <label class="switch">
                       <input type="checkbox" id="evtRoundChange" checked>
@@ -1673,7 +1802,7 @@
                     </label>
                   </div>
 
-                  <div class="event-item">
+                  <div class="event-item" id="rowCustomRound">
                     <span data-i18n="evtCustomRound" style="font-weight: 800;">🎯 CUSTOM ROUND</span>
                     <div style="display: flex; align-items: center; gap: 8px;">
                       <input type="number" id="customRoundInput" min="2" max="19" value="10" style="width: 44px; height: 26px; padding: 2px 4px; text-align: center; font-family: var(--val-font-tactical); font-size: 0.95rem; font-weight: 800; color: var(--val-gold); background: var(--val-surface-dark); border: 1px solid var(--val-border); outline: none;">
@@ -1684,15 +1813,25 @@
                     </div>
                   </div>
 
-                  <div class="event-item">
-                    <span data-i18n="evtMatchEnded" style="font-weight: 800;">🏆 MATCH FINISHED</span>
+                  <div class="event-item" id="rowMatchPoint">
+                    <span data-i18n="evtMatchPoint" style="font-weight: 800;">⚠️ MATCH POINT (12 RD)</span>
                     <label class="switch">
-                      <input type="checkbox" id="evtMatchEnded" checked>
+                      <input type="checkbox" id="evtMatchPoint" checked>
                       <span class="slider"></span>
                     </label>
                   </div>
+                </div>
+              </div>
 
-                  <div class="event-item">
+              <!-- Scenario Trigger Controls: Section 2 - STATUS -->
+              <div class="val-card">
+                <div class="val-card-header">
+                  <div class="val-card-title">📊 STATUS & OBJECTIVES</div>
+                  <div class="val-tag">[ STATUS ]</div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                  <div class="event-item" id="rowSpikePlanted">
                     <span data-i18n="evtSpikePlanted" style="font-weight: 800;">💣 SPIKE PLANTED</span>
                     <label class="switch">
                       <input type="checkbox" id="evtSpikePlanted" checked>
@@ -1700,7 +1839,7 @@
                     </label>
                   </div>
 
-                  <div class="event-item">
+                  <div class="event-item" id="rowOvertime">
                     <span data-i18n="evtOvertime" style="font-weight: 800;">🔥 OVERTIME (12-12)</span>
                     <label class="switch">
                       <input type="checkbox" id="evtOvertime" checked>
@@ -1708,7 +1847,15 @@
                     </label>
                   </div>
 
-                  <div class="event-item">
+                  <div class="event-item" id="rowMatchEnded">
+                    <span data-i18n="evtMatchEnded" style="font-weight: 800;">🏆 MATCH FINISHED</span>
+                    <label class="switch">
+                      <input type="checkbox" id="evtMatchEnded" checked>
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="event-item" id="rowDangerVignette">
                     <span data-i18n="evtDangerVignette" style="font-weight: 800;">🚨 DANGER VIGNETTE</span>
                     <label class="switch">
                       <input type="checkbox" id="evtDangerVignette" checked>
@@ -1782,6 +1929,82 @@
                 </div>
               </div>
 
+              <!-- Custom MP3 Sound Engine -->
+              <div class="val-card">
+                <div class="val-card-header">
+                  <div class="val-card-title">🎵 TÙY CHỈNH ÂM THANH MP3 (CUSTOM SOUNDS)</div>
+                  <div class="val-tag" style="color: var(--val-cyan);">[ MP3 ENGINE ]</div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <!-- Row 1: Round Change -->
+                  <div class="sound-custom-row" id="rowSoundRoundChange">
+                    <div class="sound-custom-meta">
+                      <div class="sound-custom-title">🔔 Qua Round Mới (Round Change)</div>
+                      <div class="sound-custom-file" id="soundStatus_roundChange">Mặc định: roundChange.wav</div>
+                    </div>
+                    <div class="sound-custom-actions">
+                      <button class="val-btn val-btn-outline val-btn-sm btn-play-sound" data-event="roundChange" title="Nghe thử">▶️</button>
+                      <button class="val-btn val-btn-cyan val-btn-sm btn-import-sound" data-event="roundChange" title="Tải lên MP3">📁 MP3</button>
+                      <button class="val-btn val-btn-outline val-btn-sm btn-reset-sound" data-event="roundChange" title="Khôi phục mặc định">↺</button>
+                    </div>
+                  </div>
+
+                  <!-- Row 2: Custom Round -->
+                  <div class="sound-custom-row" id="rowSoundCustomRound">
+                    <div class="sound-custom-meta">
+                      <div class="sound-custom-title">🎯 Vòng Tùy Chọn (Custom Round)</div>
+                      <div class="sound-custom-file" id="soundStatus_customRound">Mặc định: melodicChime.wav</div>
+                    </div>
+                    <div class="sound-custom-actions">
+                      <button class="val-btn val-btn-outline val-btn-sm btn-play-sound" data-event="customRound" title="Nghe thử">▶️</button>
+                      <button class="val-btn val-btn-cyan val-btn-sm btn-import-sound" data-event="customRound" title="Tải lên MP3">📁 MP3</button>
+                      <button class="val-btn val-btn-outline val-btn-sm btn-reset-sound" data-event="customRound" title="Khôi phục mặc định">↺</button>
+                    </div>
+                  </div>
+
+                  <!-- Row 3: Match Point -->
+                  <div class="sound-custom-row" id="rowSoundMatchPoint">
+                    <div class="sound-custom-meta">
+                      <div class="sound-custom-title">⚠️ Match Point Nguy Hiểm (Match Point)</div>
+                      <div class="sound-custom-file" id="soundStatus_matchPoint">Mặc định: matchPoint.wav</div>
+                    </div>
+                    <div class="sound-custom-actions">
+                      <button class="val-btn val-btn-outline val-btn-sm btn-play-sound" data-event="matchPoint" title="Nghe thử">▶️</button>
+                      <button class="val-btn val-btn-cyan val-btn-sm btn-import-sound" data-event="matchPoint" title="Tải lên MP3">📁 MP3</button>
+                      <button class="val-btn val-btn-outline val-btn-sm btn-reset-sound" data-event="matchPoint" title="Khôi phục mặc định">↺</button>
+                    </div>
+                  </div>
+
+                  <!-- Row 4: Match Finished -->
+                  <div class="sound-custom-row" id="rowSoundMatchEnded">
+                    <div class="sound-custom-meta">
+                      <div class="sound-custom-title">🏆 Kết Thúc Trận Đấu (Match Finished)</div>
+                      <div class="sound-custom-file" id="soundStatus_matchEnded">Mặc định: victory.wav</div>
+                    </div>
+                    <div class="sound-custom-actions">
+                      <button class="val-btn val-btn-outline val-btn-sm btn-play-sound" data-event="matchEnded" title="Nghe thử">▶️</button>
+                      <button class="val-btn val-btn-cyan val-btn-sm btn-import-sound" data-event="matchEnded" title="Tải lên MP3">📁 MP3</button>
+                      <button class="val-btn val-btn-outline val-btn-sm btn-reset-sound" data-event="matchEnded" title="Khôi phục mặc định">↺</button>
+                    </div>
+                  </div>
+
+                  <!-- Row 5: Match Found -->
+                  <div class="sound-custom-row" id="rowSoundMatchFound">
+                    <div class="sound-custom-meta">
+                      <div class="sound-custom-title">🛡️ Tìm Thấy Trận / Bắt Đầu (Match Found)</div>
+                      <div class="sound-custom-file" id="soundStatus_matchFound">Mặc định: tacticalDuty.wav</div>
+                    </div>
+                    <div class="sound-custom-actions">
+                      <button class="val-btn val-btn-outline val-btn-sm btn-play-sound" data-event="matchFound" title="Nghe thử">▶️</button>
+                      <button class="val-btn val-btn-cyan val-btn-sm btn-import-sound" data-event="matchFound" title="Tải lên MP3">📁 MP3</button>
+                      <button class="val-btn val-btn-outline val-btn-sm btn-reset-sound" data-event="matchFound" title="Khôi phục mặc định">↺</button>
+                    </div>
+                  </div>
+                  <input type="file" id="customSoundFileInput" accept=".mp3,audio/mpeg" style="display: none;">
+                </div>
+              </div>
+
               <!-- Discord Webhook & External Notifications -->
               <div class="val-card">
                 <div class="val-card-header">
@@ -1827,19 +2050,19 @@
             </div>
           </div>
 
-          <!-- ==================== TAB 4: 4G CLOUD SYNC ==================== -->
+          <!-- ==================== TAB 4: CLOUD SYNC ==================== -->
           <div id="tabSync" class="tab-pane">
             <div class="dashboard-grid">
               <!-- Multi-Device Sync Card -->
               <div id="syncCard" class="val-card">
                 <div class="val-card-header" style="margin-bottom: 8px;">
-                  <div class="val-card-title" data-i18n="syncTitle">📱 4G CLOUD RELAY</div>
-                  <div id="syncModeTag" class="val-tag" style="color: var(--val-cyan);">[ ☁️ CLOUD_RELAY // 4G/5G ]</div>
+                  <div class="val-card-title" data-i18n="syncTitle">📱 CLOUD RELAY</div>
+                  <div id="syncModeTag" class="val-tag" style="color: var(--val-cyan);">[ ☁️ CLOUD_RELAY ]</div>
                 </div>
 
-                <!-- Connection Mode: Cloud Relay Default (4G/5G Internet Sync) -->
+                <!-- Connection Mode: Cloud Relay Default -->
                 <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                  <button id="btnModeCloud" class="val-btn val-btn-sm val-btn-cyan" style="flex: 2; font-size: 0.75rem; padding: 6px 8px;" data-i18n="btnModeCloud">☁️ CLOUD RELAY (4G / 5G / INTERNET)</button>
+                  <button id="btnModeCloud" class="val-btn val-btn-sm val-btn-cyan" style="flex: 2; font-size: 0.75rem; padding: 6px 8px;" data-i18n="btnModeCloud">☁️ CLOUD RELAY</button>
                   <button id="btnModeLan" class="val-btn val-btn-outline val-btn-sm" style="flex: 1; font-size: 0.75rem; padding: 6px 8px;" data-i18n="btnModeLan">🏠 LOCAL WI-FI</button>
                 </div>
 
@@ -1852,20 +2075,22 @@
                     <!-- PIN / Relay Status Box -->
                     <div class="pin-box" style="padding: 6px 12px;">
                       <div class="pin-label">
-                        <span id="syncStatusLabel" data-i18n="pinLabel">CLOUD SYNC:</span> <strong id="tokenDisplay" class="pin-value" style="font-size: 1.15rem; color: var(--val-cyan);">READY (4G)</strong>
+                        <span id="syncStatusLabel" data-i18n="pinLabel">CLOUD SYNC:</span> <strong id="tokenDisplay" class="pin-value" style="font-size: 1.15rem; color: var(--val-cyan);">READY</strong>
                       </div>
                       <button id="btnCopyToken" class="val-btn val-btn-outline val-btn-sm" data-i18n="btnCopyPin">📋 COPY PIN</button>
                     </div>
 
-                    <!-- Links for Mobile & Laptop -->
+                    <!-- Single Client Link Input -->
                     <div class="url-action-bar">
-                      <input type="text" id="lanUrlInput" class="val-input" readonly placeholder="Mobile Cloud Link..." data-i18n-placeholder="mobilePlaceholder">
-                      <button id="btnCopy" class="val-btn val-btn-sm" style="white-space: nowrap;" data-i18n="btnCopyMobile">📱 MOBILE LINK</button>
+                      <input type="text" id="clientUrlInput" class="val-input" readonly placeholder="Client Link..." data-i18n-placeholder="clientPlaceholder">
+                      <button id="btnCopyClient" class="val-btn val-btn-cyan val-btn-sm" style="white-space: nowrap;" data-i18n="btnCopyClient">📋 CLIENT LINK</button>
                     </div>
-                    <div class="url-action-bar">
-                      <input type="text" id="lanDashboardInput" class="val-input" readonly placeholder="Laptop Dashboard Link..." data-i18n-placeholder="laptopPlaceholder">
-                      <button id="btnCopyLaptop" class="val-btn val-btn-cyan val-btn-sm" style="white-space: nowrap;" data-i18n="btnCopyLaptop">💻 LAPTOP LINK</button>
-                    </div>
+
+                    <!-- Compatibility hidden bindings for legacy script references -->
+                    <input type="hidden" id="lanUrlInput">
+                    <input type="hidden" id="lanDashboardInput">
+                    <button id="btnCopy" style="display: none;"></button>
+                    <button id="btnCopyLaptop" style="display: none;"></button>
                   </div>
                 </div>
               </div>
@@ -1873,14 +2098,43 @@
               <!-- Remote Guidance Card -->
               <div class="val-card">
                 <div class="val-card-header">
-                  <div class="val-card-title">📖 HƯỚNG DẪN KẾT NỐI QUA 4G</div>
+                  <div class="val-card-title">📖 HƯỚNG DẪN KẾT NỐI CLIENT</div>
                   <div class="val-tag" style="color: var(--val-cyan);">[ HƯỚNG DẪN ]</div>
                 </div>
 
                 <div style="font-family: var(--val-font-tactical); font-size: 0.88rem; color: var(--val-white); line-height: 1.8;">
-                  1. Đăng nhập Google để bật Cloud Relay.<br>
-                  2. Quét QR hoặc copy <strong style="color: var(--val-gold);">📱 MOBILE LINK</strong>.<br>
-                  3. Mở link trên điện thoại (4G/5G) để nhận tỉ số trực tiếp.
+                  1. Đăng nhập Google để bật Cloud Sync.<br>
+                  2. Quét QR hoặc nhập <strong style="color: var(--val-gold);">📋 CLIENT LINK</strong>.<br>
+                  3. Mở app trên điện thoại hoặc máy tính để tự động nhận tỉ số trực tiếp.
+                </div>
+              </div>
+
+              <!-- Connected Devices Table Card -->
+              <div class="val-card">
+                <div class="val-card-header">
+                  <div class="val-card-title">📱 THIẾT BỊ ĐANG KẾT NỐI (CONNECTED DEVICES)</div>
+                  <div class="val-tag" style="color: var(--val-cyan);">[ LIVE DEVICES ]</div>
+                </div>
+
+                <div id="connectedDevicesContainer">
+                  <table class="device-list-table">
+                    <thead>
+                      <tr>
+                        <th>THIẾT BỊ</th>
+                        <th>IP / NGUỒN</th>
+                        <th>LOẠI</th>
+                        <th>TRẠNG THÁI</th>
+                      </tr>
+                    </thead>
+                    <tbody id="deviceTableBody">
+                      <tr>
+                        <td>💻 PC Host (App Master)</td>
+                        <td>127.0.0.1</td>
+                        <td><span class="device-type-badge device-type-host">HOST</span></td>
+                        <td><span style="color: var(--val-cyan);">● ONLINE</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -2024,6 +2278,27 @@
 
                 <div id="sysLogConsole" class="diagnostic-console">
                   <div class="log-line info"><span class="log-time">[INIT]</span> System diagnostics initialized. Ready.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ==================== TAB 6: LANGUAGE / NGÔN NGỮ ==================== -->
+          <div id="tabLanguage" class="tab-pane">
+            <div class="dashboard-grid">
+              <div class="val-card" style="max-width: 520px;">
+                <div class="val-card-header">
+                  <div class="val-card-title" data-i18n="langTitle">🌐 NGÔN NGỮ / LANGUAGE</div>
+                  <div class="val-tag" style="color: var(--val-cyan);">[ SYSTEM ]</div>
+                </div>
+
+                <div style="display: flex; gap: 14px; margin-top: 16px;">
+                  <button id="btnLangVi" class="val-btn val-btn-outline" style="flex: 1; padding: 14px; font-weight: 800; font-size: 0.95rem;">
+                    🇻🇳 TIẾNG VIỆT
+                  </button>
+                  <button id="btnLangEn" class="val-btn val-btn-outline" style="flex: 1; padding: 14px; font-weight: 800; font-size: 0.95rem;">
+                    🇬🇧 ENGLISH
+                  </button>
                 </div>
               </div>
             </div>
@@ -2343,7 +2618,7 @@
     let cloudRelayUrl = '';
     let audioCtx = null;
     let masterGainNode = null;
-    let isPcAudioEnabled = false;
+    let isPcAudioEnabled = true;
     let masterVolume = 0.8;
     let isSyncCardOpen = true;
     let lastAllied = -1;
@@ -2504,15 +2779,22 @@
         navHud: 'LIVE SCORE HUD',
         navAlerts: 'ALERT RULES',
         navNotify: 'AUDIO & NOTIFY',
-        navSync: '4G CLOUD SYNC',
+        navSync: 'CLOUD SYNC',
         navAccount: 'ACCOUNT & LICENSE',
+        navLanguage: 'LANGUAGE',
         navSystem: 'DIAGNOSTICS',
+        langTitle: '🌐 LANGUAGE SETTINGS',
         breadcrumbHud: '/// OVERVIEW // LIVE SCORE HUD',
         breadcrumbAlerts: '/// FEATURES // ALERT RULES',
         breadcrumbNotify: '/// FEATURES // AUDIO & NOTIFY',
-        breadcrumbSync: '/// CONNECTIVITY // 4G CLOUD SYNC',
+        breadcrumbSync: '/// CONNECTIVITY // CLOUD SYNC',
         breadcrumbAccount: '/// SYSTEM // ACCOUNT & LICENSE',
+        breadcrumbLanguage: '/// SYSTEM // LANGUAGE',
         breadcrumbSystem: '/// SYSTEM // DIAGNOSTICS',
+        btnCopyClient: '📋 CLIENT LINK',
+        clientPlaceholder: 'Client Link for Mobile / PC...',
+        syncTitle: '📱 CLOUD RELAY',
+        btnModeCloud: '☁️ CLOUD RELAY',
         evtSpikePlanted: '💣 SPIKE PLANTED',
         evtOvertime: '🔥 OVERTIME (12-12)',
         evtDangerVignette: '🚨 DANGER VIGNETTE',
@@ -2673,15 +2955,22 @@
         navHud: 'HUD TỈ SỐ TRỰC TIẾP',
         navAlerts: 'KỊCH BẢN CẢNH BÁO',
         navNotify: 'ÂM THANH & THÔNG BÁO',
-        navSync: 'ĐỒNG BỘ 4G CLOUD',
+        navSync: 'ĐỒNG BỘ CLOUD',
         navAccount: 'TÀI KHOẢN & LICENSE',
+        navLanguage: 'NGÔN NGỮ',
         navSystem: 'CHẨN ĐOÁN HỆ THỐNG',
+        langTitle: '🌐 CÀI ĐẶT NGÔN NGỮ',
         breadcrumbHud: '/// TỔNG QUAN // HUD TỈ SỐ TRỰC TIẾP',
         breadcrumbAlerts: '/// TÍNH NĂNG // QUY TẮC CẢNH BÁO',
         breadcrumbNotify: '/// TÍNH NĂNG // ÂM THANH & THÔNG BÁO',
-        breadcrumbSync: '/// KẾT NỐI // ĐỒNG BỘ 4G CLOUD',
+        breadcrumbSync: '/// KẾT NỐI // ĐỒNG BỘ CLOUD',
         breadcrumbAccount: '/// HỆ THỐNG // TÀI KHOẢN & LICENSE',
+        breadcrumbLanguage: '/// HỆ THỐNG // NGÔN NGỮ',
         breadcrumbSystem: '/// HỆ THỐNG // CHẨN ĐOÁN',
+        btnCopyClient: '📋 CLIENT LINK',
+        clientPlaceholder: 'Link kết nối Điện thoại / Máy tính...',
+        syncTitle: '📱 CLOUD RELAY',
+        btnModeCloud: '☁️ CLOUD RELAY',
         evtSpikePlanted: '💣 ĐẶT SPIKE',
         evtOvertime: '🔥 OVERTIME (12-12)',
         evtDangerVignette: '🚨 VIỀN ĐỎ NGUY HIỂM',
@@ -2738,7 +3027,31 @@
       if (lastLicSnapshot) renderLicense(lastLicSnapshot);
       if (updInfo) renderUpdate(updInfo);
       if (lastUpdRunSt) renderUpdateRun(lastUpdRunSt);
+
+      const btnVi = document.getElementById('btnLangVi');
+      const btnEn = document.getElementById('btnLangEn');
+      if (btnVi && btnEn) {
+        if (currentLang === 'vi') {
+          btnVi.className = 'val-btn val-btn-cyan';
+          btnEn.className = 'val-btn val-btn-outline';
+        } else {
+          btnVi.className = 'val-btn val-btn-outline';
+          btnEn.className = 'val-btn val-btn-cyan';
+        }
+      }
     }
+
+    document.getElementById('btnLangVi')?.addEventListener('click', () => {
+      applyLanguage('vi');
+      if (typeof persistSettings === 'function') persistSettings();
+      showToast('ĐÃ CHUYỂN SANG TIẾNG VIỆT');
+    });
+
+    document.getElementById('btnLangEn')?.addEventListener('click', () => {
+      applyLanguage('en');
+      if (typeof persistSettings === 'function') persistSettings();
+      showToast('SWITCHED TO ENGLISH');
+    });
 
     if (btnLangToggle) {
       btnLangToggle.addEventListener('click', () => {
@@ -3065,13 +3378,179 @@
       return s.includes(code);
     }
 
-    function playSound(pitch = 1.0) {
+    /* ===================== CUSTOM MP3 SOUND ENGINE (INDEXEDDB) ===================== */
+    const DEFAULT_SOUND_FILES = {
+      roundChange: 'roundChange.wav',
+      customRound: 'melodicChime.wav',
+      matchPoint: 'matchPoint.wav',
+      matchEnded: 'victory.wav',
+      matchFound: 'tacticalDuty.wav'
+    };
+
+    const CustomSoundDB = {
+      dbName: 'ValorantAlertCustomSounds',
+      storeName: 'sounds',
+      cache: {},
+      _db: null,
+      async getDB() {
+        if (this._db) return this._db;
+        return new Promise((resolve) => {
+          try {
+            const req = indexedDB.open(this.dbName, 1);
+            req.onupgradeneeded = () => req.result.createObjectStore(this.storeName);
+            req.onsuccess = () => { this._db = req.result; resolve(this._db); };
+            req.onerror = () => resolve(null);
+          } catch (e) { resolve(null); }
+        });
+      },
+      async loadAll() {
+        const db = await this.getDB();
+        if (!db) return;
+        return new Promise((resolve) => {
+          try {
+            const tx = db.transaction(this.storeName, 'readonly');
+            const store = tx.objectStore(this.storeName);
+            const req = store.openCursor();
+            req.onsuccess = (e) => {
+              const cursor = e.target.result;
+              if (cursor) {
+                this.cache[cursor.key] = cursor.value;
+                cursor.continue();
+              } else {
+                updateSoundCustomUI();
+                resolve();
+              }
+            };
+            req.onerror = () => resolve();
+          } catch (e) { resolve(); }
+        });
+      },
+      async saveSound(key, file) {
+        const db = await this.getDB();
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const record = { name: file.name, data: reader.result, type: file.type || 'audio/mpeg', size: file.size, updatedAt: Date.now() };
+            this.cache[key] = record;
+            if (db) {
+              try {
+                const tx = db.transaction(this.storeName, 'readwrite');
+                tx.objectStore(this.storeName).put(record, key);
+                tx.oncomplete = () => { updateSoundCustomUI(); resolve(record); };
+                tx.onerror = () => { updateSoundCustomUI(); resolve(record); };
+              } catch (e) { updateSoundCustomUI(); resolve(record); }
+            } else {
+              updateSoundCustomUI();
+              resolve(record);
+            }
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      },
+      async removeSound(key) {
+        delete this.cache[key];
+        const db = await this.getDB();
+        if (db) {
+          try {
+            const tx = db.transaction(this.storeName, 'readwrite');
+            tx.objectStore(this.storeName).delete(key);
+            tx.oncomplete = () => updateSoundCustomUI();
+          } catch (e) { updateSoundCustomUI(); }
+        } else {
+          updateSoundCustomUI();
+        }
+      },
+      hasSound(key) {
+        return !!this.cache[key];
+      },
+      getSound(key) {
+        return this.cache[key] || null;
+      }
+    };
+
+    function updateSoundCustomUI() {
+      Object.keys(DEFAULT_SOUND_FILES).forEach(ev => {
+        const statusEl = document.getElementById(`soundStatus_${ev}`);
+        if (!statusEl) return;
+        const rec = CustomSoundDB.getSound(ev);
+        if (rec && rec.name) {
+          statusEl.innerText = `${currentLang === 'vi' ? 'MP3 Tùy Chỉnh:' : 'Custom MP3:'} ${rec.name}`;
+          statusEl.style.color = 'var(--val-gold)';
+        } else {
+          statusEl.innerText = `${currentLang === 'vi' ? 'Mặc định:' : 'Default:'} ${DEFAULT_SOUND_FILES[ev]}`;
+          statusEl.style.color = 'var(--val-cyan)';
+        }
+      });
+    }
+
+    CustomSoundDB.loadAll();
+
+    function playSound(pitch = 1.0, eventName = '') {
       if (!canUseService('sound_engine')) return;
+      if (eventName && CustomSoundDB.hasSound(eventName)) {
+        try {
+          const rec = CustomSoundDB.getSound(eventName);
+          if (rec && rec.data) {
+            const audio = new Audio(rec.data);
+            audio.volume = masterVolume;
+            if (pitch !== 1.0 && typeof audio.preservesPitch !== 'undefined') {
+              audio.preservesPitch = false;
+              audio.playbackRate = pitch;
+            }
+            audio.play().catch(() => {});
+            return;
+          }
+        } catch (e) {}
+      }
+
       const { audioCtx: ctx, dest } = ensureAudioContext();
-      const soundKey = soundPicker.value || 'melodicChime';
+      const soundKey = soundPicker ? (soundPicker.value || 'melodicChime') : 'melodicChime';
       const playFn = soundPresets[soundKey] || soundPresets.melodicChime;
       playFn(ctx, dest, pitch);
     }
+
+    let pendingSoundEvent = '';
+    const customSoundFileInput = document.getElementById('customSoundFileInput');
+
+    document.querySelectorAll('.btn-play-sound').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const ev = btn.getAttribute('data-event');
+        if (ev) playSound(1.0, ev);
+      });
+    });
+
+    document.querySelectorAll('.btn-import-sound').forEach(btn => {
+      btn.addEventListener('click', () => {
+        pendingSoundEvent = btn.getAttribute('data-event') || '';
+        if (customSoundFileInput) {
+          customSoundFileInput.value = '';
+          customSoundFileInput.click();
+        }
+      });
+    });
+
+    customSoundFileInput?.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file && pendingSoundEvent) {
+        if (!file.name.toLowerCase().endsWith('.mp3')) {
+          showToast(currentLang === 'vi' ? '⚠️ Vui lòng chọn file định dạng .mp3!' : '⚠️ Please select a .mp3 file!');
+          return;
+        }
+        await CustomSoundDB.saveSound(pendingSoundEvent, file);
+        showToast(currentLang === 'vi' ? `Đã nhập âm thanh cho: ${pendingSoundEvent}` : `Imported sound for: ${pendingSoundEvent}`);
+      }
+    });
+
+    document.querySelectorAll('.btn-reset-sound').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const ev = btn.getAttribute('data-event');
+        if (ev) {
+          await CustomSoundDB.removeSound(ev);
+          showToast(currentLang === 'vi' ? `Đã khôi phục âm mặc định: ${ev}` : `Reset sound to default: ${ev}`);
+        }
+      });
+    });
 
     btnTestChime.addEventListener('click', () => {
       if (!canUseService('sound_engine')) {
@@ -3279,9 +3758,15 @@
         if (lanDashboardInput) lanDashboardInput.value = fullLanDashboardUrl;
         if (tokenDisplay) tokenDisplay.innerText = currentAuthToken;
         if (qrImg) qrImg.src = '/api/qr?t=' + Date.now();
+        if (info.devices) {
+          renderConnectedDevices(info.devices);
+        }
+        if (clientUrlInput) {
+          clientUrlInput.value = (activeSyncMode === 'cloud' && cloudRelayUrl) ? cloudRelayUrl : fullLanDashboardUrl;
+        }
         if (info.appVersion) {
           const badge = document.getElementById('sidebarVersionBadge');
-          if (badge) badge.innerText = 'PROTOCOL v' + info.appVersion;
+          if (badge) badge.innerText = 'v' + info.appVersion;
         }
 
         if (riotStatusVal) {
@@ -3328,7 +3813,7 @@
 
     function switchSyncMode(mode) {
       if (mode === 'cloud' && !canUseService('cloud_relay')) {
-        showToast(currentLang === 'vi' ? '⚠️ Cloud Relay 4G / Mobile PWA chỉ hỗ trợ gói ULTRA. Vui lòng nâng cấp gói!' : '⚠️ Cloud Relay 4G / Mobile PWA requires ULTRA plan. Please upgrade!');
+        showToast(currentLang === 'vi' ? '⚠️ Cloud Relay / Mobile PWA chỉ hỗ trợ gói ULTRA. Vui lòng nâng cấp gói!' : '⚠️ Cloud Relay / Mobile PWA requires ULTRA plan. Please upgrade!');
         mode = 'lan';
       }
       activeSyncMode = mode;
@@ -3340,11 +3825,12 @@
           syncModeTag.style.color = 'var(--val-cyan)';
         }
         if (syncStatusLabel) syncStatusLabel.innerText = 'CLOUD SYNC:';
-        if (tokenDisplay) tokenDisplay.innerText = cloudRelayUrl ? 'SYNCED (4G)' : 'LOGIN TO SYNC';
+        if (tokenDisplay) tokenDisplay.innerText = cloudRelayUrl ? 'SYNCED' : 'LOGIN TO SYNC';
+        if (clientUrlInput) clientUrlInput.value = cloudRelayUrl || (currentLang === 'vi' ? 'Đăng nhập Google để bật Cloud Relay' : 'Sign in with Google to enable Cloud Relay');
         if (lanUrlInput) lanUrlInput.value = cloudRelayUrl || (currentLang === 'vi' ? 'Đăng nhập Google để bật Cloud Relay' : 'Sign in with Google to enable Cloud Relay');
         if (lanDashboardInput) lanDashboardInput.value = cloudRelayUrl || (currentLang === 'vi' ? 'Đăng nhập Google để bật Cloud Relay' : 'Sign in with Google to enable Cloud Relay');
         if (qrImg) qrImg.src = '/api/qr?type=cloud&t=' + Date.now();
-        if (btnCopy) btnCopy.innerText = '☁️ 4G LINK';
+        if (btnCopy) btnCopy.innerText = '📋 CLIENT LINK';
       } else {
         if (btnModeLan) btnModeLan.className = 'val-btn val-btn-sm';
         if (btnModeCloud) btnModeCloud.className = 'val-btn val-btn-outline val-btn-sm';
@@ -3354,11 +3840,42 @@
         }
         if (syncStatusLabel) syncStatusLabel.innerText = t('pinLabel');
         if (tokenDisplay) tokenDisplay.innerText = currentAuthToken;
+        if (clientUrlInput) clientUrlInput.value = fullLanDashboardUrl;
         if (lanUrlInput) lanUrlInput.value = fullLanUrl;
         if (lanDashboardInput) lanDashboardInput.value = fullLanDashboardUrl;
         if (qrImg) qrImg.src = '/api/qr?t=' + Date.now();
-        if (btnCopy) btnCopy.innerText = t('btnCopyMobile');
+        if (btnCopy) btnCopy.innerText = '📋 CLIENT LINK';
       }
+    }
+
+    const clientUrlInput = document.getElementById('clientUrlInput');
+    const btnCopyClient = document.getElementById('btnCopyClient');
+
+    btnCopyClient?.addEventListener('click', () => {
+      const urlToCopy = clientUrlInput ? clientUrlInput.value : '';
+      if (urlToCopy) {
+        navigator.clipboard.writeText(urlToCopy);
+        showToast(currentLang === 'vi' ? 'Đã sao chép Client Link!' : 'Copied Client Link!');
+      }
+    });
+
+    function renderConnectedDevices(devices) {
+      const tbody = document.getElementById('deviceTableBody');
+      if (!tbody) return;
+      if (!Array.isArray(devices) || devices.length === 0) {
+        devices = [{ id: 'host-pc', name: 'PC Host (App Master)', type: 'desktop', ip: '127.0.0.1', isHost: true, status: 'online' }];
+      }
+      tbody.innerHTML = devices.map(d => {
+        const icon = d.type === 'mobile' ? '📱' : '💻';
+        const typeBadge = d.isHost ? '<span class="device-type-badge device-type-host">HOST</span>' :
+                          (d.type === 'mobile' ? '<span class="device-type-badge device-type-client">MOBILE</span>' : '<span class="device-type-badge device-type-client">CLIENT</span>');
+        return `<tr>
+          <td>${icon} ${d.name || (d.isHost ? 'PC Host' : 'Client Device')}</td>
+          <td>${d.ip || '—'}</td>
+          <td>${typeBadge}</td>
+          <td><span style="color: var(--val-cyan);">● ONLINE</span></td>
+        </tr>`;
+      }).join('');
     }
 
     btnModeLan?.addEventListener('click', () => {
@@ -4205,9 +4722,9 @@
               dangerVignette.classList.remove('active');
               if (!isMatchEndedTriggered) {
                 isMatchEndedTriggered = true;
-                if (pcAlarmInterval) { clearInterval(pcAlarmInterval); pcAlarmInterval = null; }
+                stopAlarmLoop();
                 if (evtMatchEnded.checked && isPcAudioEnabled) {
-                  playSound(0.82);
+                  playSound(0.82, 'matchEnded');
                 }
               }
               const resBadge = allied > enemy ? 'VICTORY' : 'DEFEAT';
@@ -4226,14 +4743,14 @@
 
               if (evtMatchPoint.checked && isPcAudioEnabled && !pcAlarmInterval) {
                 pcAlarmStartTime = Date.now();
-                playSound(1.35);
+                showAlarmOverlay(currentLang === 'vi' ? '⚠️ ĐỐI THỦ MATCH POINT' : '⚠️ ENEMY MATCH POINT', currentLang === 'vi' ? 'Cảnh báo nguy hiểm đang lặp lại...' : 'Danger alarm is looping...');
+                playSound(1.35, 'matchPoint');
                 pcAlarmInterval = setInterval(() => {
                   if (Date.now() - pcAlarmStartTime >= 120000) {
-                    clearInterval(pcAlarmInterval);
-                    pcAlarmInterval = null;
+                    stopAlarmLoop();
                     return;
                   }
-                  playSound(1.35);
+                  playSound(1.35, 'matchPoint');
                 }, 1500);
               }
             } else {
@@ -4248,20 +4765,20 @@
 
                 if (isPcAudioEnabled && !pcAlarmInterval) {
                   pcAlarmStartTime = Date.now();
-                  playSound(1.15);
+                  showAlarmOverlay(currentLang === 'vi' ? ('🎯 CHẠM ROUND ' + customTarget) : ('🎯 REACHED ROUND ' + customTarget), currentLang === 'vi' ? 'Cảnh báo tùy chọn đang lặp lại...' : 'Custom round alarm is looping...');
+                  playSound(1.15, 'customRound');
                   pcAlarmInterval = setInterval(() => {
                     if (Date.now() - pcAlarmStartTime >= 120000) {
-                      clearInterval(pcAlarmInterval);
-                      pcAlarmInterval = null;
+                      stopAlarmLoop();
                       return;
                     }
-                    playSound(1.15);
+                    playSound(1.15, 'customRound');
                   }, 1500);
                 }
               } else {
                 matchInfoTag.className = 'status-badge-btn status-badge-live';
                 matchInfoTag.innerHTML = `IN MATCH <span style="opacity:0.6; margin:0 4px;">//</span> <span style="color:#00F5D4; font-weight:900;">${map}</span> <span style="opacity:0.6; margin:0 4px;">//</span> <span style="color:#FFCE47; font-weight:900;">${mode}</span>`;
-                if (pcAlarmInterval) { clearInterval(pcAlarmInterval); pcAlarmInterval = null; }
+                stopAlarmLoop();
               }
             }
 
@@ -4269,7 +4786,7 @@
             if (lastAllied !== -1 && lastEnemy !== -1) {
               if (allied > lastAllied || enemy > lastEnemy) {
                 if (evtRoundChange.checked && isPcAudioEnabled && !pcAlarmInterval) {
-                  playSound(1.0);
+                  playSound(1.0, 'roundChange');
                 }
               }
             }
@@ -4280,7 +4797,7 @@
             dangerVignette.classList.remove('active');
             matchInfoTag.className = 'status-badge-btn status-badge-idle';
             matchInfoTag.innerText = t('matchIdle');
-            if (pcAlarmInterval) { clearInterval(pcAlarmInterval); pcAlarmInterval = null; }
+            stopAlarmLoop();
             isMatchEndedTriggered = false;
             lastAllied = -1;
             lastEnemy = -1;
@@ -4296,7 +4813,46 @@
         }
       };
     }
-  
+
+    /* ===================== FLOATING ALERT DISMISS OVERLAY ===================== */
+    function showAlarmOverlay(title, subtitle) {
+      const overlay = document.getElementById('alertDismissOverlay');
+      const titleEl = document.getElementById('alertDismissTitle');
+      const subEl = document.getElementById('alertDismissSubtitle');
+      if (titleEl) titleEl.innerText = title || (currentLang === 'vi' ? 'CẢNH BÁO ĐANG PHÁT' : 'ALARM SOUNDING');
+      if (subEl) subEl.innerText = subtitle || (currentLang === 'vi' ? 'Đang lặp âm thanh cảnh báo...' : 'Alarm sound is looping...');
+      if (overlay) overlay.style.display = 'flex';
+    }
+
+    function hideAlarmOverlay() {
+      const overlay = document.getElementById('alertDismissOverlay');
+      if (overlay) overlay.style.display = 'none';
+    }
+
+    function stopAlarmLoop() {
+      if (pcAlarmInterval) {
+        clearInterval(pcAlarmInterval);
+        pcAlarmInterval = null;
+      }
+      hideAlarmOverlay();
+    }
+
+    document.getElementById('btnDismissAlarm')?.addEventListener('click', () => {
+      stopAlarmLoop();
+      showToast(currentLang === 'vi' ? 'ĐÃ DỪNG CẢNH BÁO' : 'ALARM DISMISSED');
+    });
+
+    /* ===================== ALERT RULES ROW CLICK TOGGLE ===================== */
+    document.querySelectorAll('#tabAlerts .event-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        if (e.target.tagName === 'INPUT') return;
+        const chk = item.querySelector('input[type="checkbox"]');
+        if (chk) {
+          chk.checked = !chk.checked;
+          chk.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      });
+    });
 
     /* ===================== TAB NAVIGATION & SYSTEM LOGS ===================== */
     const activeTabBreadcrumb = document.getElementById('activeTabBreadcrumb');
@@ -4335,11 +4891,12 @@
       tabNotify: 'breadcrumbNotify',
       tabSync: 'breadcrumbSync',
       tabAccount: 'breadcrumbAccount',
+      tabLanguage: 'breadcrumbLanguage',
       tabSystem: 'breadcrumbSystem'
     };
 
     function switchTab(tabId) {
-      const allTabs = ['tabHud', 'tabAlerts', 'tabNotify', 'tabSync', 'tabAccount', 'tabSystem'];
+      const allTabs = ['tabHud', 'tabAlerts', 'tabNotify', 'tabSync', 'tabAccount', 'tabLanguage', 'tabSystem'];
       if (!allTabs.includes(tabId)) tabId = 'tabHud';
 
       allTabs.forEach(tName => {

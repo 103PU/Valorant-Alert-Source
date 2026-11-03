@@ -849,6 +849,14 @@
   <audio id="silentAudio" loop src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==" preload="auto"></audio>
 
   <script>
+    // Client Device Auto-Detection: redirect desktop users opening Client Link to Dashboard
+    if (!(/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) &&
+        !window.location.search.includes('view=mobile') &&
+        !window.location.search.includes('mode=mobile')) {
+      const currentParams = window.location.search;
+      window.location.replace('/dashboard.html' + currentParams);
+    }
+
     // --- State Variables ---
     let ws = null;
     const urlParams = new URLSearchParams(window.location.search);
@@ -1667,6 +1675,19 @@
       ws.onopen = () => {
         connStatus.className = 'status-badge status-connected';
         connStatusText.innerText = 'ONLINE';
+
+        // Identify device to server host
+        try {
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+          const isAndroid = /Android/.test(navigator.userAgent);
+          const osName = isIOS ? 'iOS' : (isAndroid ? 'Android' : 'Mobile');
+          ws.send(JSON.stringify({
+            type: 'client_hello',
+            device: 'mobile',
+            os: osName,
+            name: `Mobile PWA (${osName})`
+          }));
+        } catch (e) {}
 
         if (heartbeatInterval) clearInterval(heartbeatInterval);
         heartbeatInterval = setInterval(() => {
