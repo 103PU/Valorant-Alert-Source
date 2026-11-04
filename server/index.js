@@ -134,6 +134,9 @@ const cloudRelay = new CloudRelay({
   isEntitled: () => licensing.isServiceEntitled('cloud_relay')
 });
 
+const { MobileEvents } = require('./core/mobile-events');
+const mobileEvents = new MobileEvents(licensing.cfg.appDataDir);
+
 const authToken = wsServer.getToken();
 const fullAppUrl = `${publicUrl || `http://${lanIp}:${PORT}`}?token=${authToken}`;
 const dashboardUrl = `http://localhost:${PORT}/dashboard.html?token=${authToken}`;
@@ -157,6 +160,7 @@ server.on('request', appHandler);
 
 // Initialize Core Score Poller
 poller = new ScorePoller(config, (scoreData) => {
+  scoreData = mobileEvents.update(scoreData);
   wsServer.broadcastScore(scoreData);
   cloudRelay.broadcastScore(scoreData);
 

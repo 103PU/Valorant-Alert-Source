@@ -2093,6 +2093,15 @@
                     <button id="btnCopyLaptop" style="display: none;"></button>
                   </div>
                 </div>
+
+                <div style="margin-top: 14px; border-top: 1px solid var(--val-border); padding-top: 14px;">
+                  <button id="btnPairIphone" class="val-btn val-btn-cyan val-btn-sm" type="button">Ghép iPhone</button>
+                  <div id="iphonePairResult" style="display: none; margin-top: 12px;">
+                    <img id="iphonePairQr" alt="Mã QR ghép iPhone, hiệu lực 5 phút" width="180" height="180">
+                    <p>PIN: <strong id="iphonePairPin"></strong></p>
+                    <p id="iphonePairExpiry" style="font-size: 0.8rem; opacity: 0.7;"></p>
+                  </div>
+                </div>
               </div>
 
               <!-- Remote Guidance Card -->
@@ -2552,6 +2561,14 @@
     const volSlider = document.getElementById('volSlider');
     const volValue = document.getElementById('volValue');
     const btnMiniPip = document.getElementById('btnMiniPip');
+    const btnModeLan = document.getElementById('btnModeLan');
+    const btnModeCloud = document.getElementById('btnModeCloud');
+    const syncModeTag = document.getElementById('syncModeTag');
+    const syncStatusLabel = document.getElementById('syncStatusLabel');
+    const tokenDisplay = document.getElementById('tokenDisplay');
+    const lanDashboardInput = document.getElementById('lanDashboardInput');
+    const clientUrlInput = document.getElementById('clientUrlInput');
+    const btnCopyClient = document.getElementById('btnCopyClient');
 
     // Authentication & Modal Elements
     const loginModal = document.getElementById('loginModal');
@@ -3093,6 +3110,43 @@
       }
     }
 
+    function switchSyncMode(mode) {
+      if (mode === 'cloud' && typeof canUseService === 'function' && !canUseService('cloud_relay')) {
+        showToast(currentLang === 'vi' ? '⚠️ Cloud Relay / Mobile PWA chỉ hỗ trợ gói ULTRA. Vui lòng nâng cấp gói!' : '⚠️ Cloud Relay / Mobile PWA requires ULTRA plan. Please upgrade!');
+        mode = 'lan';
+      }
+      activeSyncMode = mode;
+      if (mode === 'cloud') {
+        if (btnModeCloud) btnModeCloud.className = 'val-btn val-btn-sm val-btn-cyan';
+        if (btnModeLan) btnModeLan.className = 'val-btn val-btn-outline val-btn-sm';
+        if (syncModeTag) {
+          syncModeTag.innerText = '[ ☁️ CLOUD_RELAY ]';
+          syncModeTag.style.color = 'var(--val-cyan)';
+        }
+        if (syncStatusLabel) syncStatusLabel.innerText = 'CLOUD SYNC:';
+        if (tokenDisplay) tokenDisplay.innerText = cloudRelayUrl ? 'SYNCED' : 'LOGIN TO SYNC';
+        if (clientUrlInput) clientUrlInput.value = cloudRelayUrl || (currentLang === 'vi' ? 'Đăng nhập Google để bật Cloud Relay' : 'Sign in with Google to enable Cloud Relay');
+        if (lanUrlInput) lanUrlInput.value = cloudRelayUrl || (currentLang === 'vi' ? 'Đăng nhập Google để bật Cloud Relay' : 'Sign in with Google to enable Cloud Relay');
+        if (lanDashboardInput) lanDashboardInput.value = cloudRelayUrl || (currentLang === 'vi' ? 'Đăng nhập Google để bật Cloud Relay' : 'Sign in with Google to enable Cloud Relay');
+        if (qrImg) qrImg.src = '/api/qr?type=cloud&t=' + Date.now();
+        if (btnCopy) btnCopy.innerText = '📋 CLIENT LINK';
+      } else {
+        if (btnModeLan) btnModeLan.className = 'val-btn val-btn-sm';
+        if (btnModeCloud) btnModeCloud.className = 'val-btn val-btn-outline val-btn-sm';
+        if (syncModeTag) {
+          syncModeTag.innerText = '[ LAN_CONNECT ]';
+          syncModeTag.style.color = '';
+        }
+        if (syncStatusLabel) syncStatusLabel.innerText = t('pinLabel');
+        if (tokenDisplay) tokenDisplay.innerText = currentAuthToken;
+        if (clientUrlInput) clientUrlInput.value = fullLanDashboardUrl;
+        if (lanUrlInput) lanUrlInput.value = fullLanUrl;
+        if (lanDashboardInput) lanDashboardInput.value = fullLanDashboardUrl;
+        if (qrImg) qrImg.src = '/api/qr?t=' + Date.now();
+        if (btnCopy) btnCopy.innerText = '📋 CLIENT LINK';
+      }
+    }
+
     /* ===================== SETTINGS PERSISTENCE ENGINE ===================== */
     let saveSettingsDebounceTimer = null;
 
@@ -3254,7 +3308,7 @@
       setTimeout(() => { valToast.style.display = 'none'; }, 3000);
     }
 
-    btnCopy.addEventListener('click', () => {
+    btnCopy?.addEventListener('click', () => {
       const urlToCopy = (typeof activeSyncMode !== 'undefined' && activeSyncMode === 'cloud' && cloudRelayUrl) ? cloudRelayUrl : fullLanUrl;
       if (urlToCopy) {
         navigator.clipboard.writeText(urlToCopy);
@@ -3262,7 +3316,24 @@
       }
     });
 
-    btnShortcut.addEventListener('click', () => {
+    document.getElementById('btnPairIphone')?.addEventListener('click', async () => {
+      const button = document.getElementById('btnPairIphone');
+      const panel = document.getElementById('iphonePairResult');
+      button.disabled = true;
+      try {
+        const result = await licApi('mobile-pair', 'POST');
+        document.getElementById('iphonePairQr').src = result.qrDataURL;
+        document.getElementById('iphonePairPin').textContent = result.pinCode;
+        document.getElementById('iphonePairExpiry').textContent = `Hết hạn: ${new Date(result.expiresAt).toLocaleTimeString()}`;
+        panel.style.display = 'block';
+      } catch (error) {
+        showToast(error.message || 'Không tạo được mã ghép iPhone');
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    btnShortcut?.addEventListener('click', () => {
       fetch('/api/create-shortcut', { method: 'POST' }).then(res => res.json()).then(data => {
         showToast(data.message || t('toastShortcutCreated'));
       }).catch(err => {
@@ -3663,9 +3734,7 @@
       window.open(window.location.href, 'ValMiniHud', 'width=340,height=220,menubar=no,toolbar=no,location=no');
     });
 
-    const lanDashboardInput = document.getElementById('lanDashboardInput');
     const btnCopyLaptop = document.getElementById('btnCopyLaptop');
-    const tokenDisplay = document.getElementById('tokenDisplay');
     const btnCopyToken = document.getElementById('btnCopyToken');
     const urlParams = new URLSearchParams(window.location.search);
     fullLanDashboardUrl = '';
@@ -3678,7 +3747,7 @@
       }
     });
 
-    btnCopyLaptop.addEventListener('click', () => {
+    btnCopyLaptop?.addEventListener('click', () => {
       const laptopUrlToCopy = (typeof activeSyncMode !== 'undefined' && activeSyncMode === 'cloud' && cloudRelayUrl) ? cloudRelayUrl : fullLanDashboardUrl;
       if (laptopUrlToCopy) {
         navigator.clipboard.writeText(laptopUrlToCopy);
@@ -3806,51 +3875,6 @@
     });
 
     // Connection Mode Switcher (Cloud Relay Primary vs LAN Alternative)
-    const btnModeLan = document.getElementById('btnModeLan');
-    const btnModeCloud = document.getElementById('btnModeCloud');
-    const syncModeTag = document.getElementById('syncModeTag');
-    const syncStatusLabel = document.getElementById('syncStatusLabel');
-
-    function switchSyncMode(mode) {
-      if (mode === 'cloud' && !canUseService('cloud_relay')) {
-        showToast(currentLang === 'vi' ? '⚠️ Cloud Relay / Mobile PWA chỉ hỗ trợ gói ULTRA. Vui lòng nâng cấp gói!' : '⚠️ Cloud Relay / Mobile PWA requires ULTRA plan. Please upgrade!');
-        mode = 'lan';
-      }
-      activeSyncMode = mode;
-      if (mode === 'cloud') {
-        if (btnModeCloud) btnModeCloud.className = 'val-btn val-btn-sm val-btn-cyan';
-        if (btnModeLan) btnModeLan.className = 'val-btn val-btn-outline val-btn-sm';
-        if (syncModeTag) {
-          syncModeTag.innerText = '[ ☁️ CLOUD_RELAY ]';
-          syncModeTag.style.color = 'var(--val-cyan)';
-        }
-        if (syncStatusLabel) syncStatusLabel.innerText = 'CLOUD SYNC:';
-        if (tokenDisplay) tokenDisplay.innerText = cloudRelayUrl ? 'SYNCED' : 'LOGIN TO SYNC';
-        if (clientUrlInput) clientUrlInput.value = cloudRelayUrl || (currentLang === 'vi' ? 'Đăng nhập Google để bật Cloud Relay' : 'Sign in with Google to enable Cloud Relay');
-        if (lanUrlInput) lanUrlInput.value = cloudRelayUrl || (currentLang === 'vi' ? 'Đăng nhập Google để bật Cloud Relay' : 'Sign in with Google to enable Cloud Relay');
-        if (lanDashboardInput) lanDashboardInput.value = cloudRelayUrl || (currentLang === 'vi' ? 'Đăng nhập Google để bật Cloud Relay' : 'Sign in with Google to enable Cloud Relay');
-        if (qrImg) qrImg.src = '/api/qr?type=cloud&t=' + Date.now();
-        if (btnCopy) btnCopy.innerText = '📋 CLIENT LINK';
-      } else {
-        if (btnModeLan) btnModeLan.className = 'val-btn val-btn-sm';
-        if (btnModeCloud) btnModeCloud.className = 'val-btn val-btn-outline val-btn-sm';
-        if (syncModeTag) {
-          syncModeTag.innerText = '[ LAN_CONNECT ]';
-          syncModeTag.style.color = '';
-        }
-        if (syncStatusLabel) syncStatusLabel.innerText = t('pinLabel');
-        if (tokenDisplay) tokenDisplay.innerText = currentAuthToken;
-        if (clientUrlInput) clientUrlInput.value = fullLanDashboardUrl;
-        if (lanUrlInput) lanUrlInput.value = fullLanUrl;
-        if (lanDashboardInput) lanDashboardInput.value = fullLanDashboardUrl;
-        if (qrImg) qrImg.src = '/api/qr?t=' + Date.now();
-        if (btnCopy) btnCopy.innerText = '📋 CLIENT LINK';
-      }
-    }
-
-    const clientUrlInput = document.getElementById('clientUrlInput');
-    const btnCopyClient = document.getElementById('btnCopyClient');
-
     btnCopyClient?.addEventListener('click', () => {
       const urlToCopy = clientUrlInput ? clientUrlInput.value : '';
       if (urlToCopy) {

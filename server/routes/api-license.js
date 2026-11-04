@@ -1,4 +1,5 @@
 const logger = require('../utils/logger');
+const QRCode = require('qrcode');
 
 // Licensing endpoints for both UIs.
 //
@@ -92,6 +93,30 @@ async function handleApiLicense(req, res, { licensing, wsServer }) {
       // not be able to make the entitlement snapshot look degraded.
       case 'app-version':
         return sendJson(res, 200, await licensing.checkAppVersion());
+
+      case 'mobile-pair': {
+        if (!requirePost() || !requireLocal()) return;
+        if (!licensing.isServiceEntitled('score_hud') || !licensing.isServiceEntitled('cloud_relay')) {
+          return sendJson(res, 403, { ok: false, error: 'mobile_entitlement_required' });
+        }
+        const jwt = licensing.store?.getJwt();
+        if (!jwt) return sendJson(res, 401, { ok: false, error: 'login_required' });
+        const pair = await licensing.kld.request('/api/relays/pair/code', {
+          method: 'POST', jwt, json: { productId: licensing.cfg.productId }
+        });
+        const qr = JSON.stringify({
+          version: 2,
+          kldBaseURL: licensing.cfg.baseUrl,
+          pairingId: pair.pairingId,
+          pinCode: pair.pinCode
+        });
+        return sendJson(res, 200, {
+          ok: true,
+          pinCode: pair.pinCode,
+          expiresAt: pair.expiresAt,
+          qrDataURL: await QRCode.toDataURL(qr, { margin: 1, width: 280 })
+        });
+      }
 
       // Downloads and installs the update. POST because it starts work, and
       // requireLocal() because it ends by executing a program: a phone on the LAN

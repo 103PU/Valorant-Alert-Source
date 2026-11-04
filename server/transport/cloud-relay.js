@@ -92,7 +92,7 @@ class CloudRelay {
     this.lastPushTime = now;
     this.lastPayloadHash = payloadHash;
 
-    const matchId = scoreData.matchId || scoreData.id || `match-${session.user.id}`;
+    const matchId = scoreData.matchInstanceId || scoreData.matchId || scoreData.id || `match-${session.user.id}`;
     const scoreObj = {
       teamA: scoreData.alliedScore ?? 0,
       teamB: scoreData.enemyScore ?? 0,
@@ -103,7 +103,12 @@ class CloudRelay {
       status: scoreData.status || (scoreData.inGame ? 'IN_MATCH' : 'NO_MATCH'),
       inGame: Boolean(scoreData.inGame),
       bombPlanted: Boolean(scoreData.bombPlanted),
-      mapName: scoreData.mapName || ''
+      mapName: scoreData.mapName || '',
+      gameMode: scoreData.gameMode || '',
+      matchInstanceId: scoreData.matchInstanceId || null,
+      sequence: scoreData.sequence || null,
+      events: scoreData.events || [],
+      schemaVersion: scoreData.schemaVersion || 1
     };
 
     const payload = {

@@ -12,6 +12,8 @@ schema hoặc migration.
    kiểm soát truy cập hoặc quan hệ với Riot/KLD/GitHub.
 3. Dùng [Dựng, kiểm thử và phát hành](rebuild-release.md) để clone, chạy, test,
    đóng gói và chẩn đoán.
+4. iOS companion có codebase riêng tại `E:\PROJECT\Valorant-Alert-Mobile`;
+   tài liệu chuẩn: `docs/architecture.md` trong repository đó.
 
 ### Sơ đồ tổng quan
 
