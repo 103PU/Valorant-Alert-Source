@@ -13,8 +13,8 @@ Node server listen trên `0.0.0.0:<port>` (mặc định `3000`) và dispatch tr
 | Method / path | Caller | Auth/guard | Hành vi |
 |---|---|---|---|
 | `GET /` và static files | Browser | Static handler không kiểm tra route token | Serve `public/index.html`, dashboard và assets. Path được decode/normalize, kiểm tra nằm trong `publicDir`; hỗ trợ ETag và gzip. |
-| `GET /api/info` | Dashboard/PWA | Không yêu cầu route token | Trả port/IP, share token, URLs, relay status, entitlement summary, settings và Riot metadata. Response nhạy cảm vì có share token. |
-| `GET /api/qr?type=lan\|cloud` | Dashboard | Không yêu cầu route token | Sinh PNG QR chứa URL và share token; chọn cloud nếu có, nếu không dùng LAN. |
+| `GET /api/info` | Dashboard/PWA | Loopback hoặc share token trong query | Trả port/IP, share token, URLs, relay status, entitlement summary, settings và Riot metadata. Response nhạy cảm vì có share token. |
+| `GET /api/qr?type=lan\|cloud` | Dashboard | Loopback hoặc share token trong query | Sinh PNG QR chứa URL và share token; chọn cloud nếu có, nếu không dùng LAN. |
 | `GET /api/settings` | Dashboard | Loopback caller được phép không token; caller khác cần share token | Đọc settings đã merge với defaults. |
 | `POST /api/settings` | Dashboard | Loopback caller được phép không token; caller khác cần share token; không có loopback-only restriction | Parse JSON body có giới hạn và merge vào `%APPDATA%\ValorantAlert\settings.json`. Route/test settings hiện chưa commit. |
 | `POST /api/create-shortcut` | Dashboard | Không yêu cầu route token hoặc loopback trong handler | Chạy `Create-Desktop-Shortcut.vbs` bằng `cscript`; chỉ có method check. |
@@ -26,8 +26,8 @@ Node server listen trên `0.0.0.0:<port>` (mặc định `3000`) và dispatch tr
 | `GET /api/license/update/state?token=<share-pin>` | Dashboard/PWA | Share token | Đọc stage/progress; không khởi động thay đổi. |
 
 `server/routes/api-license.js` áp method/caller guard theo action. `/api/info`,
-`/api/qr` và `/api/create-shortcut` không có route-token guard trong dispatch hiện
-được khảo sát. `/api/settings` cho loopback caller bỏ qua token, còn remote caller
+`/api/create-shortcut` không có route-token guard trong dispatch hiện
+được khảo sát. `/api/info` và `/api/qr` từ LAN cần token; dashboard loopback tiếp tục đọc được. `/api/settings` cho loopback caller bỏ qua token, còn remote caller
 cần token nhưng không bị giới hạn loopback. Server bind mọi interface; đây là
 description của source, không phải security audit hay khuyến nghị cấu hình. Không
 đưa PIN, response `/api/info`, QR hoặc URL chứa token cho thiết bị không tin cậy.

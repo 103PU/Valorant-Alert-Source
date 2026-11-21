@@ -11,8 +11,20 @@ End If
 ' Set working directory to project root
 WshShell.CurrentDirectory = strRootDir
 
-' 1. Clean up old processes on port 3000
-WshShell.Run "cmd /c for /f ""tokens=5"" %a in ('netstat -aon ^| findstr :3000 ^| findstr LISTENING') do taskkill /f /pid %a", 0, True
+' 1. Clean up old processes on configured port (default 3000)
+strPort = "3000"
+If fso.FileExists(strRootDir & "\config.json") Then
+    On Error Resume Next
+    Set cfgFile = fso.OpenTextFile(strRootDir & "\config.json", 1)
+    strCfg = cfgFile.ReadAll
+    cfgFile.Close
+    Set rePort = New RegExp
+    rePort.Pattern = """port""\s*:\s*(\d+)"
+    Set mPort = rePort.Execute(strCfg)
+    If mPort.Count > 0 Then strPort = mPort(0).SubMatches(0)
+    On Error GoTo 0
+End If
+WshShell.Run "cmd /c for /f ""tokens=5"" %a in ('netstat -aon ^| findstr /R /C:"":" & strPort & " "" ^| findstr LISTENING') do taskkill /f /pid %a", 0, True
 
 ' 2. Ensure Desktop Shortcut exists and points to correct path (Windowless)
 strDesktop = WshShell.SpecialFolders("Desktop")

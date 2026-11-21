@@ -123,6 +123,29 @@ test('CloudRelay: handles network errors gracefully without crashing', async () 
   assert.strictEqual(relay.lastError, 'Network timeout');
 });
 
+test('CloudRelay: sends events queued during an in-flight snapshot', async () => {
+  const sent = [];
+  let releaseFirst;
+  const first = new Promise(resolve => { releaseFirst = resolve; });
+  const relay = new CloudRelay({
+    isEntitled: () => true,
+    getSession: () => ({ jwt: 'jwt', user: { id: 'u1' } }),
+    fetchFn: async (_url, options) => {
+      sent.push(JSON.parse(options.body));
+      if (sent.length === 1) await first;
+      return { ok: true };
+    }
+  });
+  const inFlight = relay.broadcastScore({ inGame: true, alliedScore: 1, enemyScore: 0, events: [] });
+  await relay.broadcastScore({ inGame: true, alliedScore: 2, enemyScore: 0, events: [{ id: 'event-1' }] });
+  releaseFirst();
+  await inFlight;
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(sent.length, 2);
+  assert.equal(sent[1].alliedScore, 2);
+  assert.equal(sent[1].events[0].id, 'event-1');
+});
+
 test('CloudRelay: getRelayWebUrl generates proper url with userId', () => {
   const relay = new CloudRelay({
     webBaseUrl: 'https://my-alert.pages.dev',

@@ -3,6 +3,14 @@ const { getRegionInfo } = require('../riot/riot-region');
 const { loadSettings } = require('./api-settings');
 
 function handleApiInfo(req, res, { wsServer, cloudRelay, lanIp, port, publicUrl, licensing }) {
+  const remoteAddress = req.socket && req.socket.remoteAddress;
+  const host = (req.headers?.host || '').replace(/:\d+$/, '').toLowerCase();
+  const isLoopback = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(remoteAddress) && ['localhost', '127.0.0.1', '[::1]'].includes(host);
+  if (!isLoopback && new URL(req.url, 'http://localhost').searchParams.get('token') !== wsServer.getToken()) {
+    res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ ok: false, error: 'invalid_token' }));
+    return;
+  }
   const token = wsServer.getToken();
   const lockfile = readLockfile();
   const regionInfo = getRegionInfo();

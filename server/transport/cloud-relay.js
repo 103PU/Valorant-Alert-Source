@@ -16,10 +16,12 @@ class CloudRelay {
 
     this.lastSyncAt = null;
     this.lastError = null;
+    this.authExpired = false;
     this.connected = false;
     this.lastPayloadHash = null;
     this.lastPushTime = 0;
     this.inFlight = false;
+    this.pendingScore = null;
   }
 
   isEnabled() {
@@ -39,6 +41,7 @@ class CloudRelay {
       enabled: this.enabled,
       entitled,
       connected: this.connected,
+      authExpired: this.authExpired,
       lastSyncAt: this.lastSyncAt,
       lastError: this.lastError,
       user: user ? { id: user.id, email: user.email, name: user.name } : null,
@@ -62,7 +65,7 @@ class CloudRelay {
     return url;
   }
 
-  async broadcastScore(scoreData) {
+  async broadcastScore(scoreData, retry = 0) {
     if (!this.enabled || !scoreData) return;
 
     if (!this.isEntitled()) {
@@ -77,14 +80,17 @@ class CloudRelay {
     const now = Date.now();
     const payloadHash = `${scoreData.inGame}:${scoreData.alliedScore}:${scoreData.enemyScore}:${scoreData.status}:${scoreData.round}:${scoreData.mapName}`;
     const isStateChange = this.lastPayloadHash !== payloadHash;
+    const hasEvents = Array.isArray(scoreData.events) && scoreData.events.length > 0;
 
     // Skip if throttled or if player is idle in lobby and state hasn't changed
-    if (!isStateChange && (!scoreData.inGame || (now - this.lastPushTime < this.minIntervalMs))) {
+    if (!isStateChange && !hasEvents && (now - this.lastPushTime < (scoreData.inGame ? this.minIntervalMs : 20_000))) {
       return;
     }
 
     // Skip concurrent requests to avoid piling up
     if (this.inFlight) {
+      const events = [...(this.pendingScore?.events || []), ...(scoreData.events || [])];
+      this.pendingScore = { ...scoreData, events: [...new Map(events.map(event => [event.id, event])).values()] };
       return;
     }
 
@@ -155,9 +161,20 @@ class CloudRelay {
         const text = await (res.text ? res.text().catch(() => '') : Promise.resolve(''));
         this.lastError = `HTTP ${res.status}: ${text || res.statusText || 'Error'}`;
         this.connected = false;
-        logger.debug(`[CloudRelay] Push returned status ${res.status}`);
+        if (res.status === 401 || res.status === 403) {
+          if (!this.authExpired) {
+            logger.warn(`[CloudRelay] Auth rejected (HTTP ${res.status}). Google session expired — please sign in again to resume Cloud Relay.`);
+          }
+          this.authExpired = true;
+        } else {
+          logger.debug(`[CloudRelay] Push returned status ${res.status}`);
+        }
+        if (hasEvents && retry < 2 && res.status >= 500) {
+          setTimeout(() => this.broadcastScore(scoreData, retry + 1), 1000);
+        }
       } else {
         this.connected = true;
+        this.authExpired = false;
         this.lastSyncAt = Date.now();
         this.lastError = null;
         if (isStateChange && scoreData.inGame) {
@@ -168,8 +185,16 @@ class CloudRelay {
       this.connected = false;
       this.lastError = err.message;
       logger.debug(`[CloudRelay] Push failed: ${err.message}`);
+      if (hasEvents && retry < 2) {
+        setTimeout(() => this.broadcastScore(scoreData, retry + 1), 1000);
+      }
     } finally {
       this.inFlight = false;
+      if (this.pendingScore) {
+        const pending = this.pendingScore;
+        this.pendingScore = null;
+        queueMicrotask(() => this.broadcastScore(pending));
+      }
     }
   }
 }

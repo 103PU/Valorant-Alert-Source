@@ -1649,7 +1649,7 @@
           </button>
 
           <div class="sidebar-footer">
-            <div class="sidebar-version-badge" id="sidebarVersionBadge">v1.0.10</div>
+            <div class="sidebar-version-badge" id="sidebarVersionBadge">v1.0.11</div>
           </div>
         </aside>
 
@@ -2068,7 +2068,7 @@
 
                 <div class="qr-box-wrapper" style="align-items: flex-start; margin-top: 0;">
                   <div class="qr-frame">
-                    <img id="qrImg" src="/api/qr?type=cloud" alt="QR Code">
+                    <img id="qrImg" alt="QR Code">
                   </div>
 
                   <div class="qr-details" style="gap: 8px;">
@@ -2630,9 +2630,11 @@
 
     let fullLanUrl = '';
     let fullLanDashboardUrl = '';
-    let currentAuthToken = '';
+    let currentAuthToken = new URLSearchParams(window.location.search).get('token') || '';
     let activeSyncMode = 'cloud';
     let cloudRelayUrl = '';
+    let cloudRelayAuthExpired = false;
+    let licCheckPollTimer = null;
     let audioCtx = null;
     let masterGainNode = null;
     let isPcAudioEnabled = true;
@@ -3124,11 +3126,14 @@
           syncModeTag.style.color = 'var(--val-cyan)';
         }
         if (syncStatusLabel) syncStatusLabel.innerText = 'CLOUD SYNC:';
-        if (tokenDisplay) tokenDisplay.innerText = cloudRelayUrl ? 'SYNCED' : 'LOGIN TO SYNC';
-        if (clientUrlInput) clientUrlInput.value = cloudRelayUrl || (currentLang === 'vi' ? 'Đăng nhập Google để bật Cloud Relay' : 'Sign in with Google to enable Cloud Relay');
-        if (lanUrlInput) lanUrlInput.value = cloudRelayUrl || (currentLang === 'vi' ? 'Đăng nhập Google để bật Cloud Relay' : 'Sign in with Google to enable Cloud Relay');
-        if (lanDashboardInput) lanDashboardInput.value = cloudRelayUrl || (currentLang === 'vi' ? 'Đăng nhập Google để bật Cloud Relay' : 'Sign in with Google to enable Cloud Relay');
-        if (qrImg) qrImg.src = '/api/qr?type=cloud&t=' + Date.now();
+        if (tokenDisplay) tokenDisplay.innerText = cloudRelayAuthExpired ? 'RE-LOGIN' : (cloudRelayUrl ? 'SYNCED' : 'LOGIN TO SYNC');
+        const cloudFallbackMsg = cloudRelayAuthExpired
+          ? (currentLang === 'vi' ? 'Phiên Google đã hết hạn — đăng nhập lại để đồng bộ Cloud Relay' : 'Google session expired — sign in again to sync Cloud Relay')
+          : (currentLang === 'vi' ? 'Đăng nhập Google để bật Cloud Relay' : 'Sign in with Google to enable Cloud Relay');
+        if (clientUrlInput) clientUrlInput.value = cloudRelayAuthExpired ? cloudFallbackMsg : (cloudRelayUrl || cloudFallbackMsg);
+        if (lanUrlInput) lanUrlInput.value = cloudRelayAuthExpired ? cloudFallbackMsg : (cloudRelayUrl || cloudFallbackMsg);
+        if (lanDashboardInput) lanDashboardInput.value = cloudRelayAuthExpired ? cloudFallbackMsg : (cloudRelayUrl || cloudFallbackMsg);
+        if (qrImg && currentAuthToken) qrImg.src = '/api/qr?type=cloud&t=' + Date.now() + '&token=' + encodeURIComponent(currentAuthToken);
         if (btnCopy) btnCopy.innerText = '📋 CLIENT LINK';
       } else {
         if (btnModeLan) btnModeLan.className = 'val-btn val-btn-sm';
@@ -3142,7 +3147,7 @@
         if (clientUrlInput) clientUrlInput.value = fullLanDashboardUrl;
         if (lanUrlInput) lanUrlInput.value = fullLanUrl;
         if (lanDashboardInput) lanDashboardInput.value = fullLanDashboardUrl;
-        if (qrImg) qrImg.src = '/api/qr?t=' + Date.now();
+        if (qrImg && currentAuthToken) qrImg.src = '/api/qr?type=lan&t=' + Date.now() + '&token=' + encodeURIComponent(currentAuthToken);
         if (btnCopy) btnCopy.innerText = '📋 CLIENT LINK';
       }
     }
@@ -3738,7 +3743,7 @@
     const btnCopyToken = document.getElementById('btnCopyToken');
     const urlParams = new URLSearchParams(window.location.search);
     fullLanDashboardUrl = '';
-    currentAuthToken = urlParams.get('token') || '';
+    currentAuthToken = currentAuthToken || urlParams.get('token') || '';
 
     btnCopyToken.addEventListener('click', () => {
       if (currentAuthToken) {
@@ -3816,63 +3821,81 @@
       }
     });
 
-    // Fetch System Info & Setup WS
-    fetch('/api/info').then(res => res.json()).then(info => {
-      try {
-        fullLanUrl = info.lanMobileUrl || info.lanUrl || '';
-        fullLanDashboardUrl = info.lanDashboardUrl || info.dashboardUrl || '';
-        currentAuthToken = info.token || '';
+    // Fetch System Info & Setup WS (with automatic retry if server is still warming up)
+    let infoRetryCount = 0;
+    function bootstrapDashboardInfo() {
+      fetch('/api/info?token=' + encodeURIComponent(currentAuthToken)).then(res => {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      }).then(info => {
+        infoRetryCount = 0;
+        try {
+          fullLanUrl = info.lanMobileUrl || info.lanUrl || '';
+          fullLanDashboardUrl = info.lanDashboardUrl || info.dashboardUrl || '';
+          currentAuthToken = info.token || currentAuthToken;
 
-        if (lanUrlInput) lanUrlInput.value = fullLanUrl;
-        if (lanDashboardInput) lanDashboardInput.value = fullLanDashboardUrl;
-        if (tokenDisplay) tokenDisplay.innerText = currentAuthToken;
-        if (qrImg) qrImg.src = '/api/qr?t=' + Date.now();
-        if (info.devices) {
-          renderConnectedDevices(info.devices);
-        }
-        if (clientUrlInput) {
-          clientUrlInput.value = (activeSyncMode === 'cloud' && cloudRelayUrl) ? cloudRelayUrl : fullLanDashboardUrl;
-        }
-        if (info.appVersion) {
-          const badge = document.getElementById('sidebarVersionBadge');
-          if (badge) badge.innerText = 'v' + info.appVersion;
-        }
-
-        if (riotStatusVal) {
-          if (info.riotConnected) {
-            riotStatusVal.innerHTML = `<span style="color:var(--val-cyan)">●</span> ${(info.region || 'RIOT').toUpperCase()} (${info.shard || 'live'})`;
-          } else {
-            riotStatusVal.innerHTML = `<span style="color:var(--val-red)">●</span> OFFLINE`;
+          if (lanUrlInput) lanUrlInput.value = fullLanUrl;
+          if (lanDashboardInput) lanDashboardInput.value = fullLanDashboardUrl;
+          if (tokenDisplay) tokenDisplay.innerText = currentAuthToken;
+          if (info.devices) {
+            renderConnectedDevices(info.devices);
           }
-        }
+          if (info.appVersion) {
+            const badge = document.getElementById('sidebarVersionBadge');
+            if (badge) badge.innerText = 'v' + info.appVersion;
+          }
 
-        if (info.cloudRelay && info.cloudRelay.relayWebUrl) {
-          cloudRelayUrl = info.cloudRelay.relayWebUrl;
-        }
-
-        if (info.settings) {
-          let mergedSettings = { ...info.settings };
-          try {
-            const localSaved = localStorage.getItem('val_app_settings');
-            if (localSaved) {
-              mergedSettings = { ...mergedSettings, ...JSON.parse(localSaved) };
+          if (riotStatusVal) {
+            if (info.riotConnected) {
+              riotStatusVal.innerHTML = `<span style="color:var(--val-cyan)">●</span> ${(info.region || 'RIOT').toUpperCase()} (${info.shard || 'live'})`;
+            } else {
+              riotStatusVal.innerHTML = `<span style="color:var(--val-red)">●</span> OFFLINE`;
             }
-          } catch (e) {}
-          applySettings(mergedSettings, true);
-        } else {
-          switchSyncMode('cloud');
+          }
+
+          if (info.cloudRelay) {
+            cloudRelayAuthExpired = !!info.cloudRelay.authExpired;
+            if (info.cloudRelay.relayWebUrl) {
+              cloudRelayUrl = info.cloudRelay.relayWebUrl;
+            }
+          }
+
+          if (clientUrlInput) {
+            clientUrlInput.value = (activeSyncMode === 'cloud' && cloudRelayUrl && !cloudRelayAuthExpired) ? cloudRelayUrl : fullLanDashboardUrl;
+          }
+
+          if (info.settings) {
+            let mergedSettings = { ...info.settings };
+            try {
+              const localSaved = localStorage.getItem('val_app_settings');
+              if (localSaved) {
+                mergedSettings = { ...mergedSettings, ...JSON.parse(localSaved) };
+              }
+            } catch (e) {}
+            applySettings(mergedSettings, true);
+          } else {
+            switchSyncMode('cloud');
+          }
+          initDashboardWS(info.token);
+        } catch (err) {
+          console.error('Error parsing info:', err);
         }
-        initDashboardWS(info.token);
-      } catch (err) {
-        console.error('Error parsing info:', err);
-      }
-      initLicense();
-      initUpdateCheck();
-    }).catch(err => {
-      console.log('Error fetching info:', err);
-      initLicense();
-      initUpdateCheck();
-    });
+        initLicense();
+        initUpdateCheck();
+      }).catch(err => {
+        console.log('Error fetching info:', err);
+        if (clientStatusVal) {
+          clientStatusVal.innerHTML = '<span style="color:var(--val-red)">●</span> DISCONNECTED';
+        }
+        if (infoRetryCount < 5) {
+          infoRetryCount++;
+          setTimeout(bootstrapDashboardInfo, 2000);
+        }
+        initLicense();
+        initUpdateCheck();
+      });
+    }
+    bootstrapDashboardInfo();
 
     // Connection Mode Switcher (Cloud Relay Primary vs LAN Alternative)
     btnCopyClient?.addEventListener('click', () => {
@@ -3986,7 +4009,7 @@
 
     async function refreshAuthToken() {
       try {
-        const res = await fetch('/api/info');
+        const res = await fetch('/api/info?token=' + encodeURIComponent(currentAuthToken));
         if (res.ok) {
           const info = await res.json();
           if (info && info.token) {
@@ -4280,9 +4303,12 @@
       }
 
       if (snap.user && snap.user.id) {
-        fetch('/api/info').then(r => r.json()).then(info => {
-          if (info.cloudRelay && info.cloudRelay.relayWebUrl) {
-            cloudRelayUrl = info.cloudRelay.relayWebUrl;
+        fetch('/api/info?token=' + encodeURIComponent(currentAuthToken)).then(r => r.json()).then(info => {
+          if (info.cloudRelay) {
+            cloudRelayAuthExpired = !!info.cloudRelay.authExpired;
+            if (info.cloudRelay.relayWebUrl) {
+              cloudRelayUrl = info.cloudRelay.relayWebUrl;
+            }
             if (typeof activeSyncMode !== 'undefined' && activeSyncMode === 'cloud') {
               switchSyncMode('cloud');
             }
@@ -4292,6 +4318,18 @@
 
       if (licEntitled && !wasEntitled && currentAuthToken) {
         initDashboardWS(currentAuthToken);
+      }
+
+      // If startup license verification is still in progress on the server, poll until settled
+      if (licCheckPollTimer) {
+        clearTimeout(licCheckPollTimer);
+        licCheckPollTimer = null;
+      }
+      if (snap.checking) {
+        licCheckPollTimer = setTimeout(() => {
+          licCheckPollTimer = null;
+          initLicense();
+        }, 1000);
       }
     }
 
@@ -4433,7 +4471,7 @@
       if (val) {
         applyLicenseKey(val);
       } else {
-        licAct('check', 'POST', null, t('toastCheckingLicServer'))
+        licAct('recheck', 'POST', null, t('toastCheckingLicServer'))
           .then((snap) => {
             if (snap && snap.entitled) {
               closeLicenseModal();
@@ -4832,8 +4870,11 @@
       ws.onclose = () => {
         if (licWs === ws) licWs = null;
         clientStatusVal.innerHTML = '<span style="color:var(--val-red)">●</span> DISCONNECTED';
-        if (!licActive || licEntitled) {
+        if (!licActive || licEntitled || (lastLicSnapshot && lastLicSnapshot.checking)) {
           setTimeout(() => initDashboardWS(token), 3000);
+        } else {
+          // Re-check license state in case startup verification completed after initial 402
+          setTimeout(() => initLicense(), 3000);
         }
       };
     }
@@ -5002,7 +5043,7 @@
 
     // Refresh Riot telemetry
     btnRefreshRiot?.addEventListener('click', () => {
-      fetch('/api/info').then(r => r.json()).then(info => {
+      fetch('/api/info?token=' + encodeURIComponent(currentAuthToken)).then(r => r.json()).then(info => {
         if (riotStatusVal) {
           if (info.riotConnected) {
             riotStatusVal.innerHTML = `<span style="color:var(--val-cyan)">●</span> ${(info.region || 'RIOT').toUpperCase()} (${info.shard || 'live'})`;

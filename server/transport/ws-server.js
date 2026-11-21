@@ -36,7 +36,7 @@ class ScoreWSServer {
       const clientToken = requestUrl.searchParams.get('token');
 
       if (!clientToken || clientToken !== this.authToken) {
-        logger.warn(`[WSServer] Handshake rejected. Invalid token: "${clientToken}"`);
+        logger.warn('[WSServer] Handshake rejected. Invalid token.');
         socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
         socket.destroy();
         return;
@@ -66,7 +66,8 @@ class ScoreWSServer {
         if (typeof req.socket.setKeepAlive === 'function') req.socket.setKeepAlive(true, 15000);
       }
       const clientIp = req.socket ? req.socket.remoteAddress : 'unknown';
-      const cleanIp = (clientIp || '').replace(/^.*:/, '') || clientIp;
+      const isLoopbackIp = clientIp === '::1' || clientIp === '127.0.0.1' || clientIp === '::ffff:127.0.0.1';
+      const cleanIp = isLoopbackIp ? '127.0.0.1' : ((clientIp || '').replace(/^.*:/, '') || clientIp);
       const ua = (req.headers && req.headers['user-agent']) || '';
       const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
       const isWindows = /Windows/i.test(ua);
@@ -79,7 +80,7 @@ class ScoreWSServer {
         ip: cleanIp,
         type: isMobile ? 'mobile' : 'desktop',
         os,
-        name: isMobile ? `Mobile (${os})` : (cleanIp === '127.0.0.1' || cleanIp === 'localhost' ? 'Dashboard Host' : `Client (${os})`),
+        name: isMobile ? `Mobile (${os})` : (isLoopbackIp || cleanIp === 'localhost' ? 'Dashboard Host' : `Client (${os})`),
         connectedAt: Date.now(),
         lastActive: Date.now()
       };

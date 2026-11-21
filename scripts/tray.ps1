@@ -5,7 +5,7 @@ Add-Type -AssemblyName System.Drawing
 $currentPid = $PID
 try {
     Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" | Where-Object {
-        $_.ProcessId -ne $currentPid -and $_.CommandLine -like "*tray.ps1*"
+        $_.ProcessId -ne $currentPid -and $_.CommandLine -like "*-File*tray.ps1*"
     } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 } catch {}
 
@@ -27,15 +27,38 @@ if (Test-Path $configPath) {
     } catch {}
 }
 
-# Global URL State
+# Global URL State (use 127.0.0.1 to avoid Windows IPv6 ::1 localhost stall)
 $global:token = ""
-$global:dashboardUrl = "http://localhost:$configPort/dashboard.html"
+$global:dashboardUrl = "http://127.0.0.1:$configPort/dashboard.html"
 $global:lanUrl = ""
+
+# Detect only Valorant Alert backend processes (never unrelated node.exe tools)
+function Get-ValorantAlertServerProcesses {
+    $found = @()
+    try {
+        $found += Get-CimInstance Win32_Process -Filter "Name = 'ValorantScoreAlert.exe'" -ErrorAction SilentlyContinue
+        $found += Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction SilentlyContinue | Where-Object {
+            $_.CommandLine -like "*ValorantScoreAlert*" -or
+            $_.CommandLine -like "*Valorant-Alert*" -or
+            $_.CommandLine -like "*server\index.js*" -or
+            $_.CommandLine -like "*server/index.js*"
+        }
+    } catch {}
+    return $found
+}
+
+function Start-ValorantAlertServer {
+    if (Test-Path "$rootDir\ValorantScoreAlert.exe") {
+        Start-Process -FilePath "$rootDir\ValorantScoreAlert.exe" -WorkingDirectory $rootDir -WindowStyle Hidden
+    } else {
+        Start-Process -FilePath "node" -ArgumentList "server/index.js" -WorkingDirectory $rootDir -WindowStyle Hidden
+    }
+}
 
 # Quick non-blocking server probe function
 function Probe-Server-Info {
     try {
-        $info = Invoke-RestMethod -Uri "http://localhost:$configPort/api/info" -Method Get -TimeoutSec 3 -ErrorAction Stop
+        $info = Invoke-RestMethod -Uri "http://127.0.0.1:$configPort/api/info" -Method Get -TimeoutSec 2 -ErrorAction Stop
         if ($info) {
             $global:token = $info.token
             $global:dashboardUrl = $info.dashboardUrl
@@ -469,7 +492,7 @@ $iconImg = if (Test-Path $iconPath) {
 # Create System Tray NotifyIcon
 $notifyIcon = New-Object System.Windows.Forms.NotifyIcon
 $notifyIcon.Icon = if ($iconImg) { $iconImg } else { [System.Drawing.SystemIcons]::Application }
-$notifyIcon.Text = "Valorant Score Alert (v1.0.10)"
+$notifyIcon.Text = "Valorant Score Alert (v1.0.11)"
 $notifyIcon.Visible = $true
 
 # Show confirmation balloon tip on startup
@@ -480,9 +503,25 @@ try {
     $notifyIcon.ShowBalloonTip(3000)
 } catch {}
 
-# Instant Open Dashboard Function with Multi-Browser Support
+# Instant Open Dashboard Function with Multi-Browser Support & Server Readiness Guard
 function Open-Dashboard {
-    $targetUrl = if ($global:dashboardUrl) { $global:dashboardUrl } else { "http://localhost:$configPort/dashboard.html" }
+    $ready = Probe-Server-Info
+    if (-not $ready) {
+        $runningProc = Get-ValorantAlertServerProcesses
+        if (-not $runningProc) {
+            Start-ValorantAlertServer
+        }
+        # Wait up to 8s for caxa extraction / server startup so Chrome never hits ERR_CONNECTION_REFUSED
+        for ($attempt = 0; $attempt -lt 16; $attempt++) {
+            Start-Sleep -Milliseconds 500
+            if (Probe-Server-Info) {
+                $ready = $true
+                break
+            }
+        }
+    }
+
+    $targetUrl = if ($global:dashboardUrl) { $global:dashboardUrl } else { "http://127.0.0.1:$configPort/dashboard.html" }
     
     $progFiles = ${env:ProgramFiles}
     $progFilesX86 = ${env:ProgramFiles(x86)}
@@ -540,7 +579,16 @@ function Exit-Application {
         } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
     } catch {}
 
-    Get-Process -Name node, ValorantScoreAlert -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Get-ValorantAlertServerProcesses | ForEach-Object {
+        Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+    }
+    try {
+        Get-NetTCPConnection -LocalPort $configPort -State Listen -ErrorAction SilentlyContinue | ForEach-Object {
+            if ($_.OwningProcess -gt 0) {
+                Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue
+            }
+        }
+    } catch {}
 
     [System.Windows.Forms.Application]::Exit()
     [System.Environment]::Exit(0)
@@ -559,10 +607,10 @@ function Show-VanguardTrayMenu {
     # 1. Advanced Submenu Items
     $subItems = [System.Collections.Generic.List[ValorantAlert.Tray.MenuItemDef]]::new()
     $subItems.Add([ValorantAlert.Tray.MenuItemDef]::Item("Test Match Point Alarm", {
-        Invoke-RestMethod -Uri "http://localhost:$configPort/api/simulator" -Method Post -Body (@{ alliedScore = 12; enemyScore = 11; inGame = $true; status = "MATCH_POINT" } | ConvertTo-Json) -ContentType "application/json" -ErrorAction SilentlyContinue | Out-Null
+        Invoke-RestMethod -Uri "http://127.0.0.1:$configPort/api/simulator" -Method Post -Body (@{ alliedScore = 12; enemyScore = 11; inGame = $true; status = "MATCH_POINT" } | ConvertTo-Json) -ContentType "application/json" -ErrorAction SilentlyContinue | Out-Null
     }))
     $subItems.Add([ValorantAlert.Tray.MenuItemDef]::Item("Test Round Win Sound", {
-        Invoke-RestMethod -Uri "http://localhost:$configPort/api/simulator" -Method Post -Body (@{ alliedScore = 1; enemyScore = 0; inGame = $true; status = "IN_MATCH" } | ConvertTo-Json) -ContentType "application/json" -ErrorAction SilentlyContinue | Out-Null
+        Invoke-RestMethod -Uri "http://127.0.0.1:$configPort/api/simulator" -Method Post -Body (@{ alliedScore = 1; enemyScore = 0; inGame = $true; status = "IN_MATCH" } | ConvertTo-Json) -ContentType "application/json" -ErrorAction SilentlyContinue | Out-Null
     }))
     $subItems.Add([ValorantAlert.Tray.MenuItemDef]::Item("Create Desktop Shortcut", {
         $vbsPath = Join-Path $rootDir "Create-Desktop-Shortcut.vbs"
@@ -590,7 +638,7 @@ function Show-VanguardTrayMenu {
     $menuItems.Add([ValorantAlert.Tray.MenuItemDef]::Item("Open Dashboard", { Open-Dashboard }))
     $menuItems.Add([ValorantAlert.Tray.MenuItemDef]::Item("Copy Mobile Link (LAN)", {
         Probe-Server-Info | Out-Null
-        $copyUrl = if ($global:lanUrl) { $global:lanUrl } else { "http://localhost:$configPort" }
+        $copyUrl = if ($global:lanUrl) { $global:lanUrl } else { "http://127.0.0.1:$configPort" }
         [System.Windows.Forms.Clipboard]::SetText($copyUrl)
         $notifyIcon.BalloonTipTitle = "Valorant Score Alert"
         $notifyIcon.BalloonTipText = "Da copy link: $copyUrl"
@@ -623,16 +671,12 @@ $healthTimer.add_Tick({
     if ($alive) {
         $global:healthFailCount = 0
     } else {
-        $runningProc = Get-Process -Name ValorantScoreAlert, node -ErrorAction SilentlyContinue
+        $runningProc = Get-ValorantAlertServerProcesses
         if (-not $runningProc) {
             $global:healthFailCount++
-            if ($global:healthFailCount -ge 3) {
+            if ($global:healthFailCount -ge 2) {
                 $global:healthFailCount = 0
-                if (Test-Path "$rootDir\ValorantScoreAlert.exe") {
-                    Start-Process -FilePath "$rootDir\ValorantScoreAlert.exe" -WorkingDirectory $rootDir -WindowStyle Hidden
-                } else {
-                    Start-Process -FilePath "node" -ArgumentList "server/index.js" -WorkingDirectory $rootDir -WindowStyle Hidden
-                }
+                Start-ValorantAlertServer
             }
         } else {
             $global:healthFailCount = 0

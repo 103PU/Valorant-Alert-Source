@@ -1056,7 +1056,7 @@
       startCloudRelay(relayUserId);
     } else if (!token) {
       if (isLocalServerHost) {
-        fetch('/api/info').then(r => r.json()).then(info => {
+        fetch('/api/info?token=' + encodeURIComponent(token || '')).then(r => r.json()).then(info => {
           if (info && info.token) {
             token = info.token;
             localStorage.setItem('val_alert_token', token);
@@ -1712,7 +1712,7 @@
         connStatusText.innerText = 'DISCONNECTED';
         if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
         if (isLocalServerHost) {
-          fetch('/api/info').then(r => r.json()).then(info => {
+          fetch('/api/info?token=' + encodeURIComponent(token || '')).then(r => r.json()).then(info => {
             if (info && info.token && info.token !== token) {
               token = info.token;
               localStorage.setItem('val_alert_token', token);

@@ -17,6 +17,15 @@ const { loadSettings } = require('./routes/api-settings');
 const { createApp } = require('./app');
 const { createLicensing } = require('./licensing');
 
+// Prevent silent crashes from hiding root causes in background launcher mode
+process.on('uncaughtException', (err) => {
+  logger.error('[Process] Uncaught exception:', err && err.stack ? err.stack : String(err));
+});
+process.on('unhandledRejection', (reason) => {
+  const msg = reason instanceof Error ? (reason.stack || reason.message) : String(reason);
+  logger.error('[Process] Unhandled rejection:', msg);
+});
+
 // Resolve paths robustly for Source and Standalone Binary environments
 const cwd = process.cwd();
 const dirParent = path.join(__dirname, '..');
@@ -175,6 +184,15 @@ poller = new ScorePoller(config, (scoreData) => {
 });
 
 let reclaimAttempts = 0;
+let listenHost = '::';
+
+function bindServer() {
+  if (listenHost === '::') {
+    server.listen({ port: Number(PORT), host: '::', ipv6Only: false });
+  } else {
+    server.listen(Number(PORT), '0.0.0.0');
+  }
+}
 
 function killPortAndRetry() {
   reclaimAttempts++;
@@ -184,10 +202,10 @@ function killPortAndRetry() {
     return;
   }
   logger.warn(`⚠️ Cổng ${PORT} bị chiếm bởi tiến trình không phản hồi. Đang thu hồi (Lần ${reclaimAttempts}/3)...`);
-  exec(`cmd /c for /f "tokens=5" %a in ('netstat -aon ^| findstr :${PORT} ^| findstr LISTENING') do taskkill /f /pid %a`, () => {
+  exec(`cmd /c for /f "tokens=5" %a in ('netstat -aon ^| findstr /R /C:":${PORT} " ^| findstr LISTENING') do taskkill /f /pid %a`, () => {
     setTimeout(() => {
       try {
-        server.listen(PORT, '0.0.0.0');
+        bindServer();
       } catch (e) {}
     }, 1500);
   });
@@ -237,9 +255,16 @@ function launchBrowserDashboard(url, onFinished) {
 }
 
 server.on('error', (err) => {
+  if ((err.code === 'EAFNOSUPPORT' || err.code === 'EADDRNOTAVAIL' || err.code === 'EINVAL') && listenHost === '::') {
+    logger.warn(`[Server] IPv6 dual-stack bind unavailable (${err.code}), falling back to 0.0.0.0.`);
+    listenHost = '0.0.0.0';
+    bindServer();
+    return;
+  }
+
   if (err.code === 'EADDRINUSE') {
     // Check if an existing Valorant Score Alert instance is already running healthy on this port
-    const req = http.get(`http://localhost:${PORT}/api/info`, (res) => {
+    const req = http.get(`http://127.0.0.1:${PORT}/api/info`, (res) => {
       if (res.statusCode === 200) {
         logger.info(`✅ Valorant Score Alert đã đang chạy ngầm trên cổng ${PORT}.`);
         process.exit(0);
@@ -257,12 +282,12 @@ server.on('error', (err) => {
       killPortAndRetry();
     });
   } else {
-    logger.error('Server error:', err.message);
+    logger.error(`Server error (${err.code || 'UNKNOWN'}):`, err.message);
   }
 });
 
-// Start Server
-server.listen(PORT, '0.0.0.0', async () => {
+// Start Server (dual-stack :: with IPv4 fallback so both localhost/::1 and 127.0.0.1 respond immediately)
+server.on('listening', async () => {
   logger.info('===========================================================');
   logger.info('🚀 VALORANT REALTIME SCORE ALERT SERVER STARTED');
   logger.info('===========================================================');
@@ -283,16 +308,49 @@ server.listen(PORT, '0.0.0.0', async () => {
 
   logger.info('===========================================================');
 
-  // Verify Riot Client connection on startup
+  // Register entitlement listener before starting license check so transitions are never missed
+  licensing.onChange((snap) => {
+    if (snap.entitled) {
+      poller.start();
+    } else {
+      poller.stop();
+    }
+  });
+
+  // Start license verification immediately in parallel (don't block behind Riot lockfile)
+  const licenseReady = licensing.start().then((snap) => {
+    logger.info('===========================================================');
+    if (snap.entitled) {
+      const label = snap.license && snap.license.plan ? `plan ${snap.license.plan}` : snap.state;
+      logger.info(`✅ License hợp lệ (${label}). Bắt đầu theo dõi tỉ số.`);
+    } else if (snap.state === 'NOT_LOGGED_IN') {
+      logger.warn('🔑 Chưa đăng nhập. Mở Dashboard và bấm "Đăng nhập Google" để kích hoạt.');
+    } else {
+      logger.warn(`⚠️ Chưa có license khả dụng (${snap.state}${snap.reason ? `: ${snap.reason}` : ''}).`);
+    }
+    logger.info('===========================================================');
+    if (licensing.entitled) poller.start();
+    return snap;
+  }).catch((e) => {
+    // A failed check leaves the gate on its last state, which is never entitled
+    // on a first run — so this logs and falls through without starting polling.
+    logger.error('Không kiểm tra được license:', e.message);
+    return null;
+  });
+
+  // Verify Riot Client connection asynchronously (never block tray/browser startup)
   const lockfile = readLockfile();
   if (lockfile) {
     logger.info(`✅ Riot Client detected! Port: ${lockfile.port}`);
-    const auth = await getAuthData(false, config.tokenAutoRefreshMins);
-    if (auth) {
-      logger.info(`✅ Authenticated with Riot Local API. PUUID: ${auth.puuid}`);
-      const region = getRegionInfo();
-      logger.info(`✅ Region: ${region.region} (${region.shard})`);
-    }
+    getAuthData(false, config.tokenAutoRefreshMins).then((auth) => {
+      if (auth) {
+        logger.info(`✅ Authenticated with Riot Local API. PUUID: ${auth.puuid}`);
+        const region = getRegionInfo();
+        logger.info(`✅ Region: ${region.region} (${region.shard})`);
+      }
+    }).catch((err) => {
+      logger.warn('[RiotAuth] Startup check error:', err.message);
+    });
   } else {
     logger.warn('⚠️ Riot Client lockfile not found. Please launch Valorant on PC.');
   }
@@ -312,41 +370,19 @@ server.listen(PORT, '0.0.0.0', async () => {
     }
   } catch (e) {}
 
+  // Wait briefly for fast license verification (up to 1.2s) to avoid initial 402 WS race,
+  // while still opening the dashboard promptly if KLD is slow or offline.
+  await Promise.race([
+    licenseReady,
+    new Promise((resolve) => setTimeout(resolve, 1200))
+  ]);
+
   // Auto-launch PC Dashboard in Desktop Standalone App Mode (Edge, Chrome, Brave, or System Default)
   try {
     launchBrowserDashboard(dashboardUrl);
   } catch (e) {}
 
-  // Licensing gate: the score feed is the paid feature, so polling follows
-  // entitlement for the whole session, not just at boot. start()/stop() are both
-  // idempotent (score-poller.js:95, :119), so re-firing on a state change is safe.
-  // There is deliberately no "licensing absent" branch — the poller starts only
-  // from an entitled gate state, never from the shape of config.json.
-  try {
-    const snap = await licensing.start();
-    logger.info('===========================================================');
-    if (snap.entitled) {
-      const label = snap.license && snap.license.plan ? `plan ${snap.license.plan}` : snap.state;
-      logger.info(`✅ License hợp lệ (${label}). Bắt đầu theo dõi tỉ số.`);
-    } else if (snap.state === 'NOT_LOGGED_IN') {
-      logger.warn('🔑 Chưa đăng nhập. Mở Dashboard và bấm "Đăng nhập Google" để kích hoạt.');
-    } else {
-      logger.warn(`⚠️ Chưa có license khả dụng (${snap.state}${snap.reason ? `: ${snap.reason}` : ''}).`);
-    }
-    logger.info('===========================================================');
-  } catch (e) {
-    // A failed check leaves the gate on its last state, which is never entitled
-    // on a first run — so this logs and falls through without starting polling.
-    logger.error('Không kiểm tra được license:', e.message);
-  }
-
-  licensing.onChange((snap) => {
-    if (snap.entitled) {
-      poller.start();
-    } else {
-      poller.stop();
-    }
-  });
-
-  if (licensing.entitled) poller.start();
+  await licenseReady;
 });
+
+bindServer();

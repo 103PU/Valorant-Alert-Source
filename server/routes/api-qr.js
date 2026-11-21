@@ -5,6 +5,14 @@ const qrCache = new Map();
 
 async function handleApiQr(req, res, { wsServer, cloudRelay, lanIp, port, publicUrl }) {
   const parsed = new URL(req.url, 'http://localhost');
+  const remoteAddress = req.socket && req.socket.remoteAddress;
+  const host = (req.headers?.host || '').replace(/:\d+$/, '').toLowerCase();
+  const isLoopback = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(remoteAddress) && ['localhost', '127.0.0.1', '[::1]'].includes(host);
+  if (!isLoopback && parsed.searchParams.get('token') !== wsServer.getToken()) {
+    res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ ok: false, error: 'invalid_token' }));
+    return;
+  }
   const qrType = parsed.searchParams.get('type');
   const token = wsServer.getToken();
 

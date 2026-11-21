@@ -22,7 +22,8 @@ async function refreshAuthData(autoRefreshMins = 45) {
     const res = await fetch(`${lockfile.baseUrl}/entitlements/v1/token`, {
       headers: {
         'Authorization': lockfile.authHeader
-      }
+      },
+      signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined
     });
 
     if (!res.ok) {

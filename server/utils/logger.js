@@ -2,7 +2,11 @@ const fs = require('fs');
 const path = require('path');
 
 const isPkg = !!process.pkg;
-const rootDir = isPkg ? path.dirname(process.execPath) : path.join(__dirname, '..', '..');
+const cwd = process.cwd();
+const dirParent = path.join(__dirname, '..', '..');
+const rootDir = isPkg
+  ? path.dirname(process.execPath)
+  : ((fs.existsSync(path.join(cwd, 'config.json')) || fs.existsSync(path.join(cwd, 'public'))) ? cwd : dirParent);
 const logsDir = path.join(rootDir, 'logs');
 const logFile = path.join(logsDir, 'app.log');
 
